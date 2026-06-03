@@ -34,6 +34,31 @@ public enum ErrorCode {
     FORBIDDEN_ERROR(40300, "禁止访问"),
 
     /**
+     * 资源不存在
+     */
+    NOT_FOUND_ERROR(40400, "资源不存在"),
+
+    /**
+     * 简历数量超出限制
+     */
+    RESUME_LIMIT_ERROR(40001, "简历数量超出限制"),
+
+    /**
+     * 模块操作异常
+     */
+    RESUME_SECTION_ERROR(40002, "模块操作异常"),
+
+    /**
+     * AI 服务调用失败
+     */
+    AI_SERVICE_ERROR(50001, "AI 服务调用失败"),
+
+    /**
+     * AI 响应解析失败
+     */
+    AI_RESPONSE_PARSE_ERROR(50002, "AI 响应解析失败"),
+
+    /**
      * 系统内部异常
      */
     SYSTEM_ERROR(50000, "系统内部异常");
