@@ -1,5 +1,7 @@
 package com.mianshiba.ai;
 
+import com.mianshiba.ai.mapper.ResumeMapper;
+import com.mianshiba.ai.mapper.ResumeSectionMapper;
 import com.mianshiba.ai.mapper.UserMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,6 +17,12 @@ class MianshibaAiBackendApplicationTests {
 
     @MockBean
     private UserMapper userMapper;
+
+    @MockBean
+    private ResumeMapper resumeMapper;
+
+    @MockBean
+    private ResumeSectionMapper resumeSectionMapper;
 
     @Test
     void contextLoads() {
