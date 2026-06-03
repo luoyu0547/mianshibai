@@ -106,7 +106,20 @@
           </div>
         </div>
         <div class="resume-edit-page__chat-panel">
-          <div class="chat-placeholder">AI 对话面板（即将上线）</div>
+          <el-tabs v-model="activeTab" class="chat-tabs">
+            <el-tab-pane label="AI 对话" name="chat">
+              <AiChatPanel
+                :resume-id="resumeId"
+                @extracted="handleExtracted"
+              />
+            </el-tab-pane>
+            <el-tab-pane label="AI 评分" name="score">
+              <AiScorePanel :resume-id="resumeId" />
+            </el-tab-pane>
+          </el-tabs>
+        </div>
+        <div class="resume-edit-page__version-bar">
+          <VersionHistory :resume-id="resumeId" />
         </div>
       </div>
     </div>
@@ -123,6 +136,9 @@ import WorkExperienceEditor from '@/components/resume/sections/WorkExperienceEdi
 import ProjectEditor from '@/components/resume/sections/ProjectEditor.vue'
 import SkillsEditor from '@/components/resume/sections/SkillsEditor.vue'
 import SummaryEditor from '@/components/resume/sections/SummaryEditor.vue'
+import AiChatPanel from '@/components/resume/AiChatPanel.vue'
+import AiScorePanel from '@/components/resume/AiScorePanel.vue'
+import VersionHistory from '@/components/resume/VersionHistory.vue'
 import TemplateSelector from '@/components/resume/TemplateSelector.vue'
 import MinimalTech from '@/templates/MinimalTech.vue'
 import ModernTwoCol from '@/templates/ModernTwoCol.vue'
@@ -161,6 +177,7 @@ const sectionIds = ref<Record<SectionType, number[]>>({
 })
 
 const activeSections = ref(['basic'])
+const activeTab = ref('chat')
 
 const templateMap: Record<string, Component> = {
   minimal_tech: MinimalTech,
@@ -203,6 +220,30 @@ function splitSections(sections: SectionVO[]) {
 }
 
 watch(basicData, () => { }, { deep: true })
+
+function handleExtracted(sectionType: SectionType, sectionData: Record<string, unknown>) {
+  switch (sectionType) {
+    case 'basic':
+      basicData.value = sectionData
+      break
+    case 'education':
+      educationItems.value = Array.isArray(sectionData) ? sectionData : [sectionData]
+      break
+    case 'work':
+      workItems.value = Array.isArray(sectionData) ? sectionData : [sectionData]
+      break
+    case 'project':
+      projectItems.value = Array.isArray(sectionData) ? sectionData : [sectionData]
+      break
+    case 'skills':
+      skillsData.value = sectionData
+      break
+    case 'summary':
+      summaryData.value = sectionData
+      break
+  }
+  ElMessage.success(`已更新${sectionType}内容`)
+}
 
 async function handleSave() {
   if (!resumeId.value) {
@@ -374,6 +415,22 @@ async function handleSave() {
 
 .resume-edit-page__chat-panel {
   flex: 4;
+  border-top: var(--nb-border);
+  background: var(--nb-card);
+  overflow: hidden;
+}
+
+.chat-tabs :deep(.el-tabs__content) {
+  height: calc(100% - 40px);
+  overflow: hidden;
+}
+
+.chat-tabs :deep(.el-tab-pane) {
+  height: 100%;
+}
+
+.resume-edit-page__version-bar {
+  padding: 8px 12px;
   border-top: var(--nb-border);
   background: var(--nb-card);
 }
