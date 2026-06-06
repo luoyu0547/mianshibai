@@ -10,7 +10,7 @@ export function downsampleBuffer(input: Float32Array, inputSampleRate: number, o
     const end = Math.min(Math.round((i + 1) * ratio), input.length)
     let sum = 0
     for (let j = start; j < end; j++) {
-      sum += input[j]
+      sum += input[j]!
     }
     output[i] = sum / (end - start)
   }
@@ -21,7 +21,7 @@ export function floatTo16BitPCM(input: Float32Array): ArrayBuffer {
   const buffer = new ArrayBuffer(input.length * 2)
   const view = new DataView(buffer)
   for (let i = 0; i < input.length; i++) {
-    const s = Math.max(-1, Math.min(1, input[i]))
+    const s = Math.max(-1, Math.min(1, input[i]!))
     view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true)
   }
   return buffer
