@@ -75,3 +75,58 @@ CREATE TABLE IF NOT EXISTS resume_version (
   PRIMARY KEY (id),
   UNIQUE KEY uk_resume_version (resume_id, version)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='简历版本表';
+
+CREATE TABLE IF NOT EXISTS interview_session (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '面试会话 id',
+  user_id BIGINT NOT NULL COMMENT '用户 id',
+  resume_id BIGINT NOT NULL COMMENT '关联简历 id',
+  title VARCHAR(128) NOT NULL DEFAULT '' COMMENT '面试标题',
+  interview_type VARCHAR(32) NOT NULL DEFAULT 'technical' COMMENT '面试类型',
+  target_position VARCHAR(128) NOT NULL DEFAULT '' COMMENT '目标岗位',
+  tech_direction VARCHAR(128) NOT NULL DEFAULT '' COMMENT '技术方向',
+  total_questions INT NOT NULL DEFAULT 5 COMMENT '主问题数量',
+  current_question_no INT NOT NULL DEFAULT 0 COMMENT '当前主问题序号',
+  status VARCHAR(32) NOT NULL DEFAULT 'created' COMMENT 'created/in_progress/generating_report/completed/cancelled',
+  started_at DATETIME DEFAULT NULL COMMENT '开始时间',
+  ended_at DATETIME DEFAULT NULL COMMENT '结束时间',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
+  PRIMARY KEY (id),
+  KEY idx_user_id (user_id),
+  KEY idx_resume_id (resume_id),
+  KEY idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 模拟面试会话表';
+
+CREATE TABLE IF NOT EXISTS interview_turn (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '面试轮次 id',
+  session_id BIGINT NOT NULL COMMENT '面试会话 id',
+  question_no INT NOT NULL COMMENT '主问题序号',
+  turn_type VARCHAR(32) NOT NULL COMMENT 'main/follow_up',
+  question_text TEXT NOT NULL COMMENT 'AI 问题文本',
+  answer_text TEXT DEFAULT NULL COMMENT '用户回答文本',
+  ai_feedback TEXT DEFAULT NULL COMMENT 'AI 对本轮回答的简短反馈',
+  answer_duration_seconds INT DEFAULT NULL COMMENT '回答耗时秒数',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
+  PRIMARY KEY (id),
+  KEY idx_session_id (session_id),
+  KEY idx_question_no (question_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 模拟面试轮次表';
+
+CREATE TABLE IF NOT EXISTS interview_report (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '报告 id',
+  session_id BIGINT NOT NULL COMMENT '面试会话 id',
+  total_score INT NOT NULL COMMENT '总分 0-100',
+  accuracy_score INT NOT NULL COMMENT '技术准确性',
+  clarity_score INT NOT NULL COMMENT '表达清晰度',
+  depth_score INT NOT NULL COMMENT '项目深度',
+  matching_score INT NOT NULL COMMENT '岗位匹配度',
+  summary TEXT NOT NULL COMMENT '总体评价',
+  suggestions JSON NOT NULL COMMENT '优化建议列表',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_session_id (session_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 模拟面试报告表';

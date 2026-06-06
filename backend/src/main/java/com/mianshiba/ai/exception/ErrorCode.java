@@ -59,6 +59,36 @@ public enum ErrorCode {
     AI_RESPONSE_PARSE_ERROR(50002, "AI 响应解析失败"),
 
     /**
+     * 面试不存在
+     */
+    INTERVIEW_NOT_FOUND_ERROR(40410, "面试不存在"),
+
+    /**
+     * 面试状态异常
+     */
+    INTERVIEW_STATUS_ERROR(40010, "面试状态异常"),
+
+    /**
+     * 面试轮次异常
+     */
+    INTERVIEW_TURN_ERROR(40011, "面试轮次异常"),
+
+    /**
+     * 语音服务调用失败
+     */
+    SPEECH_SERVICE_ERROR(50010, "语音服务调用失败"),
+
+    /**
+     * 语音识别失败
+     */
+    SPEECH_RECOGNITION_ERROR(50011, "语音识别失败"),
+
+    /**
+     * 语音合成失败
+     */
+    SPEECH_SYNTHESIS_ERROR(50012, "语音合成失败"),
+
+    /**
      * 系统内部异常
      */
     SYSTEM_ERROR(50000, "系统内部异常");
