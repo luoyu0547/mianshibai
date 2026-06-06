@@ -1,5 +1,8 @@
 package com.mianshiba.ai;
 
+import com.mianshiba.ai.mapper.InterviewReportMapper;
+import com.mianshiba.ai.mapper.InterviewSessionMapper;
+import com.mianshiba.ai.mapper.InterviewTurnMapper;
 import com.mianshiba.ai.mapper.ResumeMapper;
 import com.mianshiba.ai.mapper.ResumeSectionMapper;
 import com.mianshiba.ai.mapper.UserMapper;
@@ -23,6 +26,15 @@ class MianshibaAiBackendApplicationTests {
 
     @MockBean
     private ResumeSectionMapper resumeSectionMapper;
+
+    @MockBean
+    private InterviewSessionMapper interviewSessionMapper;
+
+    @MockBean
+    private InterviewTurnMapper interviewTurnMapper;
+
+    @MockBean
+    private InterviewReportMapper interviewReportMapper;
 
     @Test
     void contextLoads() {
