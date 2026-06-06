@@ -56,3 +56,8 @@ knife4j:
 app:
   infrastructure:
     validate-on-startup: true
+  speech:
+    provider: aliyun
+    aliyun:
+      app-key: ${ALIYUN_NLS_APP_KEY:}
+      region: ${ALIYUN_NLS_REGION:cn-shanghai}
