@@ -41,7 +41,9 @@
           </div>
           <h3 class="action-card__title">开始面试</h3>
           <p class="action-card__desc">选择岗位方向，开始 AI 模拟面试</p>
-          <NbButton type="primary" block>立即开始</NbButton>
+          <router-link to="/interview/new">
+            <NbButton type="primary" block>立即开始</NbButton>
+          </router-link>
         </NbCard>
 
         <NbCard hoverable class="action-card">
@@ -50,7 +52,9 @@
           </div>
           <h3 class="action-card__title">面试记录</h3>
           <p class="action-card__desc">查看历史面试记录和表现分析</p>
-          <NbButton type="secondary" block>查看记录</NbButton>
+          <router-link to="/interview">
+            <NbButton type="secondary" block>查看记录</NbButton>
+          </router-link>
         </NbCard>
 
         <NbCard hoverable class="action-card">

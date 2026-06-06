@@ -47,6 +47,30 @@ const router = createRouter({
       component: () => import('@/views/resume/ResumePreviewPage.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/interview',
+      name: 'InterviewList',
+      component: () => import('@/views/interview/InterviewListPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/interview/new',
+      name: 'InterviewNew',
+      component: () => import('@/views/interview/InterviewNewPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/interview/:id/room',
+      name: 'InterviewRoom',
+      component: () => import('@/views/interview/InterviewRoomPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/interview/:id/report',
+      name: 'InterviewReport',
+      component: () => import('@/views/interview/InterviewReportPage.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 
