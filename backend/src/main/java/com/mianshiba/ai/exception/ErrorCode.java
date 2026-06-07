@@ -131,6 +131,9 @@ public enum ErrorCode {
     /**
      * 数据分析失败
      */
+    INTERVIEW_REPORT_ENHANCE_ERROR(50013, "面试报告增强失败"),
+    INTERVIEW_REPORT_COMPARE_ERROR(50014, "面试报告对比失败"),
+
     ANALYTICS_ERROR(50030, "数据分析失败"),
 
     /**

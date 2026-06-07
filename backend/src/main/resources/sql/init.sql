@@ -134,6 +134,50 @@ CREATE TABLE IF NOT EXISTS interview_report (
   UNIQUE KEY uk_session_id (session_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 模拟面试报告表';
 
+CREATE TABLE IF NOT EXISTS interview_report_enhancement (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '报告增强 id',
+  user_id BIGINT NOT NULL COMMENT '用户 id',
+  session_id BIGINT NOT NULL COMMENT '面试会话 id',
+  report_id BIGINT NOT NULL COMMENT '面试报告 id',
+  status VARCHAR(32) NOT NULL DEFAULT 'pending' COMMENT 'pending/running/completed/failed',
+  summary TEXT DEFAULT NULL COMMENT '增强复盘摘要',
+  radar_json JSON DEFAULT NULL COMMENT '能力雷达',
+  skill_gaps_json JSON DEFAULT NULL COMMENT '技能缺口',
+  action_items_json JSON DEFAULT NULL COMMENT '下一步行动建议',
+  error_message VARCHAR(512) DEFAULT NULL COMMENT '失败原因',
+  retry_count INT NOT NULL DEFAULT 0 COMMENT '重试次数',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_report_id (report_id),
+  KEY idx_user_id (user_id),
+  KEY idx_session_id (session_id),
+  KEY idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 面试报告增强表';
+
+CREATE TABLE IF NOT EXISTS interview_turn_review (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '轮次复盘 id',
+  user_id BIGINT NOT NULL COMMENT '用户 id',
+  session_id BIGINT NOT NULL COMMENT '面试会话 id',
+  report_id BIGINT NOT NULL COMMENT '面试报告 id',
+  turn_id BIGINT NOT NULL COMMENT '面试轮次 id',
+  question TEXT NOT NULL COMMENT '问题快照',
+  answer_summary TEXT DEFAULT NULL COMMENT '用户回答摘要',
+  diagnosis TEXT DEFAULT NULL COMMENT '回答问题诊断',
+  excellent_answer TEXT DEFAULT NULL COMMENT '优秀回答示例',
+  improved_answer TEXT DEFAULT NULL COMMENT '基于用户回答改写后的版本',
+  knowledge_points_json JSON DEFAULT NULL COMMENT '考察知识点',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
+  PRIMARY KEY (id),
+  KEY idx_user_id (user_id),
+  KEY idx_session_id (session_id),
+  KEY idx_report_id (report_id),
+  KEY idx_turn_id (turn_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 面试轮次复盘表';
+
 CREATE TABLE IF NOT EXISTS company (
   id BIGINT NOT NULL AUTO_INCREMENT COMMENT '公司 id',
   name VARCHAR(128) NOT NULL COMMENT '公司名称',
