@@ -575,7 +575,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         vo.setTitle(todo.getTitle());
         vo.setDescription(todo.getDescription());
         vo.setPriority(todo.getPriority());
-        vo.setPriorityLabel(PRIORITY_LABELS.getOrDefault(todo.getPriority(), todo.getPriority()));
+        vo.setPriorityLabel(todo.getPriority() != null ? PRIORITY_LABELS.getOrDefault(todo.getPriority(), todo.getPriority()) : "中");
         vo.setDueAt(todo.getDueAt());
         vo.setCompleted(todo.getCompleted() != null && todo.getCompleted() == 1);
         vo.setCompletedAt(todo.getCompletedAt());
