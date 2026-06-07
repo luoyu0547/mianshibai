@@ -59,6 +59,9 @@
           </template>
           <template v-else>
             <p class="interview-report-page__summary-text">{{ enhancement.summary }}</p>
+            <div v-if="reportRadarOption" class="interview-report-page__chart-card">
+              <BaseChart :option="reportRadarOption" height="320px" />
+            </div>
             <div v-if="enhancement.skillGaps.length > 0" class="interview-report-page__tags">
               <el-tag v-for="gap in enhancement.skillGaps" :key="gap.name" type="warning" size="small" style="margin: 2px 4px 2px 0">
                 {{ gap.name }} · {{ gap.severity }}
@@ -163,6 +166,8 @@ import { ElMessage } from 'element-plus'
 import { ArrowLeft, Loading as LoadingIcon } from '@element-plus/icons-vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import NbCard from '@/components/NbCard.vue'
+import BaseChart from '@/components/charts/BaseChart.vue'
+import { buildRadarOption } from '@/utils/charts/reviewCharts'
 import { useInterviewStore } from '@/stores/interview'
 
 const route = useRoute()
@@ -173,6 +178,13 @@ const sessionId = computed(() => Number(route.params.id) || 0)
 const report = computed(() => interviewStore.currentReport)
 const enhancement = computed(() => interviewStore.currentEnhancement)
 const comparison = computed(() => interviewStore.currentComparison)
+
+const reportRadarOption = computed(() => {
+  if (!enhancement.value?.radar || Object.keys(enhancement.value.radar).length === 0) {
+    return null
+  }
+  return buildRadarOption(enhancement.value.radar, '本次能力雷达')
+})
 
 const dimensions = [
   { key: 'accuracyScore' as const, label: '技术准确性', color: '#6C5CE7' },
@@ -418,5 +430,13 @@ onUnmounted(() => {
   padding: 8px 0;
   border-bottom: 1px solid var(--nb-border);
   font-size: 14px;
+}
+
+.interview-report-page__chart-card {
+  margin-top: 16px;
+  border: 2px solid #111;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
 }
 </style>
