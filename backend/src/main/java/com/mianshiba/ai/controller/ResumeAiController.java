@@ -5,9 +5,13 @@ import com.mianshiba.ai.common.ResultUtils;
 import com.mianshiba.ai.model.dto.resume.AiGenerateRequest;
 import com.mianshiba.ai.model.dto.resume.AiOptimizeRequest;
 import com.mianshiba.ai.model.dto.resume.ChatRequest;
+import com.mianshiba.ai.model.dto.resume.ResumeImportRequest;
+import com.mianshiba.ai.model.dto.resume.ResumeWholeOptimizeRequest;
 import com.mianshiba.ai.model.vo.resume.AiScoreVO;
 import com.mianshiba.ai.model.vo.resume.ChatMessageVO;
 import com.mianshiba.ai.model.vo.resume.ResumeDetailVO;
+import com.mianshiba.ai.model.vo.resume.ResumeImportPreviewVO;
+import com.mianshiba.ai.model.vo.resume.ResumeWholeOptimizeVO;
 import com.mianshiba.ai.model.vo.resume.SectionVO;
 import com.mianshiba.ai.service.ResumeAiService;
 import com.mianshiba.ai.service.ResumeService;
@@ -102,6 +106,24 @@ public class ResumeAiController {
             @PathVariable("resumeId") Long resumeId) {
         resumeService.getResumeDetail(authorizationHeader, resumeId);
         return ResultUtils.success(resumeAiService.getChatHistory(resumeId));
+    }
+
+    @PostMapping("/ai/import-preview")
+    @Operation(summary = "AI 导入简历预览")
+    public BaseResponse<ResumeImportPreviewVO> importPreview(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
+            @RequestBody ResumeImportRequest request) {
+        return ResultUtils.success(resumeAiService.importResumePreview(authorizationHeader, request));
+    }
+
+    @PostMapping("/{resumeId}/ai/optimize-whole")
+    @Operation(summary = "整份简历 AI 优化")
+    public BaseResponse<ResumeWholeOptimizeVO> optimizeWhole(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
+            @PathVariable("resumeId") Long resumeId,
+            @RequestBody ResumeWholeOptimizeRequest request) {
+        request.setResumeId(resumeId);
+        return ResultUtils.success(resumeAiService.optimizeWholeResume(authorizationHeader, request));
     }
 
     private String extractTargetPosition(List<SectionVO> sections) {

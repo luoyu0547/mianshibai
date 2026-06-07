@@ -166,3 +166,30 @@ export interface ChatMessageVO {
   relatedSectionType?: string
   createTime: string
 }
+
+export interface ResumeImportRequest {
+  fileName?: string
+  fileType?: string
+  rawText: string
+}
+
+export interface ResumeImportPreviewVO {
+  title: string
+  templateType: string
+  sections: SectionVO[]
+  warnings: string[]
+}
+
+export interface ResumeWholeOptimizeRequest {
+  resumeId: number
+  jobId?: number
+  targetPosition?: string
+  optimizeGoal?: string
+}
+
+export interface ResumeWholeOptimizeVO {
+  beforeScore: number
+  estimatedAfterScore: number
+  globalSuggestions: string[]
+  optimizedSections: SectionVO[]
+}

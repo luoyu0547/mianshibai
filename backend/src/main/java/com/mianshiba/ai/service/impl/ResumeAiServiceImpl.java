@@ -14,6 +14,8 @@ import com.mianshiba.ai.mapper.ResumeSectionMapper;
 import com.mianshiba.ai.mapper.UserMapper;
 import com.mianshiba.ai.model.dto.resume.AiGenerateRequest;
 import com.mianshiba.ai.model.dto.resume.AiOptimizeRequest;
+import com.mianshiba.ai.model.dto.resume.ResumeImportRequest;
+import com.mianshiba.ai.model.dto.resume.ResumeWholeOptimizeRequest;
 import com.mianshiba.ai.model.entity.Resume;
 import com.mianshiba.ai.model.entity.ResumeChatMessage;
 import com.mianshiba.ai.model.entity.ResumeSection;
@@ -23,6 +25,8 @@ import com.mianshiba.ai.model.entity.JobAnalysis;
 import com.mianshiba.ai.model.vo.resume.AiScoreVO;
 import com.mianshiba.ai.model.vo.resume.ChatMessageVO;
 import com.mianshiba.ai.model.vo.resume.ResumeDetailVO;
+import com.mianshiba.ai.model.vo.resume.ResumeImportPreviewVO;
+import com.mianshiba.ai.model.vo.resume.ResumeWholeOptimizeVO;
 import com.mianshiba.ai.model.vo.resume.SectionVO;
 import com.mianshiba.ai.service.ResumeAiService;
 import com.mianshiba.ai.utils.JwtUtils;
@@ -79,6 +83,24 @@ public class ResumeAiServiceImpl implements ResumeAiService {
     private static final String CHAT_SYSTEM_PROMPT =
             "你是一位专业的简历顾问助手。用户正在编辑简历，以下是当前简历的模块内容摘要：\n%s\n\n" +
             "请根据用户的问题提供建议。回答要简洁专业。";
+
+    private static final String IMPORT_PARSE_PROMPT =
+            "你是一位专业的简历解析助手。请将以下简历文本解析为结构化的 JSON 格式。\n\n" +
+            "简历文本：\n%s\n\n" +
+            "请以 JSON 数组格式返回，每个元素包含 sectionType 和 sectionData 字段。\n" +
+            "sectionType 可选值：basic, education, work, project, skills, summary\n" +
+            "sectionData 是一个 JSON 对象，包含该模块的具体内容。\n" +
+            "如果有无法归类的信息，放入 summary 模块。\n" +
+            "请直接返回 JSON 数组，不要包含其他文字。可以用 ```json ``` 包裹。";
+
+    private static final String WHOLE_OPTIMIZE_PROMPT =
+            "你是一位专业的简历优化助手。请对以下完整简历内容进行整体优化。%s\n\n" +
+            "当前简历模块：\n%s\n\n" +
+            "请返回 JSON 格式的优化建议，包含：\n" +
+            "- globalSuggestions：全局建议列表（字符串数组）\n" +
+            "- optimizedSections：优化后的模块数组，每个元素包含 sectionType 和 sectionData\n\n" +
+            "保持原有数据结构，只优化内容质量，增强 STAR 法则表达和量化成果。\n" +
+            "请直接返回 JSON 对象，不要包含其他文字。可以用 ```json ``` 包裹。";
 
     private static final Pattern JSON_CODE_BLOCK_PATTERN =
             Pattern.compile("```(?:json)?\\s*\\n?(.*?)\\n?```", Pattern.DOTALL);
@@ -272,6 +294,157 @@ public class ResumeAiServiceImpl implements ResumeAiService {
             vo.setCreateTime(m.getCreateTime());
             return vo;
         }).collect(Collectors.toList());
+    }
+
+    @Override
+    public ResumeImportPreviewVO importResumePreview(String authorizationHeader, ResumeImportRequest request) {
+        resolveUserId(authorizationHeader);
+
+        if (request.getRawText() == null || request.getRawText().isBlank()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+
+        String systemPrompt = String.format(IMPORT_PARSE_PROMPT, request.getRawText());
+        String aiResponse = callAi(systemPrompt, "请解析这份简历。");
+
+        String json = extractJsonFromResponse(aiResponse);
+        List<Map<String, Object>> sectionItems;
+        try {
+            sectionItems = objectMapper.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
+        } catch (JsonProcessingException e) {
+            log.error("AI 导入简历响应解析失败: {}", aiResponse, e);
+            throw new BusinessException(ErrorCode.RESUME_IMPORT_ERROR);
+        }
+
+        List<String> warnings = new ArrayList<>();
+        String title = "导入简历";
+
+        List<SectionVO> sectionVOs = new ArrayList<>();
+        for (int i = 0; i < sectionItems.size(); i++) {
+            Map<String, Object> item = sectionItems.get(i);
+            String sectionType = (String) item.get("sectionType");
+            @SuppressWarnings("unchecked")
+            Map<String, Object> sectionData = (Map<String, Object>) item.get("sectionData");
+
+            if (sectionType == null || sectionData == null) {
+                warnings.add("第 " + (i + 1) + " 个模块缺少 sectionType 或 sectionData");
+                continue;
+            }
+
+            if ("basic".equals(sectionType) && sectionData.containsKey("name")) {
+                title = sectionData.get("name").toString() + " - 简历";
+            }
+
+            SectionVO sectionVO = new SectionVO();
+            sectionVO.setSectionType(sectionType);
+            sectionVO.setSectionData(sectionData);
+            sectionVO.setSortOrder(i);
+            sectionVO.setAiGenerated(1);
+            sectionVOs.add(sectionVO);
+        }
+
+        ResumeImportPreviewVO vo = new ResumeImportPreviewVO();
+        vo.setTitle(title);
+        vo.setTemplateType("minimal_tech");
+        vo.setSections(sectionVOs);
+        vo.setWarnings(warnings);
+        return vo;
+    }
+
+    @Override
+    public ResumeWholeOptimizeVO optimizeWholeResume(String authorizationHeader, ResumeWholeOptimizeRequest request) {
+        Long userId = resolveUserId(authorizationHeader);
+
+        Resume resume = getResumeAndCheckOwner(request.getResumeId(), userId);
+
+        List<ResumeSection> sections = resumeSectionMapper.selectList(
+                Wrappers.lambdaQuery(ResumeSection.class)
+                        .eq(ResumeSection::getResumeId, resume.getId())
+                        .orderByAsc(ResumeSection::getSortOrder));
+
+        List<SectionVO> currentSections = sections.stream().map(this::toSectionVO).collect(Collectors.toList());
+        String targetPosition = request.getTargetPosition() != null ? request.getTargetPosition() : extractTargetPosition(currentSections);
+
+        AiScoreVO beforeScoreResult = scoreResume(currentSections, targetPosition);
+        Integer beforeScore = beforeScoreResult.getScore();
+
+        String jobContext = "";
+        if (request.getJobId() != null) {
+            Job job = jobMapper.selectById(request.getJobId());
+            if (job != null) {
+                JobAnalysis jobAnalysis = jobAnalysisMapper.selectOne(
+                        Wrappers.lambdaQuery(JobAnalysis.class)
+                                .eq(JobAnalysis::getJobId, request.getJobId()));
+                if (jobAnalysis != null) {
+                    jobContext = String.format(
+                            "\n\n目标岗位信息：\n职位名称：%s\n岗位要求：%s\n核心技能：%s\n面试重点：%s\n请针对以上岗位要求进行优化。",
+                            job.getTitle(),
+                            jobAnalysis.getRequirementSummary() != null ? jobAnalysis.getRequirementSummary() : "",
+                            jobAnalysis.getCoreSkills() != null ? jobAnalysis.getCoreSkills() : "",
+                            jobAnalysis.getInterviewFocus() != null ? jobAnalysis.getInterviewFocus() : "");
+                }
+            }
+        }
+
+        if (request.getOptimizeGoal() != null && !request.getOptimizeGoal().isBlank()) {
+            jobContext += "\n\n用户优化目标：" + request.getOptimizeGoal();
+        }
+
+        String sectionsJson;
+        try {
+            sectionsJson = objectMapper.writeValueAsString(currentSections);
+        } catch (JsonProcessingException e) {
+            throw new BusinessException(ErrorCode.RESUME_OPTIMIZE_ERROR);
+        }
+
+        String systemPrompt = String.format(WHOLE_OPTIMIZE_PROMPT, jobContext, sectionsJson);
+        String aiResponse = callAi(systemPrompt, "请优化这份简历。");
+
+        String json = extractJsonFromResponse(aiResponse);
+        Map<String, Object> result;
+        try {
+            result = objectMapper.readValue(json, new TypeReference<Map<String, Object>>() {});
+        } catch (JsonProcessingException e) {
+            log.error("AI 整份优化响应解析失败: {}", aiResponse, e);
+            throw new BusinessException(ErrorCode.RESUME_OPTIMIZE_ERROR);
+        }
+
+        @SuppressWarnings("unchecked")
+        List<String> globalSuggestions = (List<String>) result.get("globalSuggestions");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> optimizedSectionMaps = (List<Map<String, Object>>) result.get("optimizedSections");
+
+        List<SectionVO> optimizedSections = new ArrayList<>();
+        if (optimizedSectionMaps != null) {
+            for (int i = 0; i < optimizedSectionMaps.size(); i++) {
+                Map<String, Object> item = optimizedSectionMaps.get(i);
+                SectionVO sectionVO = new SectionVO();
+                sectionVO.setSectionType((String) item.get("sectionType"));
+                @SuppressWarnings("unchecked")
+                Map<String, Object> sectionData = (Map<String, Object>) item.get("sectionData");
+                sectionVO.setSectionData(sectionData);
+                sectionVO.setSortOrder(i);
+                sectionVO.setAiGenerated(1);
+                optimizedSections.add(sectionVO);
+            }
+        }
+
+        ResumeWholeOptimizeVO vo = new ResumeWholeOptimizeVO();
+        vo.setBeforeScore(beforeScore);
+        vo.setEstimatedAfterScore(Math.min(100, beforeScore + 10));
+        vo.setGlobalSuggestions(globalSuggestions != null ? globalSuggestions : new ArrayList<>());
+        vo.setOptimizedSections(optimizedSections);
+        return vo;
+    }
+
+    private String extractTargetPosition(List<SectionVO> sections) {
+        return sections.stream()
+                .filter(s -> "basic".equals(s.getSectionType()))
+                .findFirst()
+                .map(SectionVO::getSectionData)
+                .filter(data -> data != null && data.containsKey("targetPosition"))
+                .map(data -> data.get("targetPosition").toString())
+                .orElse(null);
     }
 
     private Long resolveUserId(String authorizationHeader) {

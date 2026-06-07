@@ -51,6 +51,12 @@ public class Job implements Serializable {
 
     private String status;
 
+    private String applicationStatus;
+
+    private String keywordsJson;
+
+    private String predictedQuestionsJson;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

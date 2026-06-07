@@ -3,10 +3,14 @@ package com.mianshiba.ai.controller;
 import com.mianshiba.ai.common.BaseResponse;
 import com.mianshiba.ai.common.ResultUtils;
 import com.mianshiba.ai.model.dto.job.JobImportRequest;
+import com.mianshiba.ai.model.dto.job.JobListQueryRequest;
 import com.mianshiba.ai.model.dto.job.JobMatchRequest;
 import com.mianshiba.ai.model.vo.job.CompanyVO;
+import com.mianshiba.ai.model.vo.job.JobGapAnalysisVO;
 import com.mianshiba.ai.model.vo.job.JobImportResultVO;
+import com.mianshiba.ai.model.vo.job.JobKeywordVO;
 import com.mianshiba.ai.model.vo.job.JobMatchVO;
+import com.mianshiba.ai.model.vo.job.JobQuestionPredictionVO;
 import com.mianshiba.ai.model.vo.job.JobVO;
 import com.mianshiba.ai.service.JobService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,6 +25,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -89,5 +94,38 @@ public class JobController {
     public BaseResponse<List<JobVO>> listFavorites(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader) {
         return ResultUtils.success(jobService.listFavorites(authorizationHeader));
+    }
+
+    @GetMapping("/list")
+    @Operation(summary = "职位列表")
+    public BaseResponse<List<JobVO>> listJobs(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
+            JobListQueryRequest request) {
+        return ResultUtils.success(jobService.listJobs(authorizationHeader, request));
+    }
+
+    @PostMapping("/{jobId}/keywords")
+    @Operation(summary = "JD 关键词提取")
+    public BaseResponse<JobKeywordVO> extractKeywords(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
+            @PathVariable("jobId") Long jobId) {
+        return ResultUtils.success(jobService.extractKeywords(authorizationHeader, jobId));
+    }
+
+    @PostMapping("/{jobId}/gap")
+    @Operation(summary = "简历差距分析")
+    public BaseResponse<JobGapAnalysisVO> analyzeGap(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
+            @PathVariable("jobId") Long jobId,
+            @RequestParam("resumeId") Long resumeId) {
+        return ResultUtils.success(jobService.analyzeGap(authorizationHeader, jobId, resumeId));
+    }
+
+    @PostMapping("/{jobId}/questions")
+    @Operation(summary = "预测面试题")
+    public BaseResponse<JobQuestionPredictionVO> predictQuestions(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
+            @PathVariable("jobId") Long jobId) {
+        return ResultUtils.success(jobService.predictQuestions(authorizationHeader, jobId));
     }
 }

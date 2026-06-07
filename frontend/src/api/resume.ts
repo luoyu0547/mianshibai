@@ -15,6 +15,10 @@ import type {
   AiScoreVO,
   VersionVO,
   ChatMessageVO,
+  ResumeImportRequest,
+  ResumeImportPreviewVO,
+  ResumeWholeOptimizeRequest,
+  ResumeWholeOptimizeVO,
 } from '@/types/resume'
 
 export function createResume(data: ResumeCreateRequest) {
@@ -71,4 +75,12 @@ export function getResumeVersions(id: number) {
 
 export function getChatHistory(resumeId: number) {
   return request.get<BaseResponse<ChatMessageVO[]>>(`/api/resume/${resumeId}/chat/history`)
+}
+
+export function importResumePreview(data: ResumeImportRequest) {
+  return request.post<BaseResponse<ResumeImportPreviewVO>>('/api/resume/ai/import-preview', data)
+}
+
+export function optimizeWholeResume(resumeId: number, data: ResumeWholeOptimizeRequest) {
+  return request.post<BaseResponse<ResumeWholeOptimizeVO>>(`/api/resume/${resumeId}/ai/optimize-whole`, data)
 }

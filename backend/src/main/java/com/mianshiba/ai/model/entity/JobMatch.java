@@ -46,6 +46,8 @@ public class JobMatch implements Serializable {
 
     private String gaps;
 
+    private Integer keywordCoverage;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

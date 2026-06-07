@@ -61,7 +61,8 @@ public class InterviewServiceImpl implements InterviewService {
             "- 工作年限：%s 年\n" +
             "- 简历摘要：%s\n" +
             "- 当前第 %d 题（共 %d 题）\n" +
-            "- 历史问答摘要：%s\n\n" +
+            "- 历史问答摘要：%s\n" +
+            "- 难度等级：%s\n\n" +
             "请返回 JSON 格式：{\"questionText\": \"你的问题\"}\n" +
             "直接返回 JSON，不要包含其他文字。";
 
@@ -120,10 +121,12 @@ public class InterviewServiceImpl implements InterviewService {
         session.setUserId(userId);
         session.setResumeId(request.getResumeId());
         session.setTitle(request.getTargetPosition() + " 技术模拟面试");
-        session.setInterviewType("technical");
+        session.setInterviewType(request.getInterviewType() != null ? request.getInterviewType() : "technical");
         session.setTargetPosition(request.getTargetPosition());
         session.setTechDirection(request.getTechDirection());
         session.setJobId(request.getJobId());
+        session.setDifficulty(request.getDifficulty() != null ? request.getDifficulty() : "medium");
+        session.setDurationMinutes(request.getDurationMinutes());
         session.setTotalQuestions(5);
         session.setCurrentQuestionNo(0);
         session.setStatus("created");
@@ -158,10 +161,11 @@ public class InterviewServiceImpl implements InterviewService {
 
         String techDirection = session.getTechDirection() != null ? session.getTechDirection() : "不限";
         String workYears = user != null && user.getWorkYears() != null ? String.valueOf(user.getWorkYears()) : "不限";
+        String difficulty = session.getDifficulty() != null ? session.getDifficulty() : "medium";
 
         String systemPrompt = String.format(GENERATE_QUESTION_PROMPT,
                 session.getTargetPosition(), techDirection, workYears,
-                resumeSummary, 1, session.getTotalQuestions(), historySummary);
+                resumeSummary, 1, session.getTotalQuestions(), historySummary, difficulty);
 
         systemPrompt += buildJobContext(session);
 
@@ -492,6 +496,9 @@ public class InterviewServiceImpl implements InterviewService {
         vo.setStatus(session.getStatus());
         vo.setStartedAt(session.getStartedAt());
         vo.setEndedAt(session.getEndedAt());
+        vo.setDifficulty(session.getDifficulty());
+        vo.setDurationMinutes(session.getDurationMinutes());
+        vo.setJobId(session.getJobId());
         vo.setCreateTime(session.getCreateTime());
         vo.setUpdateTime(session.getUpdateTime());
         return vo;

@@ -86,3 +86,32 @@ export interface JobImportResultVO {
 export interface JobMatchRequest {
   resumeId: number
 }
+
+export interface JobListQueryRequest {
+  keyword?: string
+  city?: string
+  techStack?: string
+  applicationStatus?: string
+}
+
+export interface JobKeywordVO {
+  hardSkills: string[]
+  softSkills: string[]
+  bonusSkills: string[]
+  hiddenRequirements: string[]
+}
+
+export interface JobGapAnalysisVO {
+  keywordCoverage: number
+  matchedKeywords: string[]
+  missingKeywords: string[]
+  projectExpressionGaps: string[]
+  optimizeActions: string[]
+}
+
+export interface JobQuestionPredictionVO {
+  technicalQuestions: string[]
+  projectQuestions: string[]
+  systemDesignQuestions: string[]
+  hrQuestions: string[]
+}

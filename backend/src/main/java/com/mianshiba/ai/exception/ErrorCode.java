@@ -114,6 +114,26 @@ public enum ErrorCode {
     JOB_MATCH_ERROR(50022, "职位匹配分析失败"),
 
     /**
+     * 简历导入解析失败
+     */
+    RESUME_IMPORT_ERROR(50003, "简历导入解析失败"),
+
+    /**
+     * 整份简历优化失败
+     */
+    RESUME_OPTIMIZE_ERROR(50004, "整份简历优化失败"),
+
+    /**
+     * 职位分析失败
+     */
+    JOB_ANALYSIS_ERROR(50023, "职位分析失败"),
+
+    /**
+     * 数据分析失败
+     */
+    ANALYTICS_ERROR(50030, "数据分析失败"),
+
+    /**
      * 系统内部异常
      */
     SYSTEM_ERROR(50000, "系统内部异常");

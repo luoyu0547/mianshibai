@@ -1,7 +1,7 @@
 // src/api/job.ts
 import request from '@/utils/request'
 import type { BaseResponse } from '@/types/user'
-import type { CompanyVO, JobImportRequest, JobImportResultVO, JobMatchRequest, JobMatchVO, JobVO } from '@/types/job'
+import type { CompanyVO, JobImportRequest, JobImportResultVO, JobListQueryRequest, JobMatchRequest, JobMatchVO, JobKeywordVO, JobGapAnalysisVO, JobQuestionPredictionVO, JobVO } from '@/types/job'
 
 export function importJobUrl(data: JobImportRequest) {
   return request.post<BaseResponse<JobImportResultVO>>('/api/job/import-url', data)
@@ -29,4 +29,20 @@ export function unfavoriteJob(jobId: number) {
 
 export function listFavoriteJobs() {
   return request.get<BaseResponse<JobVO[]>>('/api/job/favorites')
+}
+
+export function listJobs(params: JobListQueryRequest) {
+  return request.get<BaseResponse<JobVO[]>>('/api/job/list', { params })
+}
+
+export function extractJobKeywords(jobId: number) {
+  return request.post<BaseResponse<JobKeywordVO>>(`/api/job/${jobId}/keywords`)
+}
+
+export function analyzeJobGap(jobId: number, resumeId: number) {
+  return request.post<BaseResponse<JobGapAnalysisVO>>(`/api/job/${jobId}/gap`, null, { params: { resumeId } })
+}
+
+export function predictJobQuestions(jobId: number) {
+  return request.post<BaseResponse<JobQuestionPredictionVO>>(`/api/job/${jobId}/questions`)
 }

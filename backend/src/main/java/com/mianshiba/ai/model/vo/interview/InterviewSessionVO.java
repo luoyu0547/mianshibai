@@ -34,6 +34,12 @@ public class InterviewSessionVO implements Serializable {
 
     private LocalDateTime endedAt;
 
+    private String difficulty;
+
+    private Integer durationMinutes;
+
+    private Long jobId;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

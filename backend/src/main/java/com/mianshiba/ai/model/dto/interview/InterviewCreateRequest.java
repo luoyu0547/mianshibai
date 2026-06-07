@@ -25,4 +25,10 @@ public class InterviewCreateRequest implements Serializable {
     private String techDirection;
 
     private Long jobId;
+
+    private String interviewType;
+
+    private String difficulty;
+
+    private Integer durationMinutes;
 }

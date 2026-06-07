@@ -84,15 +84,33 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/job/list',
+      name: 'JobList',
+      component: () => import('@/views/job/JobListPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/job/:id',
       name: 'JobDetail',
       component: () => import('@/views/job/JobDetailPage.vue'),
       meta: { requiresAuth: true },
     },
     {
+      path: '/job/:id/questions',
+      name: 'JobQuestions',
+      component: () => import('@/views/job/JobQuestionsPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/company/:id',
       name: 'CompanyDetail',
       component: () => import('@/views/job/CompanyDetailPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/analytics',
+      name: 'Analytics',
+      component: () => import('@/views/analytics/AnalyticsOverviewPage.vue'),
       meta: { requiresAuth: true },
     },
   ],

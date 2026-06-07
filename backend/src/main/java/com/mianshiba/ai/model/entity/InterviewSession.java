@@ -44,6 +44,10 @@ public class InterviewSession implements Serializable {
 
     private LocalDateTime endedAt;
 
+    private String difficulty;
+
+    private Integer durationMinutes;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

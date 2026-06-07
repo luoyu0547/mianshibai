@@ -14,6 +14,9 @@ export interface InterviewSessionVO {
   totalQuestions: number
   currentQuestionNo: number
   status: InterviewStatus
+  difficulty: string
+  durationMinutes: number | null
+  jobId: number | null
   startedAt: string | null
   endedAt: string | null
   createTime: string
@@ -66,6 +69,9 @@ export interface InterviewCreateRequest {
   targetPosition: string
   techDirection?: string
   jobId?: number
+  interviewType?: 'technical' | 'project' | 'hr' | 'system_design'
+  difficulty?: 'easy' | 'medium' | 'hard'
+  durationMinutes?: 10 | 20 | 30 | 45 | 60
 }
 
 export interface InterviewAnswerRequest {

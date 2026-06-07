@@ -42,9 +42,36 @@
             />
           </el-form-item>
 
+          <el-form-item label="面试类型">
+            <el-select v-model="form.interviewType" placeholder="选择面试类型" style="width: 100%;">
+              <el-option label="技术面试" value="technical" />
+              <el-option label="项目深挖" value="project" />
+              <el-option label="HR 面试" value="hr" />
+              <el-option label="系统设计" value="system_design" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="难度">
+            <el-radio-group v-model="form.difficulty">
+              <el-radio-button value="easy">简单</el-radio-button>
+              <el-radio-button value="medium">中等</el-radio-button>
+              <el-radio-button value="hard">困难</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+
+          <el-form-item label="面试时长">
+            <el-select v-model="form.durationMinutes" placeholder="选择时长" style="width: 100%;">
+              <el-option label="10 分钟" :value="10" />
+              <el-option label="20 分钟" :value="20" />
+              <el-option label="30 分钟" :value="30" />
+              <el-option label="45 分钟" :value="45" />
+              <el-option label="60 分钟" :value="60" />
+            </el-select>
+          </el-form-item>
+
           <div class="interview-new-page__info-box">
             <el-icon :size="18"><InfoFilled /></el-icon>
-            <span>本次面试包含 <strong>5</strong> 道技术主问题，每题最多 <strong>1</strong> 次追问，使用语音面试</span>
+            <span>本次面试包含 <strong>5</strong> 道主问题，每题最多 <strong>1</strong> 次追问，预计时长 <strong>{{ form.durationMinutes || 30 }}</strong> 分钟</span>
           </div>
 
           <NbButton
@@ -83,6 +110,9 @@ const form = reactive({
   resumeId: null as number | null,
   targetPosition: '',
   techDirection: '',
+  interviewType: 'technical' as 'technical' | 'project' | 'hr' | 'system_design',
+  difficulty: 'medium' as 'easy' | 'medium' | 'hard',
+  durationMinutes: 30 as 10 | 20 | 30 | 45 | 60,
 })
 
 const canSubmit = computed(() => form.resumeId !== null && form.targetPosition.trim().length > 0)
@@ -110,6 +140,9 @@ async function handleSubmit() {
       resumeId: form.resumeId,
       targetPosition: form.targetPosition.trim(),
       techDirection: form.techDirection.trim() || undefined,
+      interviewType: form.interviewType || undefined,
+      difficulty: form.difficulty || undefined,
+      durationMinutes: form.durationMinutes || undefined,
     })
     if (res.data.code === 0) {
       const id = res.data.data.id!

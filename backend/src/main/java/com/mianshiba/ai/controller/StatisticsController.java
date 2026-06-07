@@ -6,6 +6,7 @@ import com.mianshiba.ai.exception.BusinessException;
 import com.mianshiba.ai.exception.ErrorCode;
 import com.mianshiba.ai.mapper.UserMapper;
 import com.mianshiba.ai.model.entity.User;
+import com.mianshiba.ai.model.vo.statistics.AnalyticsOverviewVO;
 import com.mianshiba.ai.model.vo.statistics.HomeStatsVO;
 import com.mianshiba.ai.service.StatisticsService;
 import com.mianshiba.ai.utils.JwtUtils;
@@ -34,6 +35,14 @@ public class StatisticsController {
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader) {
         Long userId = resolveUserId(authorizationHeader);
         return ResultUtils.success(statisticsService.getHomeStats(userId));
+    }
+
+    @GetMapping("/analytics/overview")
+    @Operation(summary = "获取分析看板数据")
+    public BaseResponse<AnalyticsOverviewVO> getAnalyticsOverview(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader) {
+        Long userId = resolveUserId(authorizationHeader);
+        return ResultUtils.success(statisticsService.getAnalyticsOverview(userId));
     }
 
     private Long resolveUserId(String authorizationHeader) {

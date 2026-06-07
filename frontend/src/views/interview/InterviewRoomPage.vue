@@ -1,5 +1,13 @@
 <template>
   <div class="interview-room">
+    <div
+      v-if="remainingSeconds !== null"
+      class="interview-room__timer"
+      :class="{ 'interview-room__timer--warning': remainingSeconds < 120 }"
+    >
+      {{ remainingSeconds < 120 ? '⚠️ ' : '' }}{{ formatTime(remainingSeconds) }}
+    </div>
+
     <div class="interview-room__top-bar">
       <div class="interview-room__progress">
         第 {{ currentQuestionNo }} / {{ totalQuestions }} 题
@@ -44,6 +52,7 @@
               <NbButton
                 v-if="state === 'readyToAnswer'"
                 type="primary"
+                :disabled="remainingSeconds !== null && remainingSeconds <= 0"
                 @click="startRecording"
               >
                 开始回答
@@ -131,6 +140,32 @@ const finalText = ref('')
 const errorMessage = ref('')
 const sessionInfo = ref<{ targetPosition: string; techDirection: string } | null>(null)
 
+const remainingSeconds = ref<number | null>(null)
+let timerInterval: ReturnType<typeof setInterval> | null = null
+
+function startTimer() {
+  if (!interviewStore.currentSession?.startedAt || !interviewStore.currentSession?.durationMinutes) return
+  const started = new Date(interviewStore.currentSession.startedAt).getTime()
+  const end = started + interviewStore.currentSession.durationMinutes * 60 * 1000
+
+  const update = () => {
+    const now = Date.now()
+    remainingSeconds.value = Math.max(0, Math.floor((end - now) / 1000))
+    if (remainingSeconds.value <= 0 && timerInterval) {
+      clearInterval(timerInterval)
+      timerInterval = null
+    }
+  }
+  update()
+  timerInterval = setInterval(update, 1000)
+}
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+}
+
 let asrClient: AsrClient | null = null
 let audioContext: AudioContext | null = null
 let mediaStream: MediaStream | null = null
@@ -195,11 +230,16 @@ onMounted(async () => {
     }
     totalQuestions.value = session.totalQuestions || 5
     currentQuestionNo.value = session.currentQuestionNo || 0
+    startTimer()
   }
 })
 
 onBeforeUnmount(() => {
   cleanupAudio()
+  if (timerInterval) {
+    clearInterval(timerInterval)
+    timerInterval = null
+  }
   if (currentAudio) {
     currentAudio.pause()
     currentAudio = null
@@ -455,6 +495,24 @@ function cleanupAudio() {
   background: var(--nb-card);
   border-bottom: var(--nb-border);
   box-shadow: var(--nb-shadow);
+}
+
+.interview-room__timer {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: #f0f9eb;
+  border: 2px solid #67c23a;
+  font-weight: bold;
+  font-size: 18px;
+  z-index: 9999;
+}
+
+.interview-room__timer--warning {
+  background: #fef0f0;
+  border-color: #f56c6c;
 }
 
 .interview-room__progress {
