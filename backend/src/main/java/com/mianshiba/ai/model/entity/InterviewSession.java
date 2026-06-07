@@ -32,6 +32,8 @@ public class InterviewSession implements Serializable {
 
     private String techDirection;
 
+    private Long jobId;
+
     private Integer totalQuestions;
 
     private Integer currentQuestionNo;

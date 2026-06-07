@@ -71,6 +71,30 @@ const router = createRouter({
       component: () => import('@/views/interview/InterviewReportPage.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/job/import',
+      name: 'JobImport',
+      component: () => import('@/views/job/JobImportPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/job/favorites',
+      name: 'JobFavorites',
+      component: () => import('@/views/job/JobFavoritePage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/job/:id',
+      name: 'JobDetail',
+      component: () => import('@/views/job/JobDetailPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/company/:id',
+      name: 'CompanyDetail',
+      component: () => import('@/views/job/CompanyDetailPage.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 

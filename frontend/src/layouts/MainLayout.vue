@@ -12,6 +12,7 @@
           <router-link to="/" class="main-layout__nav-link">首页</router-link>
           <router-link to="/resume" class="main-layout__nav-link">我的简历</router-link>
           <router-link to="/interview" class="main-layout__nav-link">模拟面试</router-link>
+          <router-link to="/job/import" class="main-layout__nav-link">职位情报</router-link>
           <router-link to="/profile" class="main-layout__nav-link">个人资料</router-link>
         </nav>
 

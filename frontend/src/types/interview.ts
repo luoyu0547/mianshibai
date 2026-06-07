@@ -65,6 +65,7 @@ export interface InterviewCreateRequest {
   resumeId: number
   targetPosition: string
   techDirection?: string
+  jobId?: number
 }
 
 export interface InterviewAnswerRequest {

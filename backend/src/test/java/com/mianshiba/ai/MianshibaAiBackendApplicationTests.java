@@ -3,9 +3,17 @@ package com.mianshiba.ai;
 import com.mianshiba.ai.mapper.InterviewReportMapper;
 import com.mianshiba.ai.mapper.InterviewSessionMapper;
 import com.mianshiba.ai.mapper.InterviewTurnMapper;
+import com.mianshiba.ai.mapper.JobAnalysisMapper;
+import com.mianshiba.ai.mapper.JobFavoriteMapper;
+import com.mianshiba.ai.mapper.JobMatchMapper;
+import com.mianshiba.ai.mapper.JobMapper;
 import com.mianshiba.ai.mapper.ResumeMapper;
 import com.mianshiba.ai.mapper.ResumeSectionMapper;
 import com.mianshiba.ai.mapper.UserMapper;
+import com.mianshiba.ai.mapper.ResumeChatMessageMapper;
+import com.mianshiba.ai.mapper.ResumeVersionMapper;
+import com.mianshiba.ai.mapper.CompanyMapper;
+import com.mianshiba.ai.mapper.CompanyCertificationMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -35,6 +43,30 @@ class MianshibaAiBackendApplicationTests {
 
     @MockBean
     private InterviewReportMapper interviewReportMapper;
+
+    @MockBean
+    private JobMapper jobMapper;
+
+    @MockBean
+    private JobAnalysisMapper jobAnalysisMapper;
+
+    @MockBean
+    private JobFavoriteMapper jobFavoriteMapper;
+
+    @MockBean
+    private JobMatchMapper jobMatchMapper;
+
+    @MockBean
+    private ResumeChatMessageMapper resumeChatMessageMapper;
+
+    @MockBean
+    private ResumeVersionMapper resumeVersionMapper;
+
+    @MockBean
+    private CompanyMapper companyMapper;
+
+    @MockBean
+    private CompanyCertificationMapper companyCertificationMapper;
 
     @Test
     void contextLoads() {

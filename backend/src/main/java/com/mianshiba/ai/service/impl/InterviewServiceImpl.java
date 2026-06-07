@@ -10,6 +10,8 @@ import com.mianshiba.ai.exception.ErrorCode;
 import com.mianshiba.ai.mapper.InterviewReportMapper;
 import com.mianshiba.ai.mapper.InterviewSessionMapper;
 import com.mianshiba.ai.mapper.InterviewTurnMapper;
+import com.mianshiba.ai.mapper.JobAnalysisMapper;
+import com.mianshiba.ai.mapper.JobMapper;
 import com.mianshiba.ai.mapper.ResumeMapper;
 import com.mianshiba.ai.mapper.UserMapper;
 import com.mianshiba.ai.model.dto.interview.InterviewAnswerRequest;
@@ -17,6 +19,8 @@ import com.mianshiba.ai.model.dto.interview.InterviewCreateRequest;
 import com.mianshiba.ai.model.entity.InterviewReport;
 import com.mianshiba.ai.model.entity.InterviewSession;
 import com.mianshiba.ai.model.entity.InterviewTurn;
+import com.mianshiba.ai.model.entity.Job;
+import com.mianshiba.ai.model.entity.JobAnalysis;
 import com.mianshiba.ai.model.entity.Resume;
 import com.mianshiba.ai.model.entity.User;
 import com.mianshiba.ai.model.vo.interview.InterviewAnswerResultVO;
@@ -92,6 +96,8 @@ public class InterviewServiceImpl implements InterviewService {
     private final JwtUtils jwtUtils;
     private final ChatClient chatClient;
     private final SpeechService speechService;
+    private final JobMapper jobMapper;
+    private final JobAnalysisMapper jobAnalysisMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -103,6 +109,13 @@ public class InterviewServiceImpl implements InterviewService {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
 
+        if (request.getJobId() != null) {
+            Job job = jobMapper.selectById(request.getJobId());
+            if (job == null) {
+                throw new BusinessException(ErrorCode.JOB_NOT_FOUND_ERROR);
+            }
+        }
+
         InterviewSession session = new InterviewSession();
         session.setUserId(userId);
         session.setResumeId(request.getResumeId());
@@ -110,6 +123,7 @@ public class InterviewServiceImpl implements InterviewService {
         session.setInterviewType("technical");
         session.setTargetPosition(request.getTargetPosition());
         session.setTechDirection(request.getTechDirection());
+        session.setJobId(request.getJobId());
         session.setTotalQuestions(5);
         session.setCurrentQuestionNo(0);
         session.setStatus("created");
@@ -148,6 +162,8 @@ public class InterviewServiceImpl implements InterviewService {
         String systemPrompt = String.format(GENERATE_QUESTION_PROMPT,
                 session.getTargetPosition(), techDirection, workYears,
                 resumeSummary, 1, session.getTotalQuestions(), historySummary);
+
+        systemPrompt += buildJobContext(session);
 
         String aiResponse = callAi(systemPrompt, "请生成第一道面试题。");
         String json = extractJsonFromResponse(aiResponse);
@@ -200,6 +216,8 @@ public class InterviewServiceImpl implements InterviewService {
                 session.getTargetPosition(),
                 turn.getQuestionNo(), session.getTotalQuestions(),
                 hasFollowUp ? "是" : "否");
+
+        systemPrompt += buildJobContext(session);
 
         String aiResponse = callAi(systemPrompt, "");
         String json = extractJsonFromResponse(aiResponse);
@@ -324,6 +342,8 @@ public class InterviewServiceImpl implements InterviewService {
         String systemPrompt = String.format(REPORT_PROMPT,
                 session.getTargetPosition(), techDirection, qaRecord);
 
+        systemPrompt += buildJobContext(session);
+
         String aiResponse = callAi(systemPrompt, "");
         String json = extractJsonFromResponse(aiResponse);
         Map<String, Object> reportMap = parseJson(json, new TypeReference<Map<String, Object>>() {});
@@ -394,6 +414,30 @@ public class InterviewServiceImpl implements InterviewService {
         return turns.stream()
                 .map(t -> "Q" + t.getQuestionNo() + ": " + t.getQuestionText() + " → " + t.getAnswerText())
                 .collect(Collectors.joining("\n"));
+    }
+
+    private String buildJobContext(InterviewSession session) {
+        if (session.getJobId() == null) {
+            return "";
+        }
+        Job job = jobMapper.selectById(session.getJobId());
+        if (job == null) {
+            return "";
+        }
+        JobAnalysis jobAnalysis = jobAnalysisMapper.selectOne(
+                Wrappers.lambdaQuery(JobAnalysis.class)
+                        .eq(JobAnalysis::getJobId, session.getJobId()));
+        if (jobAnalysis == null) {
+            return "";
+        }
+        return String.format(
+                "\n\n目标岗位信息：\n职位名称：%s\n公司：%s\n岗位要求：%s\n核心技术栈：%s\n隐含要求：%s\n面试重点：%s\n请围绕以上岗位要求生成面试问题。",
+                job.getTitle(),
+                job.getCompanyName() != null ? job.getCompanyName() : "",
+                jobAnalysis.getRequirementSummary() != null ? jobAnalysis.getRequirementSummary() : "",
+                jobAnalysis.getCoreSkills() != null ? jobAnalysis.getCoreSkills() : "",
+                jobAnalysis.getHiddenRequirements() != null ? jobAnalysis.getHiddenRequirements() : "",
+                jobAnalysis.getInterviewFocus() != null ? jobAnalysis.getInterviewFocus() : "");
     }
 
     private String callAi(String systemPrompt, String userMessage) {

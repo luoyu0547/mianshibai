@@ -6,6 +6,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mianshiba.ai.exception.BusinessException;
 import com.mianshiba.ai.exception.ErrorCode;
+import com.mianshiba.ai.mapper.JobAnalysisMapper;
+import com.mianshiba.ai.mapper.JobMapper;
 import com.mianshiba.ai.mapper.ResumeMapper;
 import com.mianshiba.ai.mapper.ResumeSectionMapper;
 import com.mianshiba.ai.mapper.UserMapper;
@@ -14,6 +16,8 @@ import com.mianshiba.ai.model.dto.resume.AiOptimizeRequest;
 import com.mianshiba.ai.model.entity.Resume;
 import com.mianshiba.ai.model.entity.ResumeSection;
 import com.mianshiba.ai.model.entity.User;
+import com.mianshiba.ai.model.entity.Job;
+import com.mianshiba.ai.model.entity.JobAnalysis;
 import com.mianshiba.ai.model.vo.resume.AiScoreVO;
 import com.mianshiba.ai.model.vo.resume.ResumeDetailVO;
 import com.mianshiba.ai.model.vo.resume.SectionVO;
@@ -81,6 +85,8 @@ public class ResumeAiServiceImpl implements ResumeAiService {
     private final ResumeSectionMapper resumeSectionMapper;
     private final UserMapper userMapper;
     private final JwtUtils jwtUtils;
+    private final JobMapper jobMapper;
+    private final JobAnalysisMapper jobAnalysisMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -145,6 +151,26 @@ public class ResumeAiServiceImpl implements ResumeAiService {
         String systemPrompt = String.format(OPTIMIZE_SYSTEM_PROMPT,
                 targetPosition != null ? targetPosition : "未知岗位",
                 request.getSectionType());
+
+        if (request.getJobId() != null) {
+            Job job = jobMapper.selectById(request.getJobId());
+            if (job == null) {
+                throw new BusinessException(ErrorCode.JOB_NOT_FOUND_ERROR);
+            }
+            JobAnalysis jobAnalysis = jobAnalysisMapper.selectOne(
+                    Wrappers.lambdaQuery(JobAnalysis.class)
+                            .eq(JobAnalysis::getJobId, request.getJobId()));
+
+            if (jobAnalysis != null) {
+                String jobContext = String.format(
+                        "\n\n目标岗位信息：\n职位名称：%s\n岗位要求：%s\n核心技能：%s\n面试重点：%s\n请针对以上岗位要求进行优化。",
+                        job.getTitle(),
+                        jobAnalysis.getRequirementSummary() != null ? jobAnalysis.getRequirementSummary() : "",
+                        jobAnalysis.getCoreSkills() != null ? jobAnalysis.getCoreSkills() : "",
+                        jobAnalysis.getInterviewFocus() != null ? jobAnalysis.getInterviewFocus() : "");
+                systemPrompt += jobContext;
+            }
+        }
 
         String aiResponse = callAi(systemPrompt, sectionDataJson);
 
