@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mianshiba.ai.exception.GlobalExceptionHandler;
 import com.mianshiba.ai.model.dto.interview.InterviewCreateRequest;
 import com.mianshiba.ai.model.vo.interview.InterviewSessionVO;
+import com.mianshiba.ai.service.InterviewReportCompareService;
+import com.mianshiba.ai.service.InterviewReportEnhancementService;
 import com.mianshiba.ai.service.InterviewService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,13 +33,17 @@ class InterviewControllerTest {
 
     @Mock
     private InterviewService interviewService;
+    @Mock
+    private InterviewReportEnhancementService interviewReportEnhancementService;
+    @Mock
+    private InterviewReportCompareService interviewReportCompareService;
 
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new InterviewController(interviewService))
+        mockMvc = MockMvcBuilders.standaloneSetup(new InterviewController(interviewService, interviewReportEnhancementService, interviewReportCompareService))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
         objectMapper = new ObjectMapper();
