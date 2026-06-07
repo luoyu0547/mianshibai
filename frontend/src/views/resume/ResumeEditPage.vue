@@ -22,7 +22,7 @@
             <template #title>
               <div class="section-header">
                 <span>基本信息</span>
-                <el-button size="small" text class="ai-btn" @click.stop>AI 优化</el-button>
+                <el-button size="small" text class="ai-btn" @click.stop="openOptimize('basic')">AI 优化</el-button>
               </div>
             </template>
             <BasicInfoEditor v-model="basicData" />
@@ -32,7 +32,7 @@
             <template #title>
               <div class="section-header">
                 <span>教育经历</span>
-                <el-button size="small" text class="ai-btn" @click.stop>AI 优化</el-button>
+                <el-button size="small" text class="ai-btn" @click.stop="openOptimize('education')">AI 优化</el-button>
               </div>
             </template>
             <EducationEditor :items="educationItems" @update:items="educationItems = $event" />
@@ -42,7 +42,7 @@
             <template #title>
               <div class="section-header">
                 <span>工作经历</span>
-                <el-button size="small" text class="ai-btn" @click.stop>AI 优化</el-button>
+                <el-button size="small" text class="ai-btn" @click.stop="openOptimize('work')">AI 优化</el-button>
               </div>
             </template>
             <WorkExperienceEditor :items="workItems" @update:items="workItems = $event" />
@@ -52,7 +52,7 @@
             <template #title>
               <div class="section-header">
                 <span>项目经历</span>
-                <el-button size="small" text class="ai-btn" @click.stop>AI 优化</el-button>
+                <el-button size="small" text class="ai-btn" @click.stop="openOptimize('project')">AI 优化</el-button>
               </div>
             </template>
             <ProjectEditor :items="projectItems" @update:items="projectItems = $event" />
@@ -62,7 +62,7 @@
             <template #title>
               <div class="section-header">
                 <span>技能标签</span>
-                <el-button size="small" text class="ai-btn" @click.stop>AI 优化</el-button>
+                <el-button size="small" text class="ai-btn" @click.stop="openOptimize('skills')">AI 优化</el-button>
               </div>
             </template>
             <SkillsEditor v-model="skillsData" />
@@ -72,7 +72,7 @@
             <template #title>
               <div class="section-header">
                 <span>自我评价</span>
-                <el-button size="small" text class="ai-btn" @click.stop>AI 优化</el-button>
+                <el-button size="small" text class="ai-btn" @click.stop="openOptimize('summary')">AI 优化</el-button>
               </div>
             </template>
             <SummaryEditor v-model="summaryData" />
@@ -122,12 +122,21 @@
           <VersionHistory :resume-id="resumeId" />
         </div>
       </div>
+
+      <AiOptimizeDialog
+        v-model:visible="optimizeVisible"
+        :resume-id="resumeId"
+        :section-type="optimizeSectionType"
+        :section-data="optimizeSectionData"
+        :section-label="optimizeSectionLabel"
+        @applied="handleOptimizeApplied"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, type Component } from 'vue'
+import { ref, computed, onMounted, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import BasicInfoEditor from '@/components/resume/sections/BasicInfoEditor.vue'
@@ -136,6 +145,7 @@ import WorkExperienceEditor from '@/components/resume/sections/WorkExperienceEdi
 import ProjectEditor from '@/components/resume/sections/ProjectEditor.vue'
 import SkillsEditor from '@/components/resume/sections/SkillsEditor.vue'
 import SummaryEditor from '@/components/resume/sections/SummaryEditor.vue'
+import AiOptimizeDialog from '@/components/resume/AiOptimizeDialog.vue'
 import AiChatPanel from '@/components/resume/AiChatPanel.vue'
 import AiScorePanel from '@/components/resume/AiScorePanel.vue'
 import VersionHistory from '@/components/resume/VersionHistory.vue'
@@ -179,6 +189,59 @@ const sectionIds = ref<Record<SectionType, number[]>>({
 const activeSections = ref(['basic'])
 const activeTab = ref('chat')
 
+const optimizeVisible = ref(false)
+const optimizeSectionType = ref<SectionType>('basic')
+const optimizeSectionData = ref<Record<string, unknown>>({})
+const optimizeSectionLabel = ref('')
+
+const sectionLabelMap: Record<SectionType, string> = {
+  basic: '基本信息',
+  education: '教育经历',
+  work: '工作经历',
+  project: '项目经历',
+  skills: '技能标签',
+  summary: '自我评价',
+}
+
+const sectionDataMap = computed(() => ({
+  basic: basicData.value,
+  education: educationItems.value as unknown as Record<string, unknown>,
+  work: workItems.value as unknown as Record<string, unknown>,
+  project: projectItems.value as unknown as Record<string, unknown>,
+  skills: skillsData.value,
+  summary: summaryData.value,
+}))
+
+function openOptimize(type: SectionType) {
+  optimizeSectionType.value = type
+  optimizeSectionLabel.value = sectionLabelMap[type]
+  optimizeSectionData.value = sectionDataMap.value[type]
+  optimizeVisible.value = true
+}
+
+function handleOptimizeApplied(type: SectionType, data: Record<string, unknown>) {
+  switch (type) {
+    case 'basic':
+      basicData.value = data
+      break
+    case 'education':
+      educationItems.value = Array.isArray(data) ? data : [data]
+      break
+    case 'work':
+      workItems.value = Array.isArray(data) ? data : [data]
+      break
+    case 'project':
+      projectItems.value = Array.isArray(data) ? data : [data]
+      break
+    case 'skills':
+      skillsData.value = data
+      break
+    case 'summary':
+      summaryData.value = data
+      break
+  }
+}
+
 const templateMap: Record<string, Component> = {
   minimal_tech: MinimalTech,
   modern_two_col: ModernTwoCol,
@@ -219,7 +282,7 @@ function splitSections(sections: SectionVO[]) {
   summaryData.value = grouped.summary?.[0] || {}
 }
 
-watch(basicData, () => { }, { deep: true })
+
 
 function handleExtracted(sectionType: SectionType, sectionData: Record<string, unknown>) {
   switch (sectionType) {

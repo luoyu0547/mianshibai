@@ -17,7 +17,6 @@ public class AiOptimizeRequest implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    @NotNull(message = "模块 id 不能为空")
     private Long sectionId;
 
     @NotBlank(message = "模块类型不能为空")
