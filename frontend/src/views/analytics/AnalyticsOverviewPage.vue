@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { getAnalyticsOverview, getReviewAnalytics } from '@/api/statistics'
 import type { AnalyticsOverviewVO, ReviewAnalyticsVO } from '@/types/statistics'
 import NbCard from '@/components/NbCard.vue'
+import BaseChart from '@/components/charts/BaseChart.vue'
+import { buildRadarOption, buildScoreTrendOption, buildSkillGapOption } from '@/utils/charts/reviewCharts'
 
 const overview = ref<AnalyticsOverviewVO | null>(null)
 const reviewAnalytics = ref<ReviewAnalyticsVO | null>(null)
@@ -29,16 +31,20 @@ async function loadReviewAnalytics() {
   }
 }
 
-function radarLabel(key: string) {
-  const labels: Record<string, string> = {
-    accuracy: '技术准确性',
-    clarity: '表达清晰度',
-    depth: '项目深度',
-    matching: '岗位匹配度',
-    systemDesign: '系统设计',
-  }
-  return labels[key] ?? key
-}
+const analyticsRadarOption = computed(() => {
+  if (!reviewAnalytics.value || Object.keys(reviewAnalytics.value.radar).length === 0) return null
+  return buildRadarOption(reviewAnalytics.value.radar, '能力均值雷达')
+})
+
+const scoreTrendOption = computed(() => {
+  if (!reviewAnalytics.value || reviewAnalytics.value.recentScoreTrend.length === 0) return null
+  return buildScoreTrendOption(reviewAnalytics.value.recentScoreTrend)
+})
+
+const skillGapOption = computed(() => {
+  if (!reviewAnalytics.value || reviewAnalytics.value.topSkillGaps.length === 0) return null
+  return buildSkillGapOption(reviewAnalytics.value.topSkillGaps)
+})
 
 onMounted(() => {
   loadOverview()
@@ -100,26 +106,14 @@ onMounted(() => {
       <div v-if="reviewAnalytics" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px;">
         <NbCard>
           <h3>能力雷达</h3>
-          <div v-if="Object.keys(reviewAnalytics.radar).length > 0">
-            <div v-for="(score, key) in reviewAnalytics.radar" :key="key" style="margin-bottom: 12px;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                <span style="font-size: 14px;">{{ radarLabel(key) }}</span>
-                <span style="font-weight: 600;">{{ score }}</span>
-              </div>
-              <el-progress :percentage="score" :stroke-width="10" :show-text="false" color="#6C5CE7" />
-            </div>
-          </div>
+          <BaseChart v-if="analyticsRadarOption" :option="analyticsRadarOption" height="320px" />
           <div v-else style="color: #999; padding: 20px; text-align: center;">
             完成带增强复盘的面试后，这里会展示能力雷达
           </div>
         </NbCard>
         <NbCard>
           <h3>Top 技能缺口</h3>
-          <div v-if="reviewAnalytics.topSkillGaps.length > 0">
-            <el-tag v-for="gap in reviewAnalytics.topSkillGaps" :key="gap.name" type="warning" style="margin: 4px;">
-              {{ gap.name }} · {{ gap.count }} 次
-            </el-tag>
-          </div>
+          <BaseChart v-if="skillGapOption" :option="skillGapOption" height="320px" />
           <div v-else style="color: #999; padding: 20px; text-align: center;">
             暂无技能缺口数据
           </div>
@@ -129,11 +123,9 @@ onMounted(() => {
       <div v-if="reviewAnalytics && (reviewAnalytics.recentScoreTrend.length > 0 || reviewAnalytics.latestActionItems.length > 0)" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;">
         <NbCard>
           <h3>近期面试分数</h3>
-          <div v-if="reviewAnalytics.recentScoreTrend.length > 0">
-            <div v-for="(item, i) in reviewAnalytics.recentScoreTrend" :key="i" style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px;">
-              <span>{{ item.date }}</span>
-              <span style="font-weight: 600; color: #6C5CE7;">{{ item.score }} 分</span>
-            </div>
+          <BaseChart v-if="scoreTrendOption" :option="scoreTrendOption" height="320px" />
+          <div v-else style="color: #999; padding: 20px; text-align: center;">
+            暂无近期分数趋势
           </div>
         </NbCard>
         <NbCard>
