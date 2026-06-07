@@ -4,6 +4,7 @@ import com.mianshiba.ai.exception.BusinessException;
 import com.mianshiba.ai.exception.ErrorCode;
 import com.mianshiba.ai.mapper.JobAnalysisMapper;
 import com.mianshiba.ai.mapper.JobMapper;
+import com.mianshiba.ai.mapper.ResumeChatMessageMapper;
 import com.mianshiba.ai.mapper.ResumeMapper;
 import com.mianshiba.ai.mapper.ResumeSectionMapper;
 import com.mianshiba.ai.mapper.UserMapper;
@@ -59,6 +60,9 @@ class ResumeAiServiceImplTest {
     @Mock
     private JobAnalysisMapper jobAnalysisMapper;
 
+    @Mock
+    private ResumeChatMessageMapper chatMessageMapper;
+
     private JwtUtils jwtUtils;
     private ResumeAiServiceImpl service;
 
@@ -66,7 +70,7 @@ class ResumeAiServiceImplTest {
     void setUp() {
         ChatClient chatClient = ChatClient.builder(chatModel).build();
         jwtUtils = new JwtUtils(SECRET, Duration.ofHours(24));
-        service = new ResumeAiServiceImpl(chatClient, resumeMapper, resumeSectionMapper, userMapper, jwtUtils, jobMapper, jobAnalysisMapper);
+        service = new ResumeAiServiceImpl(chatClient, resumeMapper, resumeSectionMapper, userMapper, jwtUtils, jobMapper, jobAnalysisMapper, chatMessageMapper);
     }
 
     @Test

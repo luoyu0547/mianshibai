@@ -20,15 +20,15 @@
       <!-- 统计区域 -->
       <div class="home-page__stats">
         <NbCard hoverable class="stat-card">
-          <div class="stat-card__value">0</div>
+          <div class="stat-card__value">{{ stats.completedInterviews }}</div>
           <div class="stat-card__label">已完成面试</div>
         </NbCard>
         <NbCard hoverable class="stat-card">
-          <div class="stat-card__value">0</div>
+          <div class="stat-card__value">{{ stats.totalQuestions }}</div>
           <div class="stat-card__label">面试题目</div>
         </NbCard>
         <NbCard hoverable class="stat-card">
-          <div class="stat-card__value">0</div>
+          <div class="stat-card__value">{{ stats.practiceDays }}</div>
           <div class="stat-card__label">练习天数</div>
         </NbCard>
       </div>
@@ -80,8 +80,28 @@ import IconTarget from '@/components/icons/IconTarget.vue'
 import IconChart from '@/components/icons/IconChart.vue'
 import IconResume from '@/components/icons/IconResume.vue'
 import { useUserStore } from '@/stores/user'
+import { getHomeStats } from '@/api/statistics'
+import type { HomeStatsVO } from '@/types/statistics'
+import { reactive, onMounted } from 'vue'
 
 const userStore = useUserStore()
+
+const stats = reactive<HomeStatsVO>({
+  completedInterviews: 0,
+  totalQuestions: 0,
+  practiceDays: 0,
+})
+
+onMounted(async () => {
+  try {
+    const res = await getHomeStats()
+    if (res.data.code === 0 && res.data.data) {
+      Object.assign(stats, res.data.data)
+    }
+  } catch {
+    // 保持默认值 0
+  }
+})
 </script>
 
 <style scoped>
