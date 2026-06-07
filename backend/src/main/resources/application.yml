@@ -59,5 +59,7 @@ app:
   speech:
     provider: aliyun
     aliyun:
+      access-key-id: ${ALIYUN_AK_ID:}
+      access-key-secret: ${ALIYUN_AK_SECRET:}
       app-key: ${ALIYUN_NLS_APP_KEY:}
       region: ${ALIYUN_NLS_REGION:cn-shanghai}

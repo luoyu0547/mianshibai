@@ -12,7 +12,13 @@ public class SpeechProperties {
 
     @Data
     public static class Aliyun {
+        private String accessKeyId = "";
+        private String accessKeySecret = "";
         private String appKey = "";
         private String region = "cn-shanghai";
+
+        public String getGatewayUrl() {
+            return "wss://nls-gateway-" + region + ".aliyuncs.com/ws/v1";
+        }
     }
 }

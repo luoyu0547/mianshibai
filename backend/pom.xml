@@ -24,6 +24,7 @@
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
         <knife4j.version>4.5.0</knife4j.version>
         <jjwt.version>0.12.6</jjwt.version>
+        <nls-sdk.version>2.2.19</nls-sdk.version>
     </properties>
 
     <dependencyManagement>
@@ -120,6 +121,16 @@
             <artifactId>jjwt-jackson</artifactId>
             <version>${jjwt.version}</version>
             <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.nls</groupId>
+            <artifactId>nls-sdk-tts</artifactId>
+            <version>${nls-sdk.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.nls</groupId>
+            <artifactId>nls-sdk-transcriber</artifactId>
+            <version>${nls-sdk.version}</version>
         </dependency>
 
         <dependency>
