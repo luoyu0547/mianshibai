@@ -8,6 +8,7 @@ import com.mianshiba.ai.model.vo.resume.ResumeDetailVO;
 import com.mianshiba.ai.model.vo.resume.ResumeVO;
 import com.mianshiba.ai.model.vo.resume.SectionVO;
 import com.mianshiba.ai.service.ResumeService;
+import com.mianshiba.ai.service.ResumeVersionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,13 +38,15 @@ class ResumeControllerTest {
 
     @Mock
     private ResumeService resumeService;
+    @Mock
+    private ResumeVersionService resumeVersionService;
 
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new ResumeController(resumeService))
+        mockMvc = MockMvcBuilders.standaloneSetup(new ResumeController(resumeService, resumeVersionService))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
         objectMapper = new ObjectMapper();

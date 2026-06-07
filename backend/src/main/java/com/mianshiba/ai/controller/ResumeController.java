@@ -11,6 +11,8 @@ import com.mianshiba.ai.model.vo.resume.ResumeDetailVO;
 import com.mianshiba.ai.model.vo.resume.ResumeVO;
 import com.mianshiba.ai.model.vo.resume.SectionVO;
 import com.mianshiba.ai.service.ResumeService;
+import com.mianshiba.ai.service.ResumeVersionService;
+import com.mianshiba.ai.model.vo.resume.VersionVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -35,6 +37,7 @@ import java.util.List;
 public class ResumeController {
 
     private final ResumeService resumeService;
+    private final ResumeVersionService resumeVersionService;
 
     @PostMapping
     @Operation(summary = "创建简历")
@@ -61,7 +64,9 @@ public class ResumeController {
     public BaseResponse<ResumeVO> updateResume(@RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
                                                @PathVariable("id") Long id,
                                                @Valid @RequestBody ResumeUpdateRequest request) {
-        return ResultUtils.success(resumeService.updateResume(authorizationHeader, id, request));
+        ResumeVO result = resumeService.updateResume(authorizationHeader, id, request);
+        resumeVersionService.saveSnapshot(id, "更新了简历基本信息");
+        return ResultUtils.success(result);
     }
 
     @DeleteMapping("/{id}")
@@ -77,7 +82,10 @@ public class ResumeController {
     public BaseResponse<SectionVO> addSection(@RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
                                               @PathVariable("resumeId") Long resumeId,
                                               @Valid @RequestBody SectionCreateRequest request) {
-        return ResultUtils.success(resumeService.addSection(authorizationHeader, resumeId, request));
+        SectionVO result = resumeService.addSection(authorizationHeader, resumeId, request);
+        String sectionType = request.getSectionType() != null ? request.getSectionType() : "未知";
+        resumeVersionService.saveSnapshot(resumeId, "添加了" + sectionType + "模块");
+        return ResultUtils.success(result);
     }
 
     @PutMapping("/{resumeId}/section/{sectionId}")
@@ -86,7 +94,10 @@ public class ResumeController {
                                                  @PathVariable("resumeId") Long resumeId,
                                                  @PathVariable("sectionId") Long sectionId,
                                                  @Valid @RequestBody SectionUpdateRequest request) {
-        return ResultUtils.success(resumeService.updateSection(authorizationHeader, resumeId, sectionId, request));
+        SectionVO section = resumeService.updateSection(authorizationHeader, resumeId, sectionId, request);
+        String sectionType = section.getSectionType() != null ? section.getSectionType() : "未知";
+        resumeVersionService.saveSnapshot(resumeId, "更新了" + sectionType + "模块");
+        return ResultUtils.success(section);
     }
 
     @DeleteMapping("/{resumeId}/section/{sectionId}")
@@ -95,6 +106,7 @@ public class ResumeController {
                                             @PathVariable("resumeId") Long resumeId,
                                             @PathVariable("sectionId") Long sectionId) {
         resumeService.deleteSection(authorizationHeader, resumeId, sectionId);
+        resumeVersionService.saveSnapshot(resumeId, "删除了模块");
         return ResultUtils.success(null);
     }
 
@@ -104,6 +116,13 @@ public class ResumeController {
                                            @PathVariable("resumeId") Long resumeId,
                                            @Valid @RequestBody SectionSortRequest request) {
         resumeService.sortSections(authorizationHeader, resumeId, request);
+        resumeVersionService.saveSnapshot(resumeId, "调整了模块排序");
         return ResultUtils.success(null);
+    }
+
+    @GetMapping("/{resumeId}/versions")
+    @Operation(summary = "获取简历版本历史")
+    public BaseResponse<List<VersionVO>> getVersions(@PathVariable("resumeId") Long resumeId) {
+        return ResultUtils.success(resumeVersionService.listVersions(resumeId));
     }
 }
