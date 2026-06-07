@@ -89,6 +89,31 @@ public enum ErrorCode {
     SPEECH_SYNTHESIS_ERROR(50012, "语音合成失败"),
 
     /**
+     * 职位页面抓取失败
+     */
+    JOB_CRAWL_ERROR(50020, "职位页面抓取失败"),
+
+    /**
+     * 职位信息解析失败
+     */
+    JOB_PARSE_ERROR(50021, "职位信息解析失败"),
+
+    /**
+     * 职位不存在
+     */
+    JOB_NOT_FOUND_ERROR(40420, "职位不存在"),
+
+    /**
+     * 公司不存在
+     */
+    COMPANY_NOT_FOUND_ERROR(40421, "公司不存在"),
+
+    /**
+     * 职位匹配分析失败
+     */
+    JOB_MATCH_ERROR(50022, "职位匹配分析失败"),
+
+    /**
      * 系统内部异常
      */
     SYSTEM_ERROR(50000, "系统内部异常");
