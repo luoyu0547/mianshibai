@@ -6,8 +6,12 @@ import com.mianshiba.ai.model.dto.interview.InterviewAnswerRequest;
 import com.mianshiba.ai.model.dto.interview.InterviewCreateRequest;
 import com.mianshiba.ai.model.vo.interview.InterviewAnswerResultVO;
 import com.mianshiba.ai.model.vo.interview.InterviewQuestionVO;
+import com.mianshiba.ai.model.vo.interview.InterviewReportCompareVO;
+import com.mianshiba.ai.model.vo.interview.InterviewReportEnhancementVO;
 import com.mianshiba.ai.model.vo.interview.InterviewReportVO;
 import com.mianshiba.ai.model.vo.interview.InterviewSessionVO;
+import com.mianshiba.ai.service.InterviewReportCompareService;
+import com.mianshiba.ai.service.InterviewReportEnhancementService;
 import com.mianshiba.ai.service.InterviewService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,6 +24,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -31,6 +36,8 @@ import java.util.List;
 public class InterviewController {
 
     private final InterviewService interviewService;
+    private final InterviewReportEnhancementService interviewReportEnhancementService;
+    private final InterviewReportCompareService interviewReportCompareService;
 
     @PostMapping("/session")
     @Operation(summary = "创建面试会话")
@@ -88,5 +95,30 @@ public class InterviewController {
             @PathVariable("sessionId") Long sessionId) {
         interviewService.cancelSession(authorizationHeader, sessionId);
         return ResultUtils.success(null);
+    }
+
+    @GetMapping("/session/{sessionId}/report/enhancement")
+    @Operation(summary = "获取面试报告增强复盘")
+    public BaseResponse<InterviewReportEnhancementVO> getReportEnhancement(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
+            @PathVariable("sessionId") Long sessionId) {
+        return ResultUtils.success(interviewReportEnhancementService.getEnhancement(authorizationHeader, sessionId));
+    }
+
+    @PostMapping("/session/{sessionId}/report/enhancement/retry")
+    @Operation(summary = "重试面试报告增强复盘")
+    public BaseResponse<InterviewReportEnhancementVO> retryReportEnhancement(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
+            @PathVariable("sessionId") Long sessionId) {
+        return ResultUtils.success(interviewReportEnhancementService.retry(authorizationHeader, sessionId));
+    }
+
+    @GetMapping("/reports/compare")
+    @Operation(summary = "对比两次面试报告")
+    public BaseResponse<InterviewReportCompareVO> compareReports(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
+            @RequestParam("baseSessionId") Long baseSessionId,
+            @RequestParam("targetSessionId") Long targetSessionId) {
+        return ResultUtils.success(interviewReportCompareService.compare(authorizationHeader, baseSessionId, targetSessionId));
     }
 }
