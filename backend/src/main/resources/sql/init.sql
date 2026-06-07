@@ -299,3 +299,48 @@ CREATE TABLE IF NOT EXISTS job_favorite (
   KEY idx_user_id (user_id),
   KEY idx_job_id (job_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='职位收藏表';
+
+CREATE TABLE IF NOT EXISTS job_application (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '投递记录 id',
+  user_id BIGINT NOT NULL COMMENT '用户 id',
+  job_id BIGINT DEFAULT NULL COMMENT '关联职位 id',
+  resume_id BIGINT DEFAULT NULL COMMENT '关联简历 id',
+  company_name VARCHAR(128) NOT NULL DEFAULT '' COMMENT '公司名',
+  job_title VARCHAR(128) NOT NULL DEFAULT '' COMMENT '岗位名',
+  source VARCHAR(64) NOT NULL DEFAULT '' COMMENT '投递渠道',
+  status VARCHAR(32) NOT NULL DEFAULT 'pending_submit' COMMENT 'pending_submit/submitted/hr_contact/written_test/first_interview/second_interview/final_interview/offer/rejected/withdrawn',
+  applied_at DATETIME DEFAULT NULL COMMENT '投递时间',
+  next_event_at DATETIME DEFAULT NULL COMMENT '下一事件时间',
+  salary_range VARCHAR(64) NOT NULL DEFAULT '' COMMENT '薪资范围',
+  location VARCHAR(64) NOT NULL DEFAULT '' COMMENT '工作城市',
+  contact_name VARCHAR(64) NOT NULL DEFAULT '' COMMENT '联系人',
+  contact_info VARCHAR(128) NOT NULL DEFAULT '' COMMENT '联系方式',
+  notes TEXT DEFAULT NULL COMMENT '备注',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
+  PRIMARY KEY (id),
+  KEY idx_application_user_status (user_id, status),
+  KEY idx_application_user_next_event (user_id, next_event_at),
+  KEY idx_application_job_id (job_id),
+  KEY idx_application_resume_id (resume_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='求职投递记录表';
+
+CREATE TABLE IF NOT EXISTS application_todo (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '投递待办 id',
+  user_id BIGINT NOT NULL COMMENT '用户 id',
+  application_id BIGINT DEFAULT NULL COMMENT '关联投递记录 id，空表示全局待办',
+  title VARCHAR(128) NOT NULL COMMENT '待办标题',
+  description TEXT DEFAULT NULL COMMENT '待办说明',
+  priority VARCHAR(16) NOT NULL DEFAULT 'medium' COMMENT 'low/medium/high',
+  due_at DATETIME DEFAULT NULL COMMENT '截止时间',
+  completed TINYINT NOT NULL DEFAULT 0 COMMENT '是否完成：0-未完成，1-已完成',
+  completed_at DATETIME DEFAULT NULL COMMENT '完成时间',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
+  PRIMARY KEY (id),
+  KEY idx_todo_user_completed_due (user_id, completed, due_at),
+  KEY idx_todo_application_id (application_id),
+  KEY idx_todo_priority (priority)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='求职投递待办表';
