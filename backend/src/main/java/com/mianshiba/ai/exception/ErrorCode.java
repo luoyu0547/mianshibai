@@ -139,6 +139,10 @@ public enum ErrorCode {
 
     ANALYTICS_ERROR(50030, "数据分析失败"),
 
+    TRAINING_PLAN_NOT_FOUND_ERROR(40440, "训练计划不存在"),
+    TRAINING_QUESTION_NOT_FOUND_ERROR(40441, "训练题不存在"),
+    TRAINING_ANSWER_NOT_FOUND_ERROR(40442, "训练答案不存在"),
+
     /**
      * 系统内部异常
      */

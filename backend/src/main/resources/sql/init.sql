@@ -344,3 +344,99 @@ CREATE TABLE IF NOT EXISTS application_todo (
   KEY idx_todo_application_id (application_id),
   KEY idx_todo_priority (priority)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='求职投递待办表';
+
+CREATE TABLE IF NOT EXISTS training_plan (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '训练计划 id',
+  user_id BIGINT NOT NULL COMMENT '用户 id',
+  title VARCHAR(255) NOT NULL COMMENT '计划标题',
+  source_type VARCHAR(32) NOT NULL DEFAULT 'manual' COMMENT '来源类型：manual/interview_report/job_analysis',
+  source_id BIGINT DEFAULT NULL COMMENT '来源 id',
+  target_days INT NOT NULL DEFAULT 7 COMMENT '目标天数',
+  status VARCHAR(32) NOT NULL DEFAULT 'active' COMMENT 'active/completed/cancelled',
+  summary TEXT DEFAULT NULL COMMENT '计划摘要',
+  focus_topics JSON DEFAULT NULL COMMENT '重点主题列表',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
+  PRIMARY KEY (id),
+  KEY idx_tp_user_status (user_id, status),
+  KEY idx_tp_user_create_time (user_id, create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='训练计划表';
+
+CREATE TABLE IF NOT EXISTS training_question (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '训练题 id',
+  user_id BIGINT NOT NULL COMMENT '用户 id',
+  plan_id BIGINT NOT NULL COMMENT '关联训练计划 id',
+  day_index INT NOT NULL DEFAULT 1 COMMENT '第几天',
+  title VARCHAR(255) NOT NULL COMMENT '题目标题',
+  content TEXT NOT NULL COMMENT '题目内容',
+  topic VARCHAR(64) DEFAULT NULL COMMENT '主题分类',
+  skill_tags JSON DEFAULT NULL COMMENT '技能标签列表',
+  difficulty VARCHAR(32) NOT NULL DEFAULT 'medium' COMMENT 'easy/medium/hard',
+  source_type VARCHAR(32) NOT NULL DEFAULT 'manual' COMMENT '来源类型',
+  reference_answer TEXT DEFAULT NULL COMMENT '参考答案',
+  follow_up_questions JSON DEFAULT NULL COMMENT '追问列表',
+  status VARCHAR(32) NOT NULL DEFAULT 'pending' COMMENT 'pending/answered/reviewed',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
+  PRIMARY KEY (id),
+  KEY idx_tq_user_plan (user_id, plan_id),
+  KEY idx_tq_user_status (user_id, status),
+  KEY idx_tq_plan_day (plan_id, day_index)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='训练题表';
+
+CREATE TABLE IF NOT EXISTS training_answer (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '训练答案 id',
+  user_id BIGINT NOT NULL COMMENT '用户 id',
+  question_id BIGINT NOT NULL COMMENT '关联训练题 id',
+  answer_text TEXT NOT NULL COMMENT '答案内容',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
+  PRIMARY KEY (id),
+  KEY idx_ta_user_question (user_id, question_id),
+  KEY idx_ta_question_create_time (question_id, create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='训练答案表';
+
+CREATE TABLE IF NOT EXISTS training_answer_review (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '答案评审 id',
+  user_id BIGINT NOT NULL COMMENT '用户 id',
+  question_id BIGINT NOT NULL COMMENT '关联训练题 id',
+  answer_id BIGINT NOT NULL COMMENT '关联训练答案 id',
+  total_score INT NOT NULL DEFAULT 0 COMMENT '总分',
+  accuracy_score INT NOT NULL DEFAULT 0 COMMENT '技术准确性',
+  clarity_score INT NOT NULL DEFAULT 0 COMMENT '表达清晰度',
+  depth_score INT NOT NULL DEFAULT 0 COMMENT '项目深度',
+  project_score INT NOT NULL DEFAULT 0 COMMENT '项目评分',
+  strengths_json JSON DEFAULT NULL COMMENT '优点列表',
+  mistakes_json JSON DEFAULT NULL COMMENT '错误列表',
+  missing_points_json JSON DEFAULT NULL COMMENT '遗漏点列表',
+  suggestions_json JSON DEFAULT NULL COMMENT '建议列表',
+  recommended_answer TEXT DEFAULT NULL COMMENT '推荐答案',
+  follow_up_questions_json JSON DEFAULT NULL COMMENT '追问列表',
+  mastery_level VARCHAR(32) NOT NULL DEFAULT 'basic' COMMENT 'basic/intermediate/advanced/expert',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
+  PRIMARY KEY (id),
+  KEY idx_tar_user_question (user_id, question_id),
+  KEY idx_tar_answer (answer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='训练答案评审表';
+
+CREATE TABLE IF NOT EXISTS algorithm_recommendation (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '算法推荐 id',
+  user_id BIGINT NOT NULL COMMENT '用户 id',
+  plan_id BIGINT NOT NULL COMMENT '关联训练计划 id',
+  category VARCHAR(64) NOT NULL COMMENT '算法分类',
+  platform VARCHAR(64) NOT NULL DEFAULT 'LeetCode' COMMENT '刷题平台',
+  problem_ref VARCHAR(255) NOT NULL COMMENT '题目引用',
+  reason TEXT DEFAULT NULL COMMENT '推荐理由',
+  completed TINYINT NOT NULL DEFAULT 0 COMMENT '是否完成：0-未完成，1-已完成',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
+  PRIMARY KEY (id),
+  KEY idx_ar_user_plan (user_id, plan_id),
+  KEY idx_ar_user_completed (user_id, completed)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='算法推荐表';
