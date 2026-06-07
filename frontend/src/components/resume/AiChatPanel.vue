@@ -28,8 +28,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
-import type { SectionType } from '@/types/resume'
+import { ref, nextTick, onMounted } from 'vue'
+import type { SectionType, ChatMessageVO } from '@/types/resume'
+import { getChatHistory } from '@/api/resume'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -56,6 +57,23 @@ function scrollToBottom() {
     }
   })
 }
+
+onMounted(async () => {
+  if (props.resumeId) {
+    try {
+      const res = await getChatHistory(props.resumeId)
+      if (res.data.code === 0 && res.data.data) {
+        messages.value = res.data.data.map((m: ChatMessageVO) => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        }))
+        scrollToBottom()
+      }
+    } catch {
+      // 加载失败不展示错误，保持空白面板
+    }
+  }
+})
 
 async function handleSend() {
   const text = inputText.value.trim()

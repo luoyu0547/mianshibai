@@ -8,17 +8,20 @@ import com.mianshiba.ai.exception.BusinessException;
 import com.mianshiba.ai.exception.ErrorCode;
 import com.mianshiba.ai.mapper.JobAnalysisMapper;
 import com.mianshiba.ai.mapper.JobMapper;
+import com.mianshiba.ai.mapper.ResumeChatMessageMapper;
 import com.mianshiba.ai.mapper.ResumeMapper;
 import com.mianshiba.ai.mapper.ResumeSectionMapper;
 import com.mianshiba.ai.mapper.UserMapper;
 import com.mianshiba.ai.model.dto.resume.AiGenerateRequest;
 import com.mianshiba.ai.model.dto.resume.AiOptimizeRequest;
 import com.mianshiba.ai.model.entity.Resume;
+import com.mianshiba.ai.model.entity.ResumeChatMessage;
 import com.mianshiba.ai.model.entity.ResumeSection;
 import com.mianshiba.ai.model.entity.User;
 import com.mianshiba.ai.model.entity.Job;
 import com.mianshiba.ai.model.entity.JobAnalysis;
 import com.mianshiba.ai.model.vo.resume.AiScoreVO;
+import com.mianshiba.ai.model.vo.resume.ChatMessageVO;
 import com.mianshiba.ai.model.vo.resume.ResumeDetailVO;
 import com.mianshiba.ai.model.vo.resume.SectionVO;
 import com.mianshiba.ai.service.ResumeAiService;
@@ -87,6 +90,7 @@ public class ResumeAiServiceImpl implements ResumeAiService {
     private final JwtUtils jwtUtils;
     private final JobMapper jobMapper;
     private final JobAnalysisMapper jobAnalysisMapper;
+    private final ResumeChatMessageMapper chatMessageMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -211,6 +215,12 @@ public class ResumeAiServiceImpl implements ResumeAiService {
         Long userId = resolveUserId(authorizationHeader);
         getResumeAndCheckOwner(resumeId, userId);
 
+        ResumeChatMessage userMsg = new ResumeChatMessage();
+        userMsg.setResumeId(resumeId);
+        userMsg.setRole("user");
+        userMsg.setContent(message);
+        chatMessageMapper.insert(userMsg);
+
         List<ResumeSection> sections = resumeSectionMapper.selectList(
                 Wrappers.lambdaQuery(ResumeSection.class)
                         .eq(ResumeSection::getResumeId, resumeId)
@@ -219,11 +229,49 @@ public class ResumeAiServiceImpl implements ResumeAiService {
         String sectionsSummary = buildSectionsSummary(sections);
         String systemPrompt = String.format(CHAT_SYSTEM_PROMPT, sectionsSummary);
 
+        StringBuilder fullResponse = new StringBuilder();
+
         return chatClient.prompt()
                 .system(systemPrompt)
                 .user(message)
                 .stream()
-                .content();
+                .content()
+                .doOnNext(fullResponse::append)
+                .doOnComplete(() -> saveAssistantMessage(resumeId, fullResponse.toString()))
+                .doOnError(e -> {
+                    log.error("AI 对话流异常", e);
+                    saveAssistantMessage(resumeId, fullResponse + "\n[对话异常中断]");
+                });
+    }
+
+    private void saveAssistantMessage(Long resumeId, String content) {
+        try {
+            ResumeChatMessage assistantMsg = new ResumeChatMessage();
+            assistantMsg.setResumeId(resumeId);
+            assistantMsg.setRole("assistant");
+            assistantMsg.setContent(content);
+            chatMessageMapper.insert(assistantMsg);
+        } catch (Exception e) {
+            log.error("保存 AI 回复失败：resumeId={}", resumeId, e);
+        }
+    }
+
+    @Override
+    public List<ChatMessageVO> getChatHistory(Long resumeId) {
+        List<ResumeChatMessage> messages = chatMessageMapper.selectList(
+                Wrappers.lambdaQuery(ResumeChatMessage.class)
+                        .eq(ResumeChatMessage::getResumeId, resumeId)
+                        .orderByAsc(ResumeChatMessage::getCreateTime));
+
+        return messages.stream().map(m -> {
+            ChatMessageVO vo = new ChatMessageVO();
+            vo.setId(m.getId());
+            vo.setRole(m.getRole());
+            vo.setContent(m.getContent());
+            vo.setRelatedSectionType(m.getRelatedSectionType());
+            vo.setCreateTime(m.getCreateTime());
+            return vo;
+        }).collect(Collectors.toList());
     }
 
     private Long resolveUserId(String authorizationHeader) {

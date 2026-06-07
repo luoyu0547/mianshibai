@@ -2,6 +2,7 @@ package com.mianshiba.ai.service;
 
 import com.mianshiba.ai.model.dto.resume.AiOptimizeRequest;
 import com.mianshiba.ai.model.vo.resume.AiScoreVO;
+import com.mianshiba.ai.model.vo.resume.ChatMessageVO;
 import com.mianshiba.ai.model.vo.resume.ResumeDetailVO;
 import com.mianshiba.ai.model.vo.resume.SectionVO;
 import reactor.core.publisher.Flux;
@@ -18,4 +19,6 @@ public interface ResumeAiService {
     AiScoreVO scoreResume(List<SectionVO> sections, String targetPosition);
 
     Flux<String> chatStream(String authorizationHeader, Long resumeId, String message);
+
+    List<ChatMessageVO> getChatHistory(Long resumeId);
 }

@@ -14,6 +14,7 @@ import type {
   AiOptimizeRequest,
   AiScoreVO,
   VersionVO,
+  ChatMessageVO,
 } from '@/types/resume'
 
 export function createResume(data: ResumeCreateRequest) {
@@ -66,4 +67,8 @@ export function aiScoreResume(resumeId: number) {
 
 export function getResumeVersions(id: number) {
   return request.get<BaseResponse<VersionVO[]>>(`/api/resume/${id}/versions`)
+}
+
+export function getChatHistory(resumeId: number) {
+  return request.get<BaseResponse<ChatMessageVO[]>>(`/api/resume/${resumeId}/chat/history`)
 }

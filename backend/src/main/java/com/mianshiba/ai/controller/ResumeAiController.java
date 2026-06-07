@@ -6,6 +6,7 @@ import com.mianshiba.ai.model.dto.resume.AiGenerateRequest;
 import com.mianshiba.ai.model.dto.resume.AiOptimizeRequest;
 import com.mianshiba.ai.model.dto.resume.ChatRequest;
 import com.mianshiba.ai.model.vo.resume.AiScoreVO;
+import com.mianshiba.ai.model.vo.resume.ChatMessageVO;
 import com.mianshiba.ai.model.vo.resume.ResumeDetailVO;
 import com.mianshiba.ai.model.vo.resume.SectionVO;
 import com.mianshiba.ai.service.ResumeAiService;
@@ -16,6 +17,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -91,6 +93,15 @@ public class ResumeAiController {
                     .subscribe();
         });
         return emitter;
+    }
+
+    @GetMapping("/{resumeId}/chat/history")
+    @Operation(summary = "获取 AI 对话历史")
+    public BaseResponse<List<ChatMessageVO>> getChatHistory(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
+            @PathVariable("resumeId") Long resumeId) {
+        resumeService.getResumeDetail(authorizationHeader, resumeId);
+        return ResultUtils.success(resumeAiService.getChatHistory(resumeId));
     }
 
     private String extractTargetPosition(List<SectionVO> sections) {

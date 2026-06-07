@@ -158,3 +158,11 @@ export interface ChatMessage {
   content: string
   relatedSectionType?: string
 }
+
+export interface ChatMessageVO {
+  id: number
+  role: string
+  content: string
+  relatedSectionType?: string
+  createTime: string
+}
