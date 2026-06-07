@@ -18,6 +18,7 @@ import com.mianshiba.ai.model.entity.Resume;
 import com.mianshiba.ai.model.entity.User;
 import com.mianshiba.ai.model.vo.interview.InterviewAnswerResultVO;
 import com.mianshiba.ai.model.vo.interview.InterviewQuestionVO;
+import com.mianshiba.ai.service.InterviewReportEnhancementService;
 import com.mianshiba.ai.service.SpeechService;
 import com.mianshiba.ai.utils.JwtUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,6 +62,8 @@ class InterviewServiceImplTest {
     @Mock
     private JobAnalysisMapper jobAnalysisMapper;
     @Mock
+    private InterviewReportEnhancementService interviewReportEnhancementService;
+    @Mock
     private ChatClient.ChatClientRequestSpec requestSpec;
     @Mock
     private ChatClient.CallResponseSpec callResponseSpec;
@@ -74,7 +77,7 @@ class InterviewServiceImplTest {
         interviewService = new InterviewServiceImpl(
                 interviewSessionMapper, interviewTurnMapper, interviewReportMapper,
                 resumeMapper, userMapper, jwtUtils, chatClient, speechService,
-                jobMapper, jobAnalysisMapper);
+                jobMapper, jobAnalysisMapper, interviewReportEnhancementService);
     }
 
     @Test

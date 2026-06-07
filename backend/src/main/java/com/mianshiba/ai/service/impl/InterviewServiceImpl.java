@@ -28,6 +28,7 @@ import com.mianshiba.ai.model.vo.interview.InterviewQuestionVO;
 import com.mianshiba.ai.model.vo.interview.InterviewReportVO;
 import com.mianshiba.ai.model.vo.interview.InterviewSessionVO;
 import com.mianshiba.ai.model.vo.interview.InterviewTurnVO;
+import com.mianshiba.ai.service.InterviewReportEnhancementService;
 import com.mianshiba.ai.service.InterviewService;
 import com.mianshiba.ai.service.SpeechService;
 import com.mianshiba.ai.utils.JwtUtils;
@@ -99,6 +100,7 @@ public class InterviewServiceImpl implements InterviewService {
     private final SpeechService speechService;
     private final JobMapper jobMapper;
     private final JobAnalysisMapper jobAnalysisMapper;
+    private final InterviewReportEnhancementService interviewReportEnhancementService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -366,6 +368,7 @@ public class InterviewServiceImpl implements InterviewService {
         report.setSuggestions(suggestions);
 
         interviewReportMapper.insert(report);
+        interviewReportEnhancementService.createTaskIfAbsent(session, report);
         return report;
     }
 
