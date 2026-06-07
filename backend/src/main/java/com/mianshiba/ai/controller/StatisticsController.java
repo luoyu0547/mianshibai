@@ -8,6 +8,8 @@ import com.mianshiba.ai.mapper.UserMapper;
 import com.mianshiba.ai.model.entity.User;
 import com.mianshiba.ai.model.vo.statistics.AnalyticsOverviewVO;
 import com.mianshiba.ai.model.vo.statistics.HomeStatsVO;
+import com.mianshiba.ai.model.vo.statistics.ReviewAnalyticsVO;
+import com.mianshiba.ai.service.ReviewAnalyticsService;
 import com.mianshiba.ai.service.StatisticsService;
 import com.mianshiba.ai.utils.JwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class StatisticsController {
 
     private final StatisticsService statisticsService;
+    private final ReviewAnalyticsService reviewAnalyticsService;
     private final JwtUtils jwtUtils;
     private final UserMapper userMapper;
 
@@ -43,6 +46,14 @@ public class StatisticsController {
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader) {
         Long userId = resolveUserId(authorizationHeader);
         return ResultUtils.success(statisticsService.getAnalyticsOverview(userId));
+    }
+
+    @GetMapping("/analytics/review")
+    @Operation(summary = "获取复盘分析总览")
+    public BaseResponse<ReviewAnalyticsVO> getReviewAnalytics(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader) {
+        Long userId = resolveUserId(authorizationHeader);
+        return ResultUtils.success(reviewAnalyticsService.getReviewAnalytics(userId));
     }
 
     private Long resolveUserId(String authorizationHeader) {
