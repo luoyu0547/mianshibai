@@ -3,6 +3,9 @@ package com.mianshiba.ai.service.impl;
 import com.mianshiba.ai.exception.BusinessException;
 import com.mianshiba.ai.exception.ErrorCode;
 import com.mianshiba.ai.mapper.AlgorithmRecommendationMapper;
+import com.mianshiba.ai.mapper.InterviewReportEnhancementMapper;
+import com.mianshiba.ai.mapper.JobApplicationMapper;
+import com.mianshiba.ai.mapper.ResumeMapper;
 import com.mianshiba.ai.mapper.TrainingAnswerMapper;
 import com.mianshiba.ai.mapper.TrainingAnswerReviewMapper;
 import com.mianshiba.ai.mapper.TrainingPlanMapper;
@@ -17,6 +20,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.ai.chat.client.ChatClient;
 
 import java.util.List;
 
@@ -32,6 +36,8 @@ class TrainingServiceImplTest {
     @Mock
     private JwtUtils jwtUtils;
     @Mock
+    private ChatClient chatClient;
+    @Mock
     private TrainingPlanMapper planMapper;
     @Mock
     private TrainingQuestionMapper questionMapper;
@@ -41,6 +47,12 @@ class TrainingServiceImplTest {
     private TrainingAnswerReviewMapper reviewMapper;
     @Mock
     private AlgorithmRecommendationMapper algorithmMapper;
+    @Mock
+    private InterviewReportEnhancementMapper enhancementMapper;
+    @Mock
+    private JobApplicationMapper applicationMapper;
+    @Mock
+    private ResumeMapper resumeMapper;
 
     @InjectMocks
     private TrainingServiceImpl trainingService;
@@ -135,5 +147,29 @@ class TrainingServiceImplTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getId()).isEqualTo(1L);
+    }
+
+    @Test
+    void submitAnswer_rejectsBlankAnswer() {
+        mockResolveUserId();
+
+        var request = new com.mianshiba.ai.model.dto.training.TrainingAnswerSubmitRequest();
+        request.setAnswerText("");
+
+        assertThatThrownBy(() -> trainingService.submitAnswer("Bearer test-token", 1L, request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("code").isEqualTo(ErrorCode.PARAMS_ERROR.getCode());
+    }
+
+    @Test
+    void submitAnswer_rejectsTooLongAnswer() {
+        mockResolveUserId();
+
+        var request = new com.mianshiba.ai.model.dto.training.TrainingAnswerSubmitRequest();
+        request.setAnswerText("a".repeat(8001));
+
+        assertThatThrownBy(() -> trainingService.submitAnswer("Bearer test-token", 1L, request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("code").isEqualTo(ErrorCode.PARAMS_ERROR.getCode());
     }
 }

@@ -1,9 +1,14 @@
 package com.mianshiba.ai.service.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mianshiba.ai.exception.BusinessException;
 import com.mianshiba.ai.exception.ErrorCode;
 import com.mianshiba.ai.mapper.AlgorithmRecommendationMapper;
+import com.mianshiba.ai.mapper.InterviewReportEnhancementMapper;
+import com.mianshiba.ai.mapper.JobApplicationMapper;
+import com.mianshiba.ai.mapper.ResumeMapper;
 import com.mianshiba.ai.mapper.TrainingAnswerMapper;
 import com.mianshiba.ai.mapper.TrainingAnswerReviewMapper;
 import com.mianshiba.ai.mapper.TrainingPlanMapper;
@@ -11,6 +16,9 @@ import com.mianshiba.ai.mapper.TrainingQuestionMapper;
 import com.mianshiba.ai.model.dto.training.TrainingAnswerSubmitRequest;
 import com.mianshiba.ai.model.dto.training.TrainingPlanGenerateRequest;
 import com.mianshiba.ai.model.entity.AlgorithmRecommendation;
+import com.mianshiba.ai.model.entity.InterviewReportEnhancement;
+import com.mianshiba.ai.model.entity.JobApplication;
+import com.mianshiba.ai.model.entity.Resume;
 import com.mianshiba.ai.model.entity.TrainingAnswer;
 import com.mianshiba.ai.model.entity.TrainingAnswerReview;
 import com.mianshiba.ai.model.entity.TrainingPlan;
@@ -24,12 +32,17 @@ import com.mianshiba.ai.service.TrainingService;
 import com.mianshiba.ai.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -42,17 +55,156 @@ public class TrainingServiceImpl implements TrainingService {
 
     private static final Set<String> PLAN_STATUSES = Set.of("active", "completed", "archived");
     private static final Set<String> QUESTION_STATUSES = Set.of("pending", "answered", "reviewed", "mastered", "skipped");
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final Pattern JSON_CODE_BLOCK_PATTERN = Pattern.compile("```(?:json)?\\s*\\n?(.*?)\\n?```", Pattern.DOTALL);
+
+    private static final String PLAN_SYSTEM_PROMPT =
+            "你是一位资深 Java 后端面试教练。请根据用户面试短板和技术背景，生成一份八股文训练计划。\n" +
+            "只返回 JSON，不要解释。JSON 结构：\n" +
+            "{\n" +
+            "  \"title\": \"计划标题\",\n" +
+            "  \"summary\": \"计划说明\",\n" +
+            "  \"targetDays\": 7,\n" +
+            "  \"focusTopics\": [\"JVM\", \"MySQL\"],\n" +
+            "  \"questions\": [{\"dayIndex\":1,\"title\":\"题目标题\",\"content\":\"题目正文\"," +
+            "\"topic\":\"Java\",\"skillTags\":[\"JVM\"],\"difficulty\":\"medium\"," +
+            "\"referenceAnswer\":\"参考答案要点\",\"followUpQuestions\":[\"追问1\"]}],\n" +
+            "  \"algorithmRecommendations\": [{\"category\":\"数组\",\"platform\":\"LeetCode\"," +
+            "\"problemRef\":\"LeetCode 1, 15, 26\",\"reason\":\"巩固高频数组题\"}]\n" +
+            "}\n\n" +
+            "规则：\n" +
+            "- 每天安排 3-4 道八股题\n" +
+            "- 八股题覆盖 Java、Spring、MySQL、Redis、JVM、计算机网络、操作系统、分布式、项目经历\n" +
+            "- 难度根据用户水平调整\n" +
+            "- 算法只推荐去 LeetCode、力扣、CodeTop 等平台刷题\n" +
+            "- 算法不要求在本系统提交代码";
+
+    private static final String REVIEW_SYSTEM_PROMPT =
+            "你是一位严格的程序员八股面试官。请批改用户的八股答案。\n" +
+            "只返回 JSON，结构：\n" +
+            "{\n" +
+            "  \"totalScore\": 75,\n" +
+            "  \"accuracyScore\": 70,\n" +
+            "  \"clarityScore\": 80,\n" +
+            "  \"depthScore\": 65,\n" +
+            "  \"projectScore\": 60,\n" +
+            "  \"strengths\": [\"优点1\"],\n" +
+            "  \"mistakes\": [\"错误1\"],\n" +
+            "  \"missingPoints\": [\"遗漏1\"],\n" +
+            "  \"suggestions\": [\"建议1\"],\n" +
+            "  \"recommendedAnswer\": \"推荐回答，适合面试口述\",\n" +
+            "  \"followUpQuestions\": [\"追问1\"],\n" +
+            "  \"masteryLevel\": \"basic\"\n" +
+            "}\n\n" +
+            "masteryLevel 只能是 weak/basic/good/mastered。\n" +
+            "推荐回答要适合面试口述，不要只给百科定义。\n" +
+            "评分关注：技术准确性、原理深度、表达结构、项目结合。";
 
     private final JwtUtils jwtUtils;
+    private final ChatClient chatClient;
     private final TrainingPlanMapper planMapper;
     private final TrainingQuestionMapper questionMapper;
     private final TrainingAnswerMapper answerMapper;
     private final TrainingAnswerReviewMapper reviewMapper;
     private final AlgorithmRecommendationMapper algorithmMapper;
+    private final InterviewReportEnhancementMapper enhancementMapper;
+    private final JobApplicationMapper applicationMapper;
+    private final ResumeMapper resumeMapper;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public TrainingPlanVO generatePlan(String authorizationHeader, TrainingPlanGenerateRequest request) {
-        throw new BusinessException(ErrorCode.AI_SERVICE_ERROR, "AI generation not yet configured");
+        Long userId = resolveUserId(authorizationHeader);
+
+        String sourceType = (request.getSourceType() != null && !request.getSourceType().isBlank())
+                ? request.getSourceType() : "manual";
+        int targetDays = request.getTargetDays() != null ? Math.max(1, Math.min(request.getTargetDays(), 14)) : 7;
+
+        planMapper.update(null, Wrappers.lambdaUpdate(TrainingPlan.class)
+                .eq(TrainingPlan::getUserId, userId)
+                .eq(TrainingPlan::getStatus, "active")
+                .set(TrainingPlan::getStatus, "archived"));
+
+        String contextMessage = buildPlanContext(userId, request);
+
+        String aiResponse;
+        try {
+            aiResponse = chatClient.prompt()
+                    .system(PLAN_SYSTEM_PROMPT)
+                    .user(contextMessage)
+                    .call()
+                    .content();
+        } catch (Exception e) {
+            log.error("AI 生成训练计划失败", e);
+            throw new BusinessException(ErrorCode.AI_SERVICE_ERROR);
+        }
+
+        String json = extractJsonFromResponse(aiResponse);
+        Map<String, Object> planData;
+        try {
+            planData = OBJECT_MAPPER.readValue(json, new TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            log.error("AI 训练计划响应解析失败: {}", aiResponse, e);
+            throw new BusinessException(ErrorCode.AI_RESPONSE_PARSE_ERROR);
+        }
+
+        TrainingPlan plan = new TrainingPlan();
+        plan.setUserId(userId);
+        plan.setTitle((String) planData.getOrDefault("title", "八股训练计划"));
+        plan.setSourceType(sourceType);
+        plan.setSourceId(request.getSourceId());
+        plan.setTargetDays(targetDays);
+        plan.setStatus("active");
+        plan.setSummary((String) planData.getOrDefault("summary", ""));
+
+        @SuppressWarnings("unchecked")
+        List<String> focusTopics = (List<String>) planData.get("focusTopics");
+        plan.setFocusTopics(focusTopics != null ? focusTopics : Collections.emptyList());
+
+        planMapper.insert(plan);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> questionsData = (List<Map<String, Object>>) planData.get("questions");
+        if (questionsData != null) {
+            for (Map<String, Object> qData : questionsData) {
+                TrainingQuestion question = new TrainingQuestion();
+                question.setUserId(userId);
+                question.setPlanId(plan.getId());
+                question.setDayIndex(qData.get("dayIndex") != null ? ((Number) qData.get("dayIndex")).intValue() : 1);
+                question.setTitle((String) qData.getOrDefault("title", ""));
+                question.setContent((String) qData.getOrDefault("content", ""));
+                question.setTopic((String) qData.getOrDefault("topic", ""));
+                @SuppressWarnings("unchecked")
+                List<String> skillTags = (List<String>) qData.get("skillTags");
+                question.setSkillTags(skillTags != null ? skillTags : Collections.emptyList());
+                question.setDifficulty((String) qData.getOrDefault("difficulty", "medium"));
+                question.setSourceType(sourceType);
+                question.setReferenceAnswer((String) qData.getOrDefault("referenceAnswer", ""));
+                @SuppressWarnings("unchecked")
+                List<String> followUpQuestions = (List<String>) qData.get("followUpQuestions");
+                question.setFollowUpQuestions(followUpQuestions != null ? followUpQuestions : Collections.emptyList());
+                question.setStatus("pending");
+                questionMapper.insert(question);
+            }
+        }
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> algoData = (List<Map<String, Object>>) planData.get("algorithmRecommendations");
+        if (algoData != null) {
+            for (Map<String, Object> aData : algoData) {
+                AlgorithmRecommendation rec = new AlgorithmRecommendation();
+                rec.setUserId(userId);
+                rec.setPlanId(plan.getId());
+                rec.setCategory((String) aData.getOrDefault("category", ""));
+                rec.setPlatform((String) aData.getOrDefault("platform", "LeetCode"));
+                rec.setProblemRef((String) aData.getOrDefault("problemRef", ""));
+                rec.setReason((String) aData.getOrDefault("reason", ""));
+                rec.setCompleted(0);
+                algorithmMapper.insert(rec);
+            }
+        }
+
+        return toPlanVO(plan);
     }
 
     @Override
@@ -168,8 +320,82 @@ public class TrainingServiceImpl implements TrainingService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public TrainingAnswerVO submitAnswer(String authorizationHeader, Long questionId, TrainingAnswerSubmitRequest request) {
-        throw new BusinessException(ErrorCode.AI_SERVICE_ERROR, "AI generation not yet configured");
+        Long userId = resolveUserId(authorizationHeader);
+
+        if (request.getAnswerText() == null || request.getAnswerText().isBlank()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "答案不能为空");
+        }
+        if (request.getAnswerText().length() > 8000) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "答案长度不能超过8000字");
+        }
+
+        TrainingQuestion question = getOwnedQuestion(authorizationHeader, questionId);
+
+        TrainingAnswer answer = new TrainingAnswer();
+        answer.setUserId(userId);
+        answer.setQuestionId(questionId);
+        answer.setAnswerText(request.getAnswerText());
+        answerMapper.insert(answer);
+
+        String userMessage = "题目：" + question.getTitle() + "\n题目内容：" + question.getContent() + "\n用户答案：" + request.getAnswerText();
+
+        String aiResponse;
+        try {
+            aiResponse = chatClient.prompt()
+                    .system(REVIEW_SYSTEM_PROMPT)
+                    .user(userMessage)
+                    .call()
+                    .content();
+        } catch (Exception e) {
+            log.error("AI 批改训练答案失败", e);
+            throw new BusinessException(ErrorCode.AI_SERVICE_ERROR);
+        }
+
+        String json = extractJsonFromResponse(aiResponse);
+        Map<String, Object> reviewData;
+        try {
+            reviewData = OBJECT_MAPPER.readValue(json, new TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            log.error("AI 批改响应解析失败: {}", aiResponse, e);
+            throw new BusinessException(ErrorCode.AI_RESPONSE_PARSE_ERROR);
+        }
+
+        TrainingAnswerReview review = new TrainingAnswerReview();
+        review.setUserId(userId);
+        review.setQuestionId(questionId);
+        review.setAnswerId(answer.getId());
+        review.setTotalScore(reviewData.get("totalScore") != null ? ((Number) reviewData.get("totalScore")).intValue() : 0);
+        review.setAccuracyScore(reviewData.get("accuracyScore") != null ? ((Number) reviewData.get("accuracyScore")).intValue() : 0);
+        review.setClarityScore(reviewData.get("clarityScore") != null ? ((Number) reviewData.get("clarityScore")).intValue() : 0);
+        review.setDepthScore(reviewData.get("depthScore") != null ? ((Number) reviewData.get("depthScore")).intValue() : 0);
+        review.setProjectScore(reviewData.get("projectScore") != null ? ((Number) reviewData.get("projectScore")).intValue() : 0);
+
+        @SuppressWarnings("unchecked")
+        List<String> strengths = (List<String>) reviewData.get("strengths");
+        review.setStrengthsJson(strengths != null ? strengths : Collections.emptyList());
+        @SuppressWarnings("unchecked")
+        List<String> mistakes = (List<String>) reviewData.get("mistakes");
+        review.setMistakesJson(mistakes != null ? mistakes : Collections.emptyList());
+        @SuppressWarnings("unchecked")
+        List<String> missingPoints = (List<String>) reviewData.get("missingPoints");
+        review.setMissingPointsJson(missingPoints != null ? missingPoints : Collections.emptyList());
+        @SuppressWarnings("unchecked")
+        List<String> suggestions = (List<String>) reviewData.get("suggestions");
+        review.setSuggestionsJson(suggestions != null ? suggestions : Collections.emptyList());
+        review.setRecommendedAnswer((String) reviewData.getOrDefault("recommendedAnswer", ""));
+        @SuppressWarnings("unchecked")
+        List<String> followUpQuestions = (List<String>) reviewData.get("followUpQuestions");
+        review.setFollowUpQuestionsJson(followUpQuestions != null ? followUpQuestions : Collections.emptyList());
+        review.setMasteryLevel((String) reviewData.getOrDefault("masteryLevel", "basic"));
+
+        reviewMapper.insert(review);
+
+        question.setStatus("reviewed");
+        questionMapper.updateById(question);
+
+        return toAnswerVO(answer, review);
     }
 
     @Override
@@ -362,5 +588,73 @@ public class TrainingServiceImpl implements TrainingService {
         vo.setReason(rec.getReason());
         vo.setCompleted(rec.getCompleted());
         return vo;
+    }
+
+    private String extractJsonFromResponse(String response) {
+        Matcher matcher = JSON_CODE_BLOCK_PATTERN.matcher(response);
+        if (matcher.find()) {
+            return matcher.group(1).trim();
+        }
+        return response.trim();
+    }
+
+    private String buildPlanContext(Long userId, TrainingPlanGenerateRequest request) {
+        StringBuilder sb = new StringBuilder();
+
+        List<InterviewReportEnhancement> enhancements = enhancementMapper.selectList(
+                Wrappers.lambdaQuery(InterviewReportEnhancement.class)
+                        .eq(InterviewReportEnhancement::getUserId, userId)
+                        .eq(InterviewReportEnhancement::getStatus, "completed")
+                        .orderByDesc(InterviewReportEnhancement::getCreateTime)
+                        .last("LIMIT 10"));
+
+        if (!enhancements.isEmpty()) {
+            sb.append("## 面试报告分析\n");
+            for (InterviewReportEnhancement e : enhancements) {
+                if (e.getRadarJson() != null) {
+                    sb.append("雷达评分: ").append(e.getRadarJson()).append("\n");
+                }
+                if (e.getSkillGapsJson() != null) {
+                    sb.append("技能短板: ").append(e.getSkillGapsJson()).append("\n");
+                }
+                if (e.getActionItemsJson() != null) {
+                    sb.append("改进建议: ").append(e.getActionItemsJson()).append("\n");
+                }
+            }
+        }
+
+        List<JobApplication> applications = applicationMapper.selectList(
+                Wrappers.lambdaQuery(JobApplication.class)
+                        .eq(JobApplication::getUserId, userId)
+                        .eq(JobApplication::getStatus, "active")
+                        .orderByDesc(JobApplication::getCreateTime)
+                        .last("LIMIT 5"));
+
+        if (!applications.isEmpty()) {
+            sb.append("\n## 投递中的职位\n");
+            for (JobApplication app : applications) {
+                sb.append("- ").append(app.getJobTitle()).append(" @ ").append(app.getCompanyName()).append("\n");
+            }
+        }
+
+        Resume latestResume = resumeMapper.selectOne(
+                Wrappers.lambdaQuery(Resume.class)
+                        .eq(Resume::getUserId, userId)
+                        .eq(Resume::getIsDelete, 0)
+                        .orderByDesc(Resume::getCreateTime)
+                        .last("LIMIT 1"));
+
+        if (latestResume != null) {
+            sb.append("\n## 最新简历: ").append(latestResume.getTitle()).append("\n");
+        }
+
+        if (request.getTargetPosition() != null && !request.getTargetPosition().isBlank()) {
+            sb.append("\n## 目标职位: ").append(request.getTargetPosition()).append("\n");
+        }
+
+        sb.append("\n请为该用户生成一份 ").append(request.getTargetDays() != null ? Math.max(1, Math.min(request.getTargetDays(), 14)) : 7)
+                .append(" 天的八股文训练计划。");
+
+        return sb.toString();
     }
 }
