@@ -12,3 +12,10 @@ export interface AnalyticsOverviewVO {
   topMissingSkills: string[]
   nextActions: string[]
 }
+
+export interface ReviewAnalyticsVO {
+  radar: Record<string, number>
+  topSkillGaps: Array<Record<string, string>>
+  recentScoreTrend: Array<Record<string, string | number>>
+  latestActionItems: string[]
+}

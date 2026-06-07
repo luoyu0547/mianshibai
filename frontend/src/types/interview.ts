@@ -78,3 +78,50 @@ export interface InterviewAnswerRequest {
   answerText: string
   answerDurationSeconds?: number
 }
+
+export type ReportEnhancementStatus = 'pending' | 'running' | 'completed' | 'failed'
+
+export interface InterviewTurnReviewVO {
+  id: number
+  turnId: number
+  question: string
+  answerSummary: string | null
+  diagnosis: string | null
+  excellentAnswer: string | null
+  improvedAnswer: string | null
+  knowledgePoints: string[]
+}
+
+export interface InterviewReportEnhancementVO {
+  id: number | null
+  sessionId: number
+  reportId: number | null
+  status: ReportEnhancementStatus
+  summary: string | null
+  radar: Record<string, number>
+  skillGaps: Array<Record<string, string>>
+  actionItems: string[]
+  errorMessage: string | null
+  retryCount: number
+  turnReviews: InterviewTurnReviewVO[]
+}
+
+export interface InterviewScoreDeltaVO {
+  key: string
+  label: string
+  baseScore: number
+  targetScore: number
+  delta: number
+}
+
+export interface InterviewReportCompareVO {
+  baseSessionId: number
+  targetSessionId: number
+  baseTotalScore: number
+  targetTotalScore: number
+  totalDelta: number
+  dimensions: InterviewScoreDeltaVO[]
+  newSkillGaps: string[]
+  resolvedSkillGaps: string[]
+  summary: string[]
+}

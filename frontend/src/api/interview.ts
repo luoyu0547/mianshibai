@@ -8,6 +8,8 @@ import type {
   InterviewQuestionVO,
   InterviewAnswerResultVO,
   InterviewReportVO,
+  InterviewReportEnhancementVO,
+  InterviewReportCompareVO,
 } from '@/types/interview'
 
 export function createInterviewSession(data: InterviewCreateRequest) {
@@ -36,4 +38,22 @@ export function getInterviewReport(sessionId: number) {
 
 export function cancelInterviewSession(sessionId: number) {
   return request.post<BaseResponse<null>>(`/api/interview/session/${sessionId}/cancel`)
+}
+
+export function getInterviewReportEnhancement(sessionId: number) {
+  return request.get<BaseResponse<InterviewReportEnhancementVO>>(
+    `/api/interview/session/${sessionId}/report/enhancement`,
+  )
+}
+
+export function retryInterviewReportEnhancement(sessionId: number) {
+  return request.post<BaseResponse<InterviewReportEnhancementVO>>(
+    `/api/interview/session/${sessionId}/report/enhancement/retry`,
+  )
+}
+
+export function compareInterviewReports(baseSessionId: number, targetSessionId: number) {
+  return request.get<BaseResponse<InterviewReportCompareVO>>('/api/interview/reports/compare', {
+    params: { baseSessionId, targetSessionId },
+  })
 }

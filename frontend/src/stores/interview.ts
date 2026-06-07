@@ -9,6 +9,9 @@ import {
   startInterviewSession as startApi,
   submitInterviewAnswer as submitApi,
   cancelInterviewSession as cancelApi,
+  getInterviewReportEnhancement as getEnhancementApi,
+  retryInterviewReportEnhancement as retryEnhancementApi,
+  compareInterviewReports as compareReportsApi,
 } from '@/api/interview'
 import type {
   InterviewSessionVO,
@@ -16,6 +19,8 @@ import type {
   InterviewReportVO,
   InterviewCreateRequest,
   InterviewAnswerRequest,
+  InterviewReportEnhancementVO,
+  InterviewReportCompareVO,
 } from '@/types/interview'
 
 export const useInterviewStore = defineStore('interview', () => {
@@ -23,6 +28,9 @@ export const useInterviewStore = defineStore('interview', () => {
   const currentSession = ref<InterviewSessionVO | null>(null)
   const currentQuestion = ref<InterviewQuestionVO | null>(null)
   const currentReport = ref<InterviewReportVO | null>(null)
+  const currentEnhancement = ref<InterviewReportEnhancementVO | null>(null)
+  const currentComparison = ref<InterviewReportCompareVO | null>(null)
+  const enhancementLoading = ref(false)
   const loading = ref(false)
 
   async function fetchSessions() {
@@ -98,11 +106,42 @@ export const useInterviewStore = defineStore('interview', () => {
     return false
   }
 
+  async function fetchReportEnhancement(sessionId: number) {
+    enhancementLoading.value = true
+    try {
+      const res = await getEnhancementApi(sessionId)
+      if (res.data.code === 0) {
+        currentEnhancement.value = res.data.data
+      }
+    } finally {
+      enhancementLoading.value = false
+    }
+  }
+
+  async function retryReportEnhancement(sessionId: number) {
+    const res = await retryEnhancementApi(sessionId)
+    if (res.data.code === 0) {
+      currentEnhancement.value = res.data.data
+    }
+    return res
+  }
+
+  async function compareReports(baseSessionId: number, targetSessionId: number) {
+    const res = await compareReportsApi(baseSessionId, targetSessionId)
+    if (res.data.code === 0) {
+      currentComparison.value = res.data.data
+    }
+    return res
+  }
+
   return {
     sessions,
     currentSession,
     currentQuestion,
     currentReport,
+    currentEnhancement,
+    currentComparison,
+    enhancementLoading,
     loading,
     fetchSessions,
     fetchSession,
@@ -110,6 +149,9 @@ export const useInterviewStore = defineStore('interview', () => {
     startSession,
     submitAnswer,
     fetchReport,
+    fetchReportEnhancement,
+    retryReportEnhancement,
+    compareReports,
     cancelSession,
   }
 })
