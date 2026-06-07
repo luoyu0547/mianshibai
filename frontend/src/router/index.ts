@@ -132,6 +132,24 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/training',
+      name: 'training',
+      component: () => import('@/views/training/TrainingCenterPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/training/plan/:id',
+      name: 'training-plan-detail',
+      component: () => import('@/views/training/TrainingPlanDetailPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/training/question/:id',
+      name: 'training-question',
+      component: () => import('@/views/training/TrainingQuestionPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/analytics',
       name: 'Analytics',
       component: () => import('@/views/analytics/AnalyticsOverviewPage.vue'),

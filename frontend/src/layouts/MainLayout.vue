@@ -14,6 +14,7 @@
           <router-link to="/interview" class="main-layout__nav-link">模拟面试</router-link>
           <router-link to="/job/import" class="main-layout__nav-link">职位情报</router-link>
           <router-link to="/applications" class="main-layout__nav-link">投递管理</router-link>
+          <router-link to="/training" class="main-layout__nav-link">训练中心</router-link>
           <router-link to="/profile" class="main-layout__nav-link">个人资料</router-link>
         </nav>
 
