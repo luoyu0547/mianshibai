@@ -108,6 +108,30 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/applications',
+      name: 'ApplicationList',
+      component: () => import('@/views/application/ApplicationListPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/applications/new',
+      name: 'ApplicationNew',
+      component: () => import('@/views/application/ApplicationEditPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/applications/todos',
+      name: 'ApplicationTodos',
+      component: () => import('@/views/application/ApplicationTodoPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/applications/:id',
+      name: 'ApplicationDetail',
+      component: () => import('@/views/application/ApplicationDetailPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/analytics',
       name: 'Analytics',
       component: () => import('@/views/analytics/AnalyticsOverviewPage.vue'),
