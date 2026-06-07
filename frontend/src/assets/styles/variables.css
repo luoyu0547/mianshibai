@@ -1,0 +1,124 @@
+/* src/assets/styles/variables.css */
+@import url('https://fonts.googleapis.com/css2?family=Lexend+Mega:wght@400;500;600;700&family=Public+Sans:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Neubrutalism 配色 */
+  --nb-bg: #FEF9EF;
+  --nb-card: #FFFFFF;
+  --nb-text: #2D3436;
+  --nb-muted: #636E72;
+  --nb-primary: #6C5CE7;
+  --nb-secondary: #00CEC9;
+  --nb-accent: #FD79A8;
+  --nb-success: #00B894;
+  --nb-warning: #FDCB6E;
+  --nb-border: #2D3436;
+
+  /* 阴影与边框 */
+  --nb-border-width: 2px;
+  --nb-border: var(--nb-border-width) solid var(--nb-border);
+  --nb-shadow: 4px 4px 0 var(--nb-border);
+  --nb-shadow-hover: 6px 6px 0 var(--nb-border);
+  --nb-radius: 6px;
+  --nb-radius-lg: 8px;
+
+  /* 字体 */
+  --font-heading: 'Lexend Mega', 'Outfit', sans-serif;
+  --font-body: 'Public Sans', 'Work Sans', sans-serif;
+
+  /* 过渡 */
+  --nb-transition: 150ms ease;
+
+  /* Element Plus 覆盖 */
+  --el-color-primary: var(--nb-primary);
+  --el-color-success: var(--nb-success);
+  --el-color-warning: var(--nb-warning);
+  --el-color-danger: var(--nb-accent);
+  --el-border-radius-base: var(--nb-radius);
+  --el-border-width: var(--nb-border-width);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  background-color: var(--nb-bg);
+  color: var(--nb-text);
+}
+
+/* 覆盖 Element Plus 输入框，融入 Neubrutalism */
+.el-input__wrapper {
+  box-shadow: var(--nb-shadow) !important;
+  border: var(--nb-border) !important;
+  border-radius: var(--nb-radius) !important;
+  background: var(--nb-card) !important;
+  padding: 4px 11px !important;
+  transition: var(--nb-transition);
+}
+
+.el-input__wrapper:hover {
+  box-shadow: var(--nb-shadow-hover) !important;
+  transform: translate(-1px, -1px);
+}
+
+.el-input__wrapper.is-focus {
+  box-shadow: var(--nb-shadow-hover) !important;
+  border-color: var(--nb-primary) !important;
+}
+
+/* 覆盖 Element Plus 按钮 */
+.el-button {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  border: var(--nb-border);
+  box-shadow: var(--nb-shadow);
+  border-radius: var(--nb-radius);
+  transition: var(--nb-transition);
+}
+
+.el-button:hover {
+  box-shadow: var(--nb-shadow-hover);
+  transform: translate(-1px, -1px);
+}
+
+.el-button:active {
+  box-shadow: none;
+  transform: translate(4px, 4px);
+}
+
+/* 覆盖 Element Plus Select */
+.el-select .el-input__wrapper {
+  border: var(--nb-border);
+  box-shadow: var(--nb-shadow);
+}
+
+.el-select-dropdown {
+  border: var(--nb-border);
+  box-shadow: var(--nb-shadow);
+  border-radius: var(--nb-radius);
+}
+
+/* 覆盖 tabs */
+.el-tabs__item {
+  font-family: var(--font-heading);
+  font-weight: 600;
+}
+
+/* 覆盖 input-number */
+.el-input-number .el-input__wrapper {
+  border: var(--nb-border);
+  box-shadow: var(--nb-shadow);
+}
+
+/* 覆盖 dropdown menu */
+.el-dropdown-menu {
+  border: var(--nb-border);
+  box-shadow: var(--nb-shadow);
+  border-radius: var(--nb-radius);
+}
+
+/* 覆盖 message */
+.el-message {
+  border: var(--nb-border);
+  box-shadow: var(--nb-shadow);
+}
