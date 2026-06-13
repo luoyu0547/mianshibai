@@ -140,6 +140,51 @@
             </div>
           </div>
         </NbCard>
+
+        <NbCard v-if="dashboard?.reviewQuestions?.length" class="section-card">
+          <h3 class="section-title">今日复习</h3>
+          <div class="review-list">
+            <div
+              v-for="item in dashboard.reviewQuestions.slice(0, 5)"
+              :key="item.questionId"
+              class="review-item"
+              @click="router.push(`/training/question/${item.questionId}`)"
+            >
+              <span class="review-item__title">{{ item.title }}</span>
+              <el-tag :color="masteryColor(item.masteryLevel)" size="small" effect="dark" style="border: none; color: #fff;">
+                {{ masteryLabel(item.masteryLevel) }}
+              </el-tag>
+              <span class="review-item__score">{{ item.latestScore }} 分</span>
+            </div>
+          </div>
+        </NbCard>
+
+        <NbCard v-if="dashboard?.weakMasteries?.length" class="section-card">
+          <h3 class="section-title">薄弱知识点</h3>
+          <div class="tag-row">
+            <el-tag
+              v-for="item in dashboard.weakMasteries.slice(0, 5)"
+              :key="item.id"
+              :color="masteryColor(item.masteryLevel)"
+              size="small"
+              effect="dark"
+              style="border: none; color: #fff; cursor: pointer;"
+              @click="router.push({ path: '/training/mistakes', query: { topic: item.targetName } })"
+            >
+              {{ item.targetName }}
+            </el-tag>
+          </div>
+        </NbCard>
+
+        <NbCard v-if="dashboard?.masterySummary" class="section-card">
+          <h3 class="section-title">掌握度摘要</h3>
+          <div class="mastery-summary-row">
+            <span>薄弱 {{ dashboard.masterySummary.weak }}</span>
+            <span>基础 {{ dashboard.masterySummary.basic }}</span>
+            <span>良好 {{ dashboard.masterySummary.good }}</span>
+            <span>掌握 {{ dashboard.masterySummary.mastered }}</span>
+          </div>
+        </NbCard>
       </template>
 
       <div class="home-page__actions">
@@ -194,8 +239,8 @@ import IconResume from '@/components/icons/IconResume.vue'
 import { useUserStore } from '@/stores/user'
 import { useDashboardStore } from '@/stores/dashboard'
 import { useTrainingStore } from '@/stores/training'
-import { QUESTION_STATUS_LABELS } from '@/types/training'
-import type { TrainingQuestionStatus } from '@/types/training'
+import { QUESTION_STATUS_LABELS, MASTERY_LEVEL_OPTIONS } from '@/types/training'
+import type { TrainingQuestionStatus, MasteryLevel } from '@/types/training'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -236,6 +281,14 @@ async function handleCompleteAlgo(id: number) {
     ElMessage.success('已标记完成')
     dashboardStore.fetchDashboard()
   }
+}
+
+function masteryColor(level: MasteryLevel) {
+  return MASTERY_LEVEL_OPTIONS.find(o => o.value === level)?.color || '#999'
+}
+
+function masteryLabel(level: MasteryLevel) {
+  return MASTERY_LEVEL_OPTIONS.find(o => o.value === level)?.label || level
 }
 
 onMounted(() => {
@@ -522,6 +575,60 @@ onMounted(() => {
 
 .home-page__actions a {
   text-decoration: none;
+}
+
+.review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.review-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: var(--nb-border);
+  border-radius: var(--nb-radius);
+  background: var(--nb-bg);
+  cursor: pointer;
+  transition: var(--nb-transition);
+}
+
+.review-item:hover {
+  box-shadow: var(--nb-shadow-hover);
+  transform: translate(-1px, -1px);
+}
+
+.review-item__title {
+  flex: 1;
+  font-weight: 500;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-item__score {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--nb-primary);
+  white-space: nowrap;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mastery-summary-row {
+  display: flex;
+  gap: 20px;
+  font-size: 15px;
+  font-weight: 500;
+  flex-wrap: wrap;
 }
 
 @media (max-width: 768px) {
