@@ -24,6 +24,9 @@ import com.mianshiba.ai.mapper.ResumeChatMessageMapper;
 import com.mianshiba.ai.mapper.ResumeVersionMapper;
 import com.mianshiba.ai.mapper.CompanyMapper;
 import com.mianshiba.ai.mapper.CompanyCertificationMapper;
+import com.mianshiba.ai.mapper.CoachDiagnosisMapper;
+import com.mianshiba.ai.mapper.CoachPlanMapper;
+import com.mianshiba.ai.mapper.CoachTaskMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -78,6 +81,15 @@ class MianshibaAiBackendApplicationTests {
 
     @MockBean
     private CompanyCertificationMapper companyCertificationMapper;
+
+    @MockBean
+    private CoachDiagnosisMapper coachDiagnosisMapper;
+
+    @MockBean
+    private CoachPlanMapper coachPlanMapper;
+
+    @MockBean
+    private CoachTaskMapper coachTaskMapper;
 
     @MockBean
     private JobApplicationMapper jobApplicationMapper;
