@@ -162,6 +162,24 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/coach',
+      name: 'CoachHome',
+      component: () => import('@/views/coach/CoachHomePage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/coach/diagnosis/:id',
+      name: 'CoachDiagnosisDetail',
+      component: () => import('@/views/coach/CoachDiagnosisDetailPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/coach/plan/:id',
+      name: 'CoachPlanDetail',
+      component: () => import('@/views/coach/CoachPlanDetailPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/analytics',
       name: 'Analytics',
       component: () => import('@/views/analytics/AnalyticsOverviewPage.vue'),
