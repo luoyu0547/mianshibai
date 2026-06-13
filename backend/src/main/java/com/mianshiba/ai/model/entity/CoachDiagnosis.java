@@ -14,6 +14,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 求职教练诊断报告实体
+ */
 @Data
 @TableName(value = "coach_diagnosis", autoResultMap = true)
 public class CoachDiagnosis implements Serializable {

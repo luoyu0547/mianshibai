@@ -10,6 +10,9 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+/**
+ * 求职教练计划实体
+ */
 @Data
 @TableName("coach_plan")
 public class CoachPlan implements Serializable {

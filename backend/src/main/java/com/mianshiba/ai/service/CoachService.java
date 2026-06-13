@@ -9,6 +9,9 @@ import com.mianshiba.ai.model.vo.coach.CoachTaskVO;
 
 import java.util.List;
 
+/**
+ * 求职教练服务接口
+ */
 public interface CoachService {
 
     CoachGenerateResultVO generate(String authorizationHeader, CoachGenerateRequest request);

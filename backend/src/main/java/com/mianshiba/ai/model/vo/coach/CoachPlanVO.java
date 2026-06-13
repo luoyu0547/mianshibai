@@ -7,6 +7,9 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 求职教练计划 VO
+ */
 @Data
 public class CoachPlanVO implements Serializable {
 

@@ -5,6 +5,9 @@ import lombok.Data;
 import java.io.Serial;
 import java.io.Serializable;
 
+/**
+ * 求职教练生成结果 VO
+ */
 @Data
 public class CoachGenerateResultVO implements Serializable {
 

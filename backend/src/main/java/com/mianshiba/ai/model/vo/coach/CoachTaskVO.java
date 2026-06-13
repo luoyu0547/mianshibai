@@ -6,6 +6,9 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+/**
+ * 求职教练任务 VO
+ */
 @Data
 public class CoachTaskVO implements Serializable {
 

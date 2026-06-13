@@ -8,6 +8,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 求职教练诊断报告 VO
+ */
 @Data
 public class CoachDiagnosisVO implements Serializable {
 

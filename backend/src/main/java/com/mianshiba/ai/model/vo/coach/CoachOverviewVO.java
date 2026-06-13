@@ -6,6 +6,9 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 
+/**
+ * 求职教练总览 VO
+ */
 @Data
 public class CoachOverviewVO implements Serializable {
 
