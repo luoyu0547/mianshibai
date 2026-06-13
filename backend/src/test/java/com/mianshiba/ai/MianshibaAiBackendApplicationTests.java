@@ -1,14 +1,24 @@
 package com.mianshiba.ai;
 
 import com.mianshiba.ai.mapper.InterviewReportMapper;
+import com.mianshiba.ai.mapper.InterviewReportEnhancementMapper;
 import com.mianshiba.ai.mapper.InterviewSessionMapper;
 import com.mianshiba.ai.mapper.InterviewTurnMapper;
+import com.mianshiba.ai.mapper.InterviewTurnReviewMapper;
 import com.mianshiba.ai.mapper.JobAnalysisMapper;
+import com.mianshiba.ai.mapper.JobApplicationMapper;
 import com.mianshiba.ai.mapper.JobFavoriteMapper;
 import com.mianshiba.ai.mapper.JobMatchMapper;
 import com.mianshiba.ai.mapper.JobMapper;
 import com.mianshiba.ai.mapper.ResumeMapper;
 import com.mianshiba.ai.mapper.ResumeSectionMapper;
+import com.mianshiba.ai.mapper.TrainingAnswerMapper;
+import com.mianshiba.ai.mapper.TrainingAnswerReviewMapper;
+import com.mianshiba.ai.mapper.TrainingMasteryMapper;
+import com.mianshiba.ai.mapper.TrainingPlanMapper;
+import com.mianshiba.ai.mapper.TrainingQuestionMapper;
+import com.mianshiba.ai.mapper.AlgorithmRecommendationMapper;
+import com.mianshiba.ai.mapper.ApplicationTodoMapper;
 import com.mianshiba.ai.mapper.UserMapper;
 import com.mianshiba.ai.mapper.ResumeChatMessageMapper;
 import com.mianshiba.ai.mapper.ResumeVersionMapper;
@@ -17,6 +27,7 @@ import com.mianshiba.ai.mapper.CompanyCertificationMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 @SpringBootTest(properties = {
         "app.infrastructure.validate-on-startup=false",
@@ -67,6 +78,39 @@ class MianshibaAiBackendApplicationTests {
 
     @MockBean
     private CompanyCertificationMapper companyCertificationMapper;
+
+    @MockBean
+    private JobApplicationMapper jobApplicationMapper;
+
+    @MockBean
+    private TrainingPlanMapper trainingPlanMapper;
+
+    @MockBean
+    private TrainingAnswerMapper trainingAnswerMapper;
+
+    @MockBean
+    private TrainingAnswerReviewMapper trainingAnswerReviewMapper;
+
+    @MockBean
+    private TrainingMasteryMapper trainingMasteryMapper;
+
+    @MockBean
+    private TrainingQuestionMapper trainingQuestionMapper;
+
+    @MockBean
+    private AlgorithmRecommendationMapper algorithmRecommendationMapper;
+
+    @MockBean
+    private ApplicationTodoMapper applicationTodoMapper;
+
+    @MockBean
+    private InterviewTurnReviewMapper interviewTurnReviewMapper;
+
+    @MockBean
+    private InterviewReportEnhancementMapper interviewReportEnhancementMapper;
+
+    @MockBean
+    private StringRedisTemplate stringRedisTemplate;
 
     @Test
     void contextLoads() {
