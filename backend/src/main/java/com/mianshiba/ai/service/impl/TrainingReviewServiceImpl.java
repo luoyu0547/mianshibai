@@ -1,12 +1,15 @@
 package com.mianshiba.ai.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.mianshiba.ai.exception.BusinessException;
 import com.mianshiba.ai.exception.ErrorCode;
+import com.mianshiba.ai.mapper.TrainingAnswerMapper;
 import com.mianshiba.ai.mapper.TrainingAnswerReviewMapper;
 import com.mianshiba.ai.mapper.TrainingMasteryMapper;
 import com.mianshiba.ai.mapper.TrainingQuestionMapper;
 import com.mianshiba.ai.model.dto.training.TrainingMistakeQueryRequest;
+import com.mianshiba.ai.model.entity.TrainingAnswer;
 import com.mianshiba.ai.model.entity.TrainingAnswerReview;
 import com.mianshiba.ai.model.entity.TrainingMastery;
 import com.mianshiba.ai.model.entity.TrainingQuestion;
@@ -19,11 +22,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -41,10 +47,89 @@ public class TrainingReviewServiceImpl implements TrainingReviewService {
     private final TrainingQuestionMapper questionMapper;
     private final TrainingAnswerReviewMapper reviewMapper;
     private final TrainingMasteryMapper masteryMapper;
+    private final TrainingAnswerMapper answerMapper;
 
     @Override
     public List<TrainingMistakeVO> listMistakes(String authorizationHeader, TrainingMistakeQueryRequest request) {
-        return Collections.emptyList();
+        Long userId = resolveUserId(authorizationHeader);
+
+        LambdaQueryWrapper<TrainingQuestion> qWrapper = Wrappers.lambdaQuery(TrainingQuestion.class)
+                .eq(TrainingQuestion::getUserId, userId)
+                .in(TrainingQuestion::getStatus, "reviewed", "mastered", "answered");
+        if (request != null && StringUtils.hasText(request.getTopic())) {
+            qWrapper.eq(TrainingQuestion::getTopic, request.getTopic());
+        }
+        List<TrainingQuestion> questions = questionMapper.selectList(qWrapper);
+
+        List<TrainingMistakeVO> mistakes = new ArrayList<>();
+        for (TrainingQuestion question : questions) {
+            if (request == null || !Boolean.TRUE.equals(request.getIncludeMastered())) {
+                if ("mastered".equals(question.getStatus())) {
+                    continue;
+                }
+            }
+
+            TrainingAnswerReview latestReview = reviewMapper.selectOne(
+                    Wrappers.lambdaQuery(TrainingAnswerReview.class)
+                            .eq(TrainingAnswerReview::getQuestionId, question.getId())
+                            .eq(TrainingAnswerReview::getUserId, userId)
+                            .orderByDesc(TrainingAnswerReview::getCreateTime)
+                            .last("LIMIT 1"));
+
+            if (latestReview == null) {
+                continue;
+            }
+
+            boolean isWeak = WEAK_LEVELS.contains(latestReview.getMasteryLevel());
+            boolean isLowScore = latestReview.getTotalScore() != null && latestReview.getTotalScore() < 70;
+            if (!isWeak && !isLowScore) {
+                continue;
+            }
+
+            if (request != null && StringUtils.hasText(request.getMasteryLevel())
+                    && !request.getMasteryLevel().equals(latestReview.getMasteryLevel())) {
+                continue;
+            }
+            if (request != null && request.getScoreMax() != null
+                    && latestReview.getTotalScore() != null
+                    && latestReview.getTotalScore() > request.getScoreMax()) {
+                continue;
+            }
+
+            TrainingAnswer latestAnswer = answerMapper.selectOne(
+                    Wrappers.lambdaQuery(TrainingAnswer.class)
+                            .eq(TrainingAnswer::getQuestionId, question.getId())
+                            .eq(TrainingAnswer::getUserId, userId)
+                            .orderByDesc(TrainingAnswer::getCreateTime)
+                            .last("LIMIT 1"));
+
+            TrainingMistakeVO vo = new TrainingMistakeVO();
+            vo.setQuestionId(question.getId());
+            vo.setPlanId(question.getPlanId());
+            vo.setTitle(question.getTitle());
+            vo.setContent(question.getContent());
+            vo.setTopic(question.getTopic());
+            vo.setSkillTags(question.getSkillTags() != null ? question.getSkillTags() : Collections.emptyList());
+            vo.setDifficulty(question.getDifficulty());
+            vo.setStatus(question.getStatus());
+            vo.setLatestScore(latestReview.getTotalScore());
+            vo.setMasteryLevel(latestReview.getMasteryLevel());
+            vo.setMistakes(latestReview.getMistakesJson() != null ? latestReview.getMistakesJson() : Collections.emptyList());
+            vo.setMissingPoints(latestReview.getMissingPointsJson() != null ? latestReview.getMissingPointsJson() : Collections.emptyList());
+            vo.setSuggestions(latestReview.getSuggestionsJson() != null ? latestReview.getSuggestionsJson() : Collections.emptyList());
+            vo.setRecommendedAnswer(latestReview.getRecommendedAnswer());
+            vo.setLastAnsweredAt(latestAnswer != null ? latestAnswer.getCreateTime() : null);
+            mistakes.add(vo);
+        }
+
+        mistakes.sort(Comparator
+                .<TrainingMistakeVO, Integer>comparing(m -> "weak".equals(m.getMasteryLevel()) ? 0 : 1)
+                .thenComparing(m -> m.getLatestScore() != null ? m.getLatestScore() : 100));
+
+        if (mistakes.size() > 100) {
+            mistakes = mistakes.subList(0, 100);
+        }
+        return mistakes;
     }
 
     @Override

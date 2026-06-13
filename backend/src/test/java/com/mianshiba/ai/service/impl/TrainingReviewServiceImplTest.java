@@ -1,11 +1,15 @@
 package com.mianshiba.ai.service.impl;
 
+import com.mianshiba.ai.mapper.TrainingAnswerMapper;
 import com.mianshiba.ai.mapper.TrainingAnswerReviewMapper;
 import com.mianshiba.ai.mapper.TrainingMasteryMapper;
 import com.mianshiba.ai.mapper.TrainingQuestionMapper;
+import com.mianshiba.ai.model.dto.training.TrainingMistakeQueryRequest;
+import com.mianshiba.ai.model.entity.TrainingAnswer;
 import com.mianshiba.ai.model.entity.TrainingAnswerReview;
 import com.mianshiba.ai.model.entity.TrainingMastery;
 import com.mianshiba.ai.model.entity.TrainingQuestion;
+import com.mianshiba.ai.model.vo.training.TrainingMistakeVO;
 import com.mianshiba.ai.utils.JwtUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +37,8 @@ class TrainingReviewServiceImplTest {
     TrainingAnswerReviewMapper reviewMapper;
     @Mock
     TrainingMasteryMapper masteryMapper;
+    @Mock
+    TrainingAnswerMapper answerMapper;
 
     @InjectMocks
     TrainingReviewServiceImpl reviewService;
@@ -59,5 +65,41 @@ class TrainingReviewServiceImplTest {
         verify(masteryMapper, times(3)).insert(captor.capture());
         assertThat(captor.getAllValues()).extracting(TrainingMastery::getTargetName)
                 .containsExactlyInAnyOrder("MySQL", "索引", "事务");
+    }
+
+    @Test
+    void listMistakes_excludesMasteredQuestionsByDefault() {
+        when(jwtUtils.resolveToken("Bearer test-token")).thenReturn("test-token");
+        when(jwtUtils.parseToken("test-token")).thenReturn(new JwtUtils.JwtUserClaims(1L, "testuser", "user"));
+
+        TrainingQuestion mastered = new TrainingQuestion();
+        mastered.setId(1L);
+        mastered.setUserId(1L);
+        mastered.setStatus("mastered");
+        mastered.setTopic("Redis");
+        mastered.setTitle("Redis Q");
+
+        TrainingQuestion weak = new TrainingQuestion();
+        weak.setId(2L);
+        weak.setUserId(1L);
+        weak.setStatus("reviewed");
+        weak.setTopic("MySQL");
+        weak.setTitle("MySQL Q");
+
+        when(questionMapper.selectList(any())).thenReturn(List.of(mastered, weak));
+
+        TrainingAnswerReview weakReview = new TrainingAnswerReview();
+        weakReview.setQuestionId(2L);
+        weakReview.setTotalScore(55);
+        weakReview.setMasteryLevel("weak");
+        when(reviewMapper.selectOne(any())).thenReturn(weakReview);
+
+        when(answerMapper.selectOne(any())).thenReturn(null);
+
+        TrainingMistakeQueryRequest request = new TrainingMistakeQueryRequest();
+        List<TrainingMistakeVO> mistakes = reviewService.listMistakes("Bearer test-token", request);
+
+        assertThat(mistakes).hasSize(1);
+        assertThat(mistakes.get(0).getQuestionId()).isEqualTo(2L);
     }
 }
