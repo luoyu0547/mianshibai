@@ -15,6 +15,9 @@
           <router-link to="/job/import" class="main-layout__nav-link">职位情报</router-link>
           <router-link to="/applications" class="main-layout__nav-link">投递管理</router-link>
           <router-link to="/training" class="main-layout__nav-link">训练中心</router-link>
+          <router-link v-if="userStore.userInfo?.userRole === 'admin'" to="/admin" class="main-layout__nav-link">
+            管理后台
+          </router-link>
           <router-link to="/profile" class="main-layout__nav-link">个人资料</router-link>
         </nav>
 

@@ -167,6 +167,24 @@ const router = createRouter({
       component: () => import('@/views/analytics/AnalyticsOverviewPage.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/admin',
+      name: 'AdminDashboard',
+      component: () => import('@/views/admin/AdminDashboardPage.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+      path: '/admin/users',
+      name: 'AdminUsers',
+      component: () => import('@/views/admin/AdminUserListPage.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+      path: '/admin/users/:id',
+      name: 'AdminUserDetail',
+      component: () => import('@/views/admin/AdminUserDetailPage.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
   ],
 })
 
@@ -187,6 +205,12 @@ router.beforeEach(async (to, from, next) => {
   // 未登录访问需认证页面
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {
     next('/login')
+    return
+  }
+
+  // 非管理员访问管理员路由，回到用户端首页
+  if (to.meta.requiresAdmin && userStore.userInfo?.userRole !== 'admin') {
+    next('/')
     return
   }
 
