@@ -84,6 +84,51 @@ export interface TrainingPlanVO {
   updateTime: string
 }
 
+export interface TrainingMistakeQueryRequest {
+  topic?: string
+  masteryLevel?: MasteryLevel
+  includeMastered?: boolean
+  scoreMax?: number
+}
+
+export interface TrainingMistakeVO {
+  questionId: number
+  planId: number
+  title: string
+  content: string
+  topic: string
+  skillTags: string[]
+  difficulty: TrainingDifficulty
+  status: TrainingQuestionStatus
+  latestScore: number
+  masteryLevel: MasteryLevel
+  mistakes: string[]
+  missingPoints: string[]
+  suggestions: string[]
+  recommendedAnswer: string
+  lastAnsweredAt: string
+}
+
+export interface TrainingMasteryVO {
+  id: number
+  targetType: 'topic' | 'skill_tag'
+  targetName: string
+  practiceCount: number
+  questionCount: number
+  averageScore: number
+  weakCount: number
+  masteredCount: number
+  masteryLevel: MasteryLevel
+  lastPracticedAt: string | null
+}
+
+export interface TrainingMasterySummaryVO {
+  weak: number
+  basic: number
+  good: number
+  mastered: number
+}
+
 export interface DashboardVO {
   todayPriorities: string[]
   applicationStats: {
@@ -97,6 +142,9 @@ export interface DashboardVO {
   pendingQuestions: TrainingQuestionVO[]
   weakTopics: string[]
   algorithmRecommendations: AlgorithmRecommendationVO[]
+  reviewQuestions: TrainingMistakeVO[]
+  weakMasteries: TrainingMasteryVO[]
+  masterySummary: TrainingMasterySummaryVO | null
 }
 
 export const TRAINING_DIFFICULTY_OPTIONS: { label: string; value: TrainingDifficulty }[] = [

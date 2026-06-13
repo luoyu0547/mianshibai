@@ -14,10 +14,19 @@ import {
   listTrainingQuestionAnswers as listTrainingQuestionAnswersApi,
   completeAlgorithmRecommendation as completeAlgorithmRecommendationApi,
   reopenAlgorithmRecommendation as reopenAlgorithmRecommendationApi,
+  listTrainingMistakes as listTrainingMistakesApi,
+  listTopicMastery as listTopicMasteryApi,
+  listSkillTagMastery as listSkillTagMasteryApi,
+  getTrainingMasterySummary as getTrainingMasterySummaryApi,
+  rebuildTrainingMastery as rebuildTrainingMasteryApi,
 } from '@/api/training'
 import type {
   TrainingAnswerSubmitRequest,
   TrainingAnswerVO,
+  TrainingMistakeQueryRequest,
+  TrainingMistakeVO,
+  TrainingMasteryVO,
+  TrainingMasterySummaryVO,
   TrainingPlanGenerateRequest,
   TrainingPlanVO,
   TrainingQuestionVO,
@@ -29,6 +38,10 @@ export const useTrainingStore = defineStore('training', () => {
   const currentPlan = ref<TrainingPlanVO | null>(null)
   const currentQuestion = ref<TrainingQuestionVO | null>(null)
   const answers = ref<TrainingAnswerVO[]>([])
+  const mistakes = ref<TrainingMistakeVO[]>([])
+  const topicMasteries = ref<TrainingMasteryVO[]>([])
+  const skillTagMasteries = ref<TrainingMasteryVO[]>([])
+  const masterySummary = ref<TrainingMasterySummaryVO | null>(null)
   const loading = ref(false)
 
   async function generatePlan(data: TrainingPlanGenerateRequest) {
@@ -142,12 +155,72 @@ export const useTrainingStore = defineStore('training', () => {
     return res.data.code === 0
   }
 
+  async function fetchMistakes(params?: TrainingMistakeQueryRequest) {
+    loading.value = true
+    try {
+      const res = await listTrainingMistakesApi(params)
+      if (res.data.code === 0) {
+        mistakes.value = res.data.data
+      }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchTopicMastery() {
+    loading.value = true
+    try {
+      const res = await listTopicMasteryApi()
+      if (res.data.code === 0) {
+        topicMasteries.value = res.data.data
+      }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchSkillTagMastery() {
+    loading.value = true
+    try {
+      const res = await listSkillTagMasteryApi()
+      if (res.data.code === 0) {
+        skillTagMasteries.value = res.data.data
+      }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchMasterySummary() {
+    const res = await getTrainingMasterySummaryApi()
+    if (res.data.code === 0) {
+      masterySummary.value = res.data.data
+    }
+  }
+
+  async function rebuildMastery() {
+    loading.value = true
+    try {
+      const res = await rebuildTrainingMasteryApi()
+      if (res.data.code === 0) {
+        return true
+      }
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     plans,
     activePlan,
     currentPlan,
     currentQuestion,
     answers,
+    mistakes,
+    topicMasteries,
+    skillTagMasteries,
+    masterySummary,
     loading,
     generatePlan,
     fetchActivePlan,
@@ -162,5 +235,10 @@ export const useTrainingStore = defineStore('training', () => {
     fetchAnswers,
     completeAlgorithm,
     reopenAlgorithm,
+    fetchMistakes,
+    fetchTopicMastery,
+    fetchSkillTagMastery,
+    fetchMasterySummary,
+    rebuildMastery,
   }
 })

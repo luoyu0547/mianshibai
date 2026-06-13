@@ -150,6 +150,18 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/training/mistakes',
+      name: 'training-mistakes',
+      component: () => import('@/views/training/TrainingMistakePage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/training/mastery',
+      name: 'training-mastery',
+      component: () => import('@/views/training/TrainingMasteryPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/analytics',
       name: 'Analytics',
       component: () => import('@/views/analytics/AnalyticsOverviewPage.vue'),

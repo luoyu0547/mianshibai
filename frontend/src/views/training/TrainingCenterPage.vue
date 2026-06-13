@@ -7,6 +7,18 @@
         <NbButton type="primary" @click="showGenDialog = true">生成新计划</NbButton>
       </div>
 
+      <NbCard class="section-card">
+        <h3 class="section-title">复习工具</h3>
+        <div style="display: flex; gap: 16px;">
+          <router-link to="/training/mistakes" style="text-decoration: none;">
+            <NbButton>错题本</NbButton>
+          </router-link>
+          <router-link to="/training/mastery" style="text-decoration: none;">
+            <NbButton>知识点掌握度</NbButton>
+          </router-link>
+        </div>
+      </NbCard>
+
       <div v-if="trainingStore.loading" class="training-center__loading">
         <el-icon class="is-loading" :size="32"><LoadingIcon /></el-icon>
         <span>加载中...</span>

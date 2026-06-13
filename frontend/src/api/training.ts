@@ -3,6 +3,10 @@ import type { BaseResponse } from '@/types/user'
 import type {
   TrainingAnswerSubmitRequest,
   TrainingAnswerVO,
+  TrainingMistakeQueryRequest,
+  TrainingMistakeVO,
+  TrainingMasteryVO,
+  TrainingMasterySummaryVO,
   TrainingPlanGenerateRequest,
   TrainingPlanVO,
   TrainingQuestionVO,
@@ -58,4 +62,24 @@ export function completeAlgorithmRecommendation(id: number) {
 
 export function reopenAlgorithmRecommendation(id: number) {
   return request.put<BaseResponse<boolean>>(`/api/training/algorithm/${id}/reopen`)
+}
+
+export function listTrainingMistakes(params?: TrainingMistakeQueryRequest) {
+  return request.get<BaseResponse<TrainingMistakeVO[]>>('/api/training/review/mistakes', { params })
+}
+
+export function listTopicMastery() {
+  return request.get<BaseResponse<TrainingMasteryVO[]>>('/api/training/review/mastery')
+}
+
+export function listSkillTagMastery() {
+  return request.get<BaseResponse<TrainingMasteryVO[]>>('/api/training/review/mastery/tags')
+}
+
+export function getTrainingMasterySummary() {
+  return request.get<BaseResponse<TrainingMasterySummaryVO>>('/api/training/review/mastery/summary')
+}
+
+export function rebuildTrainingMastery() {
+  return request.post<BaseResponse<boolean>>('/api/training/review/mastery/rebuild')
 }
