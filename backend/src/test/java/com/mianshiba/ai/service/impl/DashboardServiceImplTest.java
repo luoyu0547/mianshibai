@@ -6,11 +6,15 @@ import com.mianshiba.ai.model.entity.JobApplication;
 import com.mianshiba.ai.model.entity.TrainingAnswerReview;
 import com.mianshiba.ai.model.entity.TrainingQuestion;
 import com.mianshiba.ai.model.vo.dashboard.DashboardVO;
+import com.mianshiba.ai.model.vo.training.TrainingMasterySummaryVO;
+import com.mianshiba.ai.model.vo.training.TrainingMasteryVO;
+import com.mianshiba.ai.model.vo.training.TrainingMistakeVO;
 import com.mianshiba.ai.mapper.AlgorithmRecommendationMapper;
 import com.mianshiba.ai.mapper.ApplicationTodoMapper;
 import com.mianshiba.ai.mapper.JobApplicationMapper;
 import com.mianshiba.ai.mapper.TrainingAnswerReviewMapper;
 import com.mianshiba.ai.mapper.TrainingQuestionMapper;
+import com.mianshiba.ai.service.TrainingReviewService;
 import com.mianshiba.ai.service.TrainingService;
 import com.mianshiba.ai.utils.JwtUtils;
 import org.junit.jupiter.api.Test;
@@ -23,6 +27,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,6 +47,8 @@ class DashboardServiceImplTest {
     private AlgorithmRecommendationMapper algorithmMapper;
     @Mock
     private TrainingService trainingService;
+    @Mock
+    private TrainingReviewService trainingReviewService;
 
     @InjectMocks
     private DashboardServiceImpl dashboardService;
@@ -49,6 +56,9 @@ class DashboardServiceImplTest {
     private void mockUser() {
         when(jwtUtils.resolveToken("Bearer test-token")).thenReturn("test-token");
         when(jwtUtils.parseToken("test-token")).thenReturn(new JwtUtils.JwtUserClaims(1L, "testuser", "user"));
+        when(trainingReviewService.listMistakes(eq("Bearer test-token"), any())).thenReturn(List.of());
+        when(trainingReviewService.listTopicMastery("Bearer test-token")).thenReturn(List.of());
+        when(trainingReviewService.getMasterySummary("Bearer test-token")).thenReturn(null);
     }
 
     @Test
@@ -179,5 +189,39 @@ class DashboardServiceImplTest {
 
         assertThat(vo.getActivePlan()).isNotNull();
         assertThat(vo.getActivePlan().getId()).isEqualTo(100L);
+    }
+
+    @Test
+    void getDashboard_includesReviewQuestionsAndMasterySummary() {
+        when(jwtUtils.resolveToken("Bearer test-token")).thenReturn("test-token");
+        when(jwtUtils.parseToken("test-token")).thenReturn(new JwtUtils.JwtUserClaims(1L, "testuser", "user"));
+        when(todoMapper.selectList(any())).thenReturn(List.of());
+        when(applicationMapper.selectList(any())).thenReturn(List.of());
+        when(questionMapper.selectList(any())).thenReturn(List.of());
+        when(reviewMapper.selectList(any())).thenReturn(List.of());
+        when(algorithmMapper.selectList(any())).thenReturn(List.of());
+
+        TrainingMistakeVO mistake = new TrainingMistakeVO();
+        mistake.setQuestionId(10L);
+        mistake.setTitle("Redis 缓存穿透");
+        when(trainingReviewService.listMistakes(eq("Bearer test-token"), any())).thenReturn(List.of(mistake));
+
+        TrainingMasteryVO mastery = new TrainingMasteryVO();
+        mastery.setTargetName("Redis");
+        mastery.setMasteryLevel("weak");
+        when(trainingReviewService.listTopicMastery("Bearer test-token")).thenReturn(List.of(mastery));
+
+        TrainingMasterySummaryVO summary = new TrainingMasterySummaryVO();
+        summary.setWeak(1L);
+        summary.setBasic(0L);
+        summary.setGood(0L);
+        summary.setMastered(0L);
+        when(trainingReviewService.getMasterySummary("Bearer test-token")).thenReturn(summary);
+
+        DashboardVO dashboard = dashboardService.getDashboard("Bearer test-token");
+
+        assertThat(dashboard.getReviewQuestions()).hasSize(1);
+        assertThat(dashboard.getWeakMasteries()).hasSize(1);
+        assertThat(dashboard.getMasterySummary().getWeak()).isEqualTo(1L);
     }
 }

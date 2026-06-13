@@ -16,7 +16,12 @@ import com.mianshiba.ai.model.vo.dashboard.DashboardVO;
 import com.mianshiba.ai.model.vo.training.AlgorithmRecommendationVO;
 import com.mianshiba.ai.model.vo.training.TrainingPlanVO;
 import com.mianshiba.ai.model.vo.training.TrainingQuestionVO;
+import com.mianshiba.ai.model.dto.training.TrainingMistakeQueryRequest;
+import com.mianshiba.ai.model.vo.training.TrainingMasteryVO;
+import com.mianshiba.ai.model.vo.training.TrainingMasterySummaryVO;
+import com.mianshiba.ai.model.vo.training.TrainingMistakeVO;
 import com.mianshiba.ai.service.DashboardService;
+import com.mianshiba.ai.service.TrainingReviewService;
 import com.mianshiba.ai.service.TrainingService;
 import com.mianshiba.ai.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +50,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final TrainingAnswerReviewMapper reviewMapper;
     private final AlgorithmRecommendationMapper algorithmMapper;
     private final TrainingService trainingService;
+    private final TrainingReviewService trainingReviewService;
 
     @Override
     public DashboardVO getDashboard(String authorizationHeader) {
@@ -57,6 +63,9 @@ public class DashboardServiceImpl implements DashboardService {
         dashboard.setPendingQuestions(buildPendingQuestions(userId));
         dashboard.setWeakTopics(buildWeakTopics(userId));
         dashboard.setAlgorithmRecommendations(buildAlgorithmRecommendations(userId));
+        dashboard.setReviewQuestions(buildReviewQuestions(authorizationHeader));
+        dashboard.setWeakMasteries(buildWeakMasteries(authorizationHeader));
+        dashboard.setMasterySummary(buildMasterySummary(authorizationHeader));
         return dashboard;
     }
 
@@ -147,6 +156,47 @@ public class DashboardServiceImpl implements DashboardService {
         return recommendations.stream()
                 .map(this::toAlgorithmRecommendationVO)
                 .collect(Collectors.toList());
+    }
+
+    private List<TrainingMistakeVO> buildReviewQuestions(String authorizationHeader) {
+        try {
+            TrainingMistakeQueryRequest request = new TrainingMistakeQueryRequest();
+            List<TrainingMistakeVO> mistakes = trainingReviewService.listMistakes(authorizationHeader, request);
+            if (mistakes.size() > 5) {
+                return mistakes.subList(0, 5);
+            }
+            return mistakes;
+        } catch (Exception e) {
+            log.warn("获取错题本失败: {}", e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    private List<TrainingMasteryVO> buildWeakMasteries(String authorizationHeader) {
+        try {
+            return trainingReviewService.listTopicMastery(authorizationHeader).stream()
+                    .filter(m -> m.getMasteryLevel() != null
+                            && ("weak".equals(m.getMasteryLevel()) || "basic".equals(m.getMasteryLevel())))
+                    .limit(5)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.warn("获取薄弱知识点失败: {}", e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    private TrainingMasterySummaryVO buildMasterySummary(String authorizationHeader) {
+        try {
+            return trainingReviewService.getMasterySummary(authorizationHeader);
+        } catch (Exception e) {
+            log.warn("获取掌握度摘要失败: {}", e.getMessage());
+            TrainingMasterySummaryVO fallback = new TrainingMasterySummaryVO();
+            fallback.setWeak(0L);
+            fallback.setBasic(0L);
+            fallback.setGood(0L);
+            fallback.setMastered(0L);
+            return fallback;
+        }
     }
 
     private Long resolveUserId(String authorizationHeader) {

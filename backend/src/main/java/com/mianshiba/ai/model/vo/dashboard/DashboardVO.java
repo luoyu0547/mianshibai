@@ -2,6 +2,9 @@ package com.mianshiba.ai.model.vo.dashboard;
 
 import com.mianshiba.ai.model.vo.application.ApplicationStatsVO;
 import com.mianshiba.ai.model.vo.training.AlgorithmRecommendationVO;
+import com.mianshiba.ai.model.vo.training.TrainingMasterySummaryVO;
+import com.mianshiba.ai.model.vo.training.TrainingMasteryVO;
+import com.mianshiba.ai.model.vo.training.TrainingMistakeVO;
 import com.mianshiba.ai.model.vo.training.TrainingPlanVO;
 import com.mianshiba.ai.model.vo.training.TrainingQuestionVO;
 import lombok.Data;
@@ -22,4 +25,7 @@ public class DashboardVO implements Serializable {
     private List<TrainingQuestionVO> pendingQuestions;
     private List<String> weakTopics;
     private List<AlgorithmRecommendationVO> algorithmRecommendations;
+    private List<TrainingMistakeVO> reviewQuestions;
+    private List<TrainingMasteryVO> weakMasteries;
+    private TrainingMasterySummaryVO masterySummary;
 }
