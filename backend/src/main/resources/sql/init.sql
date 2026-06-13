@@ -440,3 +440,23 @@ CREATE TABLE IF NOT EXISTS algorithm_recommendation (
   KEY idx_ar_user_plan (user_id, plan_id),
   KEY idx_ar_user_completed (user_id, completed)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='算法推荐表';
+
+CREATE TABLE IF NOT EXISTS training_mastery (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    target_type VARCHAR(32) NOT NULL,
+    target_name VARCHAR(128) NOT NULL,
+    practice_count INT DEFAULT 0,
+    question_count INT DEFAULT 0,
+    average_score DECIMAL(5,2) DEFAULT 0,
+    weak_count INT DEFAULT 0,
+    mastered_count INT DEFAULT 0,
+    mastery_level VARCHAR(32) DEFAULT 'basic',
+    last_practiced_at DATETIME NULL,
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_delete TINYINT DEFAULT 0,
+    UNIQUE KEY uk_user_target (user_id, target_type, target_name),
+    INDEX idx_user_type_level (user_id, target_type, mastery_level),
+    INDEX idx_user_last_practiced (user_id, last_practiced_at)
+);
