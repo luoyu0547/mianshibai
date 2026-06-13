@@ -460,3 +460,64 @@ CREATE TABLE IF NOT EXISTS training_mastery (
     INDEX idx_user_type_level (user_id, target_type, mastery_level),
     INDEX idx_user_last_practiced (user_id, last_practiced_at)
 );
+
+CREATE TABLE IF NOT EXISTS coach_diagnosis (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '求职教练诊断 id',
+  user_id BIGINT NOT NULL COMMENT '用户 id',
+  title VARCHAR(128) NOT NULL DEFAULT '' COMMENT '诊断标题',
+  overall_score INT NOT NULL DEFAULT 0 COMMENT '综合评分 0-100',
+  summary TEXT NOT NULL COMMENT '综合摘要',
+  strengths_json JSON NOT NULL COMMENT '优势列表',
+  weaknesses_json JSON NOT NULL COMMENT '短板列表',
+  suggestions_json JSON NOT NULL COMMENT '建议列表',
+  data_snapshot_json JSON NOT NULL COMMENT '生成时数据快照',
+  data_completeness INT NOT NULL DEFAULT 0 COMMENT '数据完整度 0-100',
+  source VARCHAR(32) NOT NULL DEFAULT 'fallback' COMMENT '生成来源：ai/fallback',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
+  PRIMARY KEY (id),
+  KEY idx_user_id (user_id),
+  KEY idx_create_time (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 求职教练诊断表';
+
+CREATE TABLE IF NOT EXISTS coach_plan (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '求职教练计划 id',
+  user_id BIGINT NOT NULL COMMENT '用户 id',
+  diagnosis_id BIGINT NOT NULL COMMENT '关联诊断 id',
+  title VARCHAR(128) NOT NULL DEFAULT '' COMMENT '计划标题',
+  summary TEXT NOT NULL COMMENT '计划摘要',
+  target_position VARCHAR(128) NOT NULL DEFAULT '' COMMENT '目标岗位',
+  target_days INT NOT NULL DEFAULT 7 COMMENT '目标天数，固定 7',
+  status VARCHAR(32) NOT NULL DEFAULT 'active' COMMENT 'active/completed/archived',
+  source VARCHAR(32) NOT NULL DEFAULT 'fallback' COMMENT '生成来源：ai/fallback',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
+  PRIMARY KEY (id),
+  KEY idx_user_id (user_id),
+  KEY idx_diagnosis_id (diagnosis_id),
+  KEY idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 求职教练计划表';
+
+CREATE TABLE IF NOT EXISTS coach_task (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '求职教练任务 id',
+  user_id BIGINT NOT NULL COMMENT '用户 id',
+  plan_id BIGINT NOT NULL COMMENT '教练计划 id',
+  day_index INT NOT NULL DEFAULT 1 COMMENT '第几天，1-7',
+  title VARCHAR(128) NOT NULL DEFAULT '' COMMENT '任务标题',
+  description TEXT NOT NULL COMMENT '任务描述',
+  task_type VARCHAR(32) NOT NULL DEFAULT 'habit' COMMENT 'resume/interview/training/application/job/habit',
+  priority VARCHAR(32) NOT NULL DEFAULT 'medium' COMMENT 'high/medium/low',
+  status VARCHAR(32) NOT NULL DEFAULT 'pending' COMMENT 'pending/completed',
+  reference_type VARCHAR(64) DEFAULT NULL COMMENT '引用类型',
+  reference_id BIGINT DEFAULT NULL COMMENT '引用 id',
+  completed_at DATETIME DEFAULT NULL COMMENT '完成时间',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
+  PRIMARY KEY (id),
+  KEY idx_user_id (user_id),
+  KEY idx_plan_id (plan_id),
+  KEY idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 求职教练任务表';
