@@ -13,6 +13,7 @@ import com.mianshiba.ai.mapper.TrainingQuestionMapper;
 import com.mianshiba.ai.model.entity.AlgorithmRecommendation;
 import com.mianshiba.ai.model.entity.TrainingPlan;
 import com.mianshiba.ai.model.entity.TrainingQuestion;
+import com.mianshiba.ai.service.TrainingReviewService;
 import com.mianshiba.ai.utils.JwtUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,6 +54,8 @@ class TrainingServiceImplTest {
     private JobApplicationMapper applicationMapper;
     @Mock
     private ResumeMapper resumeMapper;
+    @Mock
+    private TrainingReviewService trainingReviewService;
 
     @InjectMocks
     private TrainingServiceImpl trainingService;

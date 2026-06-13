@@ -28,6 +28,7 @@ import com.mianshiba.ai.model.vo.training.TrainingAnswerReviewVO;
 import com.mianshiba.ai.model.vo.training.TrainingAnswerVO;
 import com.mianshiba.ai.model.vo.training.TrainingPlanVO;
 import com.mianshiba.ai.model.vo.training.TrainingQuestionVO;
+import com.mianshiba.ai.service.TrainingReviewService;
 import com.mianshiba.ai.service.TrainingService;
 import com.mianshiba.ai.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
@@ -110,6 +111,7 @@ public class TrainingServiceImpl implements TrainingService {
     private final InterviewReportEnhancementMapper enhancementMapper;
     private final JobApplicationMapper applicationMapper;
     private final ResumeMapper resumeMapper;
+    private final TrainingReviewService trainingReviewService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -297,12 +299,14 @@ public class TrainingServiceImpl implements TrainingService {
     @Transactional(rollbackFor = Exception.class)
     public Boolean markQuestionMastered(String authorizationHeader, Long id) {
         // 1. 解析用户身份并获取题目
+        Long userId = resolveUserId(authorizationHeader);
         TrainingQuestion question = getOwnedQuestion(authorizationHeader, id);
 
         // 2. 更新状态为 mastered
         question.setStatus("mastered");
         questionMapper.updateById(question);
 
+        trainingReviewService.refreshMasteryForQuestion(userId, id);
         return true;
     }
 
@@ -394,6 +398,8 @@ public class TrainingServiceImpl implements TrainingService {
 
         question.setStatus("reviewed");
         questionMapper.updateById(question);
+
+        trainingReviewService.refreshMasteryForQuestion(userId, questionId);
 
         return toAnswerVO(answer, review);
     }
