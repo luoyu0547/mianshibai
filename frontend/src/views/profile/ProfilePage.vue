@@ -9,8 +9,19 @@
           <!-- 左侧头像区 -->
           <div class="profile-card__left">
             <div class="profile-avatar">
-              {{ userStore.userInfo?.userName?.[0] || userStore.userInfo?.userAccount?.[0] || 'U' }}
+              <img v-if="form.userAvatar" :src="form.userAvatar" alt="用户头像" />
+              <span v-else>{{ userStore.userInfo?.userName?.[0] || userStore.userInfo?.userAccount?.[0] || 'U' }}</span>
             </div>
+            <input
+              ref="avatarInputRef"
+              class="profile-avatar__input"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              @change="handleAvatarChange"
+            />
+            <NbButton variant="ghost" :loading="isUploadingAvatar" @click="avatarInputRef?.click()">
+              上传头像
+            </NbButton>
             <div class="profile-avatar__name">
               {{ userStore.userInfo?.userName || userStore.userInfo?.userAccount }}
             </div>
@@ -30,6 +41,10 @@
             >
               <el-form-item label="昵称" prop="userName">
                 <el-input v-model="form.userName" placeholder="请输入昵称" />
+              </el-form-item>
+
+              <el-form-item label="头像地址" prop="userAvatar">
+                <el-input v-model="form.userAvatar" placeholder="上传后自动填充，也可粘贴图片 URL" />
               </el-form-item>
 
               <el-form-item label="目标岗位" prop="targetPosition">
@@ -135,10 +150,13 @@ import NbCard from '@/components/NbCard.vue'
 import NbButton from '@/components/NbButton.vue'
 import { useUserStore } from '@/stores/user'
 import type { UpdateProfileRequest } from '@/types/user'
+import { uploadAvatar } from '@/api/user'
 
 const userStore = useUserStore()
 const formRef = ref<FormInstance>()
+const avatarInputRef = ref<HTMLInputElement>()
 const isSaving = ref(false)
+const isUploadingAvatar = ref(false)
 
 const targetPositionOptions = [
   'Java 开发工程师',
@@ -196,6 +214,7 @@ const cityOptions = [
 
 const form = reactive<UpdateProfileRequest>({
   userName: '',
+  userAvatar: '',
   targetPosition: '',
   techDirection: '',
   workYears: 0,
@@ -206,6 +225,9 @@ const form = reactive<UpdateProfileRequest>({
 const rules: FormRules<UpdateProfileRequest> = {
   userName: [
     { max: 64, message: '昵称最长 64 个字符', trigger: 'blur' },
+  ],
+  userAvatar: [
+    { max: 512, message: '头像地址最长 512 个字符', trigger: 'blur' },
   ],
   targetPosition: [
     { max: 128, message: '目标岗位最长 128 个字符', trigger: 'blur' },
@@ -225,6 +247,7 @@ const rules: FormRules<UpdateProfileRequest> = {
 onMounted(() => {
   if (userStore.userInfo) {
     form.userName = userStore.userInfo.userName || ''
+    form.userAvatar = userStore.userInfo.userAvatar || ''
     form.targetPosition = userStore.userInfo.targetPosition || ''
     form.techDirection = userStore.userInfo.techDirection || ''
     form.workYears = userStore.userInfo.workYears || 0
@@ -232,6 +255,33 @@ onMounted(() => {
     form.jobStatus = userStore.userInfo.jobStatus || ''
   }
 })
+
+async function handleAvatarChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    ElMessage.warning('仅支持 JPG、PNG、WebP 图片')
+    input.value = ''
+    return
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    ElMessage.warning('头像不能超过 2MB')
+    input.value = ''
+    return
+  }
+
+  isUploadingAvatar.value = true
+  try {
+    const res = await uploadAvatar(file)
+    form.userAvatar = res.data.url
+    ElMessage.success('头像上传成功，请保存资料')
+  } finally {
+    isUploadingAvatar.value = false
+    input.value = ''
+  }
+}
 
 async function handleSave() {
   const valid = await formRef.value?.validate().catch(() => false)
@@ -241,6 +291,7 @@ async function handleSave() {
   try {
     const success = await userStore.updateProfile({
       userName: form.userName || undefined,
+      userAvatar: form.userAvatar || undefined,
       targetPosition: form.targetPosition || undefined,
       techDirection: form.techDirection || undefined,
       workYears: form.workYears,

@@ -7,9 +7,13 @@
       <div class="ec-contact">
         <span v-if="basic?.email">{{ basic.email }}</span>
         <span v-if="basic?.phone">{{ basic.phone }}</span>
+        <span v-if="basic?.currentStatus">{{ basic.currentStatus }}</span>
+        <span v-if="basic?.targetPosition">{{ basic.targetPosition }}</span>
         <span v-if="basic?.city">{{ basic.city }}</span>
+        <span v-if="basic?.expectedLocation">期望地：{{ basic.expectedLocation }}</span>
         <span v-if="basic?.github">{{ basic.github }}</span>
         <span v-if="basic?.blog">{{ basic.blog }}</span>
+        <span v-if="basic?.website">{{ basic.website }}</span>
       </div>
       <div class="ec-divider"></div>
     </div>
@@ -51,6 +55,7 @@
           <span class="ec-date">{{ item.startDate }} — {{ item.endDate || '至今' }}</span>
         </div>
         <p v-if="item.description" class="ec-desc">{{ item.description }}</p>
+        <p v-if="(item.techStack as string[])?.length" class="ec-stack">技术栈：{{ (item.techStack as string[])?.join('、') }}</p>
         <ul v-if="(item.highlights as string[])?.length" class="ec-list">
           <li v-for="(h, hi) in item.highlights" :key="hi">{{ h }}</li>
         </ul>
@@ -159,8 +164,10 @@ const hasAnyGpa = computed(() => props.education.some((e) => e.gpa))
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  border-bottom: 1.5px solid var(--nb-ink);
-  padding-bottom: 4px;
+  border-left: 4px solid #3f6df6;
+  border-bottom: 1px solid #dbe3ef;
+  padding: 4px 0 5px 10px;
+  color: #1f2937;
   margin: 0 0 12px;
 }
 
@@ -228,6 +235,13 @@ const hasAnyGpa = computed(() => props.education.some((e) => e.gpa))
   margin: 5px 0 0;
   line-height: 1.8;
   color: var(--nb-muted);
+}
+
+.ec-stack {
+  margin: 4px 0 0;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: #475569;
 }
 
 .ec-summary {

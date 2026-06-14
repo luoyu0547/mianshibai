@@ -23,9 +23,23 @@
 
     <!-- 主体区域 -->
     <div class="rep-body">
+      <aside class="rep-module-rail">
+        <div class="rep-module-rail__title">模块选择</div>
+        <a
+          v-for="section in moduleSections"
+          :key="section.type"
+          class="rep-module-item"
+          :href="`#resume-section-${section.type}`"
+        >
+          <span>{{ section.label }}</span>
+          <i :class="hasSectionContent(section.type) ? 'is-on' : ''"></i>
+        </a>
+        <NbButton variant="primary" block @click="wholeOptimizeRef?.open()">整份 AI 优化</NbButton>
+      </aside>
+
       <!-- 左侧编辑区 -->
       <div class="rep-forms">
-        <NbCard class="rep-section">
+        <NbCard id="resume-section-basic" class="rep-section">
           <NbSectionTitle title="基本信息" description="个人联系方式与求职意向">
             <template #actions>
               <NbButton variant="ghost" @click="openOptimize('basic')">AI 优化</NbButton>
@@ -34,7 +48,7 @@
           <BasicInfoEditor v-model="basicData" />
         </NbCard>
 
-        <NbCard class="rep-section">
+        <NbCard id="resume-section-education" class="rep-section">
           <NbSectionTitle title="教育经历" description="学校、专业与学术亮点">
             <template #actions>
               <NbButton variant="ghost" @click="openOptimize('education')">AI 优化</NbButton>
@@ -43,7 +57,7 @@
           <EducationEditor :items="educationItems" @update:items="educationItems = $event" />
         </NbCard>
 
-        <NbCard class="rep-section">
+        <NbCard id="resume-section-work" class="rep-section">
           <NbSectionTitle title="工作经历" description="公司、职位与工作成果">
             <template #actions>
               <NbButton variant="ghost" @click="openOptimize('work')">AI 优化</NbButton>
@@ -52,7 +66,7 @@
           <WorkExperienceEditor :items="workItems" @update:items="workItems = $event" />
         </NbCard>
 
-        <NbCard class="rep-section">
+        <NbCard id="resume-section-project" class="rep-section">
           <NbSectionTitle title="项目经历" description="项目名称、技术栈与亮点">
             <template #actions>
               <NbButton variant="ghost" @click="openOptimize('project')">AI 优化</NbButton>
@@ -61,7 +75,7 @@
           <ProjectEditor :items="projectItems" @update:items="projectItems = $event" />
         </NbCard>
 
-        <NbCard class="rep-section">
+        <NbCard id="resume-section-skills" class="rep-section">
           <NbSectionTitle title="技能标签" description="按分类组织你的技能">
             <template #actions>
               <NbButton variant="ghost" @click="openOptimize('skills')">AI 优化</NbButton>
@@ -70,7 +84,7 @@
           <SkillsEditor v-model="skillsData" />
         </NbCard>
 
-        <NbCard class="rep-section">
+        <NbCard id="resume-section-summary" class="rep-section">
           <NbSectionTitle title="自我评价" description="一段简短的个人亮点">
             <template #actions>
               <NbButton variant="ghost" @click="openOptimize('summary')">AI 优化</NbButton>
@@ -85,7 +99,7 @@
               <h4>AI 全局优化</h4>
               <p>一键智能优化全部模块</p>
             </div>
-            <NbButton variant="primary" block>一键 AI 生成</NbButton>
+            <NbButton variant="primary" block @click="wholeOptimizeRef?.open()">一键 AI 优化</NbButton>
           </div>
         </NbCard>
       </div>
@@ -98,6 +112,14 @@
               <VersionHistory :resume-id="resumeId" />
             </template>
           </NbSectionTitle>
+          <div class="rep-preview-tools">
+            <span>基础布局</span>
+            <span>智能纠错</span>
+            <span>字号 14</span>
+            <span>行距 1.7</span>
+            <span class="rep-preview-tools__color"></span>
+            <span>间距配置</span>
+          </div>
           <div class="rep-a4-wrap">
             <div class="rep-a4">
               <component
@@ -141,6 +163,12 @@
         :section-label="optimizeSectionLabel"
         @applied="handleOptimizeApplied"
       />
+
+      <WholeResumeOptimizeDialog
+        ref="wholeOptimizeRef"
+        :resume-id="resumeId"
+        @apply="handleWholeOptimizeApplied"
+      />
     </div>
   </div>
 </template>
@@ -157,6 +185,7 @@ import ProjectEditor from '@/components/resume/sections/ProjectEditor.vue'
 import SkillsEditor from '@/components/resume/sections/SkillsEditor.vue'
 import SummaryEditor from '@/components/resume/sections/SummaryEditor.vue'
 import AiOptimizeDialog from '@/components/resume/AiOptimizeDialog.vue'
+import WholeResumeOptimizeDialog from '@/components/resume/WholeResumeOptimizeDialog.vue'
 import AiChatPanel from '@/components/resume/AiChatPanel.vue'
 import AiScorePanel from '@/components/resume/AiScorePanel.vue'
 import VersionHistory from '@/components/resume/VersionHistory.vue'
@@ -201,6 +230,7 @@ const sectionIds = ref<Record<SectionType, number[]>>({
 })
 
 const activeTab = ref('chat')
+const wholeOptimizeRef = ref<InstanceType<typeof WholeResumeOptimizeDialog> | null>(null)
 
 const optimizeVisible = ref(false)
 const optimizeSectionType = ref<SectionType>('basic')
@@ -215,6 +245,15 @@ const sectionLabelMap: Record<SectionType, string> = {
   skills: '技能标签',
   summary: '自我评价',
 }
+
+const moduleSections: { type: SectionType; label: string }[] = [
+  { type: 'basic', label: '基本信息' },
+  { type: 'education', label: '教育经历' },
+  { type: 'skills', label: '专业技能' },
+  { type: 'work', label: '工作经历' },
+  { type: 'project', label: '项目经历' },
+  { type: 'summary', label: '个人简介' },
+]
 
 const sectionDataMap = computed(() => ({
   basic: basicData.value,
@@ -253,6 +292,20 @@ function handleOptimizeApplied(type: SectionType, data: Record<string, unknown>)
       summaryData.value = data
       break
   }
+}
+
+function handleWholeOptimizeApplied(sections: SectionVO[]) {
+  splitSections(sections)
+  ElMessage.success('已应用整份简历优化结果，请记得保存')
+}
+
+function hasSectionContent(type: SectionType) {
+  const value = sectionDataMap.value[type]
+  if (Array.isArray(value)) return value.length > 0
+  return Object.values(value || {}).some((item) => {
+    if (Array.isArray(item)) return item.length > 0
+    return item !== undefined && item !== null && item !== ''
+  })
 }
 
 const templateMap: Record<string, Component> = {
@@ -431,9 +484,78 @@ async function handleSave() {
   overflow: hidden;
 }
 
+.rep-module-rail {
+  width: 230px;
+  flex: 0 0 230px;
+  padding: 18px 12px;
+  background: #fff;
+  border-right: var(--nb-border);
+  overflow-y: auto;
+}
+
+.rep-module-rail__title {
+  margin: 0 10px 14px;
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--nb-ink);
+}
+
+.rep-module-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 10px;
+  border-bottom: 1px solid var(--nb-border-color-light);
+  color: var(--nb-ink);
+  font-weight: 600;
+  text-decoration: none;
+  transition: var(--nb-transition);
+}
+
+.rep-module-item:hover {
+  color: var(--nb-primary);
+  background: var(--nb-primary-light);
+  border-radius: var(--nb-radius);
+}
+
+.rep-module-item i {
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: #d1d5db;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.rep-module-item i::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: var(--nb-transition);
+}
+
+.rep-module-item i.is-on {
+  background: var(--nb-primary);
+}
+
+.rep-module-item i.is-on::after {
+  left: 17px;
+}
+
+.rep-module-rail .nb-button {
+  margin-top: 18px;
+}
+
 /* 左侧编辑区 */
 .rep-forms {
-  width: 50%;
+  width: 43%;
   overflow-y: auto;
   padding: 20px;
   border-right: var(--nb-border);
@@ -475,7 +597,8 @@ async function handleSave() {
 
 /* 右侧面板 */
 .rep-aside {
-  width: 50%;
+  width: calc(57% - 230px);
+  min-width: 520px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -497,6 +620,39 @@ async function handleSave() {
   margin: -4px -4px 0;
   padding: 4px 8px;
   border-radius: var(--nb-radius);
+}
+
+.rep-preview-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  border: var(--nb-border);
+  border-radius: var(--nb-radius);
+  box-shadow: var(--nb-shadow-xs);
+}
+
+.rep-preview-tools span {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--nb-border-color);
+  border-radius: 8px;
+  color: var(--nb-ink);
+  font-size: 12px;
+  font-weight: 600;
+  background: #fff;
+}
+
+.rep-preview-tools__color {
+  width: 28px;
+  min-width: 28px;
+  padding: 0 !important;
+  background: #3f6df6 !important;
+  border-color: #3f6df6 !important;
 }
 
 .rep-a4-wrap {
@@ -571,6 +727,20 @@ async function handleSave() {
     overflow: visible;
   }
 
+  .rep-module-rail {
+    width: 100%;
+    flex: none;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    border-right: none;
+    border-bottom: var(--nb-border);
+  }
+
+  .rep-module-rail__title {
+    grid-column: 1 / -1;
+  }
+
   .rep-forms {
     width: 100%;
     border-right: none;
@@ -580,6 +750,7 @@ async function handleSave() {
 
   .rep-aside {
     width: 100%;
+    min-width: 0;
     overflow: visible;
   }
 

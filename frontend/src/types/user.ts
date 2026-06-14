@@ -48,3 +48,9 @@ export interface UpdateProfileRequest {
   city?: string
   jobStatus?: string
 }
+
+export interface FileUploadVO {
+  url: string
+  originalName: string
+  size: number
+}

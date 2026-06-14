@@ -62,6 +62,17 @@ knife4j:
 app:
   infrastructure:
     validate-on-startup: true
+  file:
+    provider: ${FILE_PROVIDER:local}
+    upload-dir: ${FILE_UPLOAD_DIR:uploads}
+    public-prefix: ${FILE_PUBLIC_PREFIX:/uploads}
+    max-size: ${FILE_MAX_SIZE:2097152}
+    aliyun:
+      endpoint: ${ALIYUN_OSS_ENDPOINT:}
+      bucket: ${ALIYUN_OSS_BUCKET:}
+      access-key-id: ${ALIYUN_OSS_AK_ID:${ALIYUN_AK_ID:}}
+      access-key-secret: ${ALIYUN_OSS_AK_SECRET:${ALIYUN_AK_SECRET:}}
+      domain: ${ALIYUN_OSS_DOMAIN:}
   speech:
     provider: aliyun
     aliyun:

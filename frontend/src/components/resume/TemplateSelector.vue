@@ -6,9 +6,9 @@
     style="width: 200px;"
     @update:model-value="emit('update:modelValue', $event)"
   >
-    <el-option label="简约技术风" value="minimal_tech" />
-    <el-option label="现代双栏" value="modern_two_col" />
-    <el-option label="经典正式" value="classic_formal" />
+    <el-option label="ATS 精英单栏" value="minimal_tech" />
+    <el-option label="技术品牌双栏" value="modern_two_col" />
+    <el-option label="长篇正式简历" value="classic_formal" />
   </el-select>
 </template>
 

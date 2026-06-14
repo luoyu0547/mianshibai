@@ -7,6 +7,7 @@ import type {
   UserLoginVO,
   LoginUserVO,
   UpdateProfileRequest,
+  FileUploadVO,
 } from '@/types/user'
 
 export function login(data: LoginRequest) {
@@ -23,4 +24,10 @@ export function getCurrentUser() {
 
 export function updateProfile(data: UpdateProfileRequest) {
   return request.put<BaseResponse<LoginUserVO>>('/api/user/profile', data)
+}
+
+export function uploadAvatar(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post<BaseResponse<FileUploadVO>>('/api/file/avatar', formData)
 }

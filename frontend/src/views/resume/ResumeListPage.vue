@@ -192,9 +192,9 @@ async function handleDelete(id: number, title: string) {
 
 function templateLabel(type: string) {
   const map: Record<string, string> = {
-    minimal_tech: '极简专业风',
-    modern_two_col: '现代双栏风',
-    classic_formal: '典雅正式风',
+    minimal_tech: 'ATS 精英单栏',
+    modern_two_col: '技术品牌双栏',
+    classic_formal: '长篇正式简历',
   }
   return map[type] || type
 }

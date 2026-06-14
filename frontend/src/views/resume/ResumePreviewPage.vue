@@ -124,11 +124,19 @@ async function exportPdf() {
     const pdf = new jsPDF('p', 'mm', 'a4')
     const pdfWidth = pdf.internal.pageSize.getWidth()
     const pdfHeight = pdf.internal.pageSize.getHeight()
-    const imgWidth = canvas.width
-    const imgHeight = canvas.height
-    const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight)
-    const imgX = (pdfWidth - imgWidth * ratio) / 2
-    pdf.addImage(imgData, 'PNG', imgX, 0, imgWidth * ratio, imgHeight * ratio)
+    const imgHeight = (canvas.height * pdfWidth) / canvas.width
+    let heightLeft = imgHeight
+    let position = 0
+
+    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight)
+    heightLeft -= pdfHeight
+
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight
+      pdf.addPage()
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight)
+      heightLeft -= pdfHeight
+    }
     pdf.save(`${resumeStore.currentResume?.title || 'resume'}.pdf`)
     ElMessage.success('PDF 导出成功')
   } catch {
@@ -143,7 +151,7 @@ async function exportPdf() {
 .resume-preview-page {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 64px);
+  min-height: calc(100vh - 60px);
 }
 
 .resume-preview-page__toolbar {
@@ -154,11 +162,11 @@ async function exportPdf() {
   padding: 12px 24px;
   background: var(--nb-surface);
   border-bottom: var(--nb-border);
-  box-shadow: var(--nb-shadow);
+  box-shadow: var(--nb-shadow-sm);
   position: sticky;
-  top: 64px;
+  top: 60px;
   z-index: 10;
-  margin: -32px -24px 0;
+  margin: -28px -24px 0;
 }
 
 .resume-preview-page__toolbar-right {
@@ -182,7 +190,7 @@ async function exportPdf() {
 
 .resume-preview-page__a4 {
   background: #fff;
-  box-shadow: var(--nb-shadow);
+  box-shadow: var(--nb-shadow-lg);
   border: var(--nb-border);
   padding: 40px 32px;
   min-height: 297mm;

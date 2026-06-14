@@ -3,16 +3,23 @@
   <div class="modern-split">
     <!-- 左侧栏 -->
     <aside class="ms-sidebar">
-      <div class="ms-avatar">{{ (basic?.name as string)?.[0] || '你' }}</div>
+      <div class="ms-avatar">
+        <img v-if="basic?.avatar" :src="String(basic.avatar)" alt="头像" />
+        <span v-else>{{ (basic?.name as string)?.[0] || '你' }}</span>
+      </div>
       <h1 class="ms-name">{{ basic?.name || '你的名字' }}</h1>
       <p v-if="basic?.targetPosition" class="ms-title">{{ basic.targetPosition }}</p>
 
       <div class="ms-contact">
         <div v-if="basic?.email" class="ms-contact-row">{{ basic.email }}</div>
         <div v-if="basic?.phone" class="ms-contact-row">{{ basic.phone }}</div>
+        <div v-if="basic?.currentStatus" class="ms-contact-row">{{ basic.currentStatus }}</div>
+        <div v-if="basic?.expectedLocation" class="ms-contact-row">期望地：{{ basic.expectedLocation }}</div>
+        <div v-if="basic?.expectedSalary" class="ms-contact-row">期望薪资：{{ basic.expectedSalary }}</div>
         <div v-if="basic?.city" class="ms-contact-row">{{ basic.city }}</div>
         <div v-if="basic?.github" class="ms-contact-row">{{ basic.github }}</div>
         <div v-if="basic?.blog" class="ms-contact-row">{{ basic.blog }}</div>
+        <div v-if="basic?.website" class="ms-contact-row">{{ basic.website }}</div>
       </div>
 
       <div v-if="skillCategories.length" class="ms-side-block">
@@ -48,6 +55,9 @@
             <span class="ms-entry-date">{{ item.startDate }} — {{ item.endDate || '至今' }}</span>
           </div>
           <p v-if="item.description" class="ms-desc">{{ item.description }}</p>
+          <div v-if="(item.techStack as string[])?.length" class="ms-stack">
+            {{ (item.techStack as string[])?.join(' / ') }}
+          </div>
           <ul v-if="(item.highlights as string[])?.length" class="ms-list">
             <li v-for="(h, hi) in item.highlights" :key="hi">{{ h }}</li>
           </ul>
@@ -106,7 +116,7 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
 /* 左侧栏 */
 .ms-sidebar {
   width: 34%;
-  background: linear-gradient(180deg, var(--nb-primary-light) 0%, rgba(255,255,255,0) 100%);
+  background: #f0f5ff;
   padding: 36px 24px;
   display: flex;
   flex-direction: column;
@@ -115,10 +125,10 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
 }
 
 .ms-avatar {
-  width: 68px;
-  height: 68px;
-  border-radius: 50%;
-  background: var(--nb-primary-gradient);
+  width: 82px;
+  height: 98px;
+  border-radius: 10px;
+  background: #dbe7ff;
   color: #fff;
   display: flex;
   align-items: center;
@@ -127,7 +137,14 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
   font-size: 26px;
   font-weight: 700;
   margin-bottom: 12px;
-  box-shadow: 0 4px 12px rgba(91, 94, 244, 0.25);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
+  overflow: hidden;
+}
+
+.ms-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .ms-name {
@@ -178,8 +195,8 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
   letter-spacing: 1.5px;
   margin: 0 0 10px;
   padding-bottom: 6px;
-  border-bottom: 2px solid var(--nb-primary);
-  color: var(--nb-primary);
+  border-bottom: 2px solid #3f6df6;
+  color: #2f63ef;
 }
 
 .ms-skill-group {
@@ -202,7 +219,7 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
 .ms-tag {
   font-size: 10.5px;
   padding: 3px 9px;
-  background: var(--nb-primary);
+  background: #3f6df6;
   color: #fff;
   border-radius: 12px;
   font-weight: 500;
@@ -247,7 +264,11 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
   color: var(--nb-ink);
   margin: 0 0 14px;
   padding-bottom: 6px;
-  border-bottom: 2px solid var(--nb-border-color);
+  border-left: 5px solid #3f6df6;
+  border-bottom: none;
+  background: #edf3ff;
+  color: #2f63ef;
+  padding: 7px 12px 7px 14px;
 }
 
 .ms-entry {
@@ -283,6 +304,17 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
   color: var(--nb-muted);
   margin: 5px 0 0;
   line-height: 1.7;
+}
+
+.ms-stack {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 600;
 }
 
 .ms-list {

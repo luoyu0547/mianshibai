@@ -8,6 +8,12 @@ export interface BasicSectionData {
   city: string
   github: string
   blog: string
+  avatar?: string
+  currentStatus?: string
+  expectedLocation?: string
+  expectedSalary?: string
+  wechat?: string
+  website?: string
 }
 
 export interface EducationSectionData {

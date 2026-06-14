@@ -25,6 +25,7 @@
         <knife4j.version>4.5.0</knife4j.version>
         <jjwt.version>0.12.6</jjwt.version>
         <nls-sdk.version>2.2.19</nls-sdk.version>
+        <aliyun-oss.version>3.18.1</aliyun-oss.version>
     </properties>
 
     <dependencyManagement>
@@ -131,6 +132,11 @@
             <groupId>com.alibaba.nls</groupId>
             <artifactId>nls-sdk-transcriber</artifactId>
             <version>${nls-sdk.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aliyun.oss</groupId>
+            <artifactId>aliyun-sdk-oss</artifactId>
+            <version>${aliyun-oss.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.xml.bind</groupId>
