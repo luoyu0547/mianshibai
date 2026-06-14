@@ -617,10 +617,14 @@ async function handleSave() {
 
 /* Forms */
 .rep-forms {
-  flex: 1; min-width: 0;
-  overflow-y: auto; padding: 20px;
+  flex: 1 1 45%;
+  min-width: 380px;
+  overflow-y: auto;
+  padding: 20px;
   border-right: var(--nb-border);
-  display: flex; flex-direction: column; gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 .rep-section { display: flex; flex-direction: column; gap: 14px; }
 
@@ -631,9 +635,12 @@ async function handleSave() {
 
 /* Aside */
 .rep-aside {
-  width: 420px; flex: 0 0 420px; min-width: 360px;
-  display: flex; flex-direction: column;
-  overflow: hidden; background: var(--nb-bg);
+  flex: 1 1 55%;
+  min-width: 480px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--nb-bg);
 }
 
 .rep-preview {
@@ -687,7 +694,7 @@ async function handleSave() {
   .rep-module-rail { width: 100%; flex: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; border-right: none; border-bottom: var(--nb-border); }
   .rep-module-rail__title { grid-column: 1 / -1; }
   .rep-forms { width: 100%; border-right: none; border-bottom: var(--nb-border); overflow: visible; }
-  .rep-aside { width: 100%; min-width: 0; flex: none; }
+  .rep-aside { width: 100%; min-width: 0; flex: 1 1 auto; }
   .rep-ai-overlay { width: 100%; position: static; border-left: none; border-top: var(--nb-border); }
 }
 </style>

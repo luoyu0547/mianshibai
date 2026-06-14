@@ -33,7 +33,7 @@
         </thead>
         <tbody>
           <tr v-for="(item, i) in education" :key="i">
-            <td>{{ item.school }}</td>
+            <td><svg class="ats-icon" viewBox="0 0 24 24" width="14" height="14"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>{{ item.school }}</td>
             <td>{{ item.major }}</td>
             <td>{{ item.degree }}</td>
             <td>{{ item.startDate }} — {{ item.endDate || '至今' }}</td>
@@ -267,5 +267,13 @@ const hasAnyGpa = computed(() => props.education.some((e) => e.gpa))
 
 .ec-skill-line strong {
   font-family: var(--font-heading);
+}
+
+.ats-icon {
+  display: inline-block;
+  vertical-align: -2px;
+  margin-right: 4px;
+  fill: var(--nb-accent, #6C5CE7);
+  flex-shrink: 0;
 }
 </style>

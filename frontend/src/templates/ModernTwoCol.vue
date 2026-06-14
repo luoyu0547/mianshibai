@@ -35,7 +35,7 @@
       <div v-if="education.length" class="ms-side-block">
         <h2 class="ms-side-title">教育</h2>
         <div v-for="(item, i) in education" :key="i" class="ms-edu">
-          <div class="ms-edu-school">{{ item.school }}</div>
+          <div class="ms-edu-school"><svg class="ats-icon" viewBox="0 0 24 24" width="14" height="14"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>{{ item.school }}</div>
           <div class="ms-edu-major">{{ item.major }}<template v-if="item.degree"> · {{ item.degree }}</template></div>
           <div class="ms-edu-date" v-if="item.startDate">{{ item.startDate }} — {{ item.endDate || '至今' }}</div>
         </div>
@@ -324,5 +324,13 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
   font-size: 13px;
   color: var(--nb-muted);
   line-height: 1.7;
+}
+
+.ats-icon {
+  display: inline-block;
+  vertical-align: -2px;
+  margin-right: 4px;
+  fill: var(--nb-accent, #6C5CE7);
+  flex-shrink: 0;
 }
 </style>

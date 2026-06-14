@@ -57,7 +57,7 @@
           </el-col>
         </el-row>
         <el-form-item label="项目描述">
-          <el-input v-model="item.description" type="textarea" :rows="3" placeholder="请描述项目内容" />
+          <FormattedTextarea :model-value="String(item.description || '')" :rows="4" placeholder="请描述项目内容" @update:model-value="val => item.description = val" />
         </el-form-item>
         <el-form-item label="亮点标签">
           <div class="tag-list">
@@ -94,6 +94,7 @@
 import { ref, nextTick } from 'vue'
 import NbCard from '@/components/NbCard.vue'
 import NbButton from '@/components/NbButton.vue'
+import FormattedTextarea from '@/components/resume/FormattedTextarea.vue'
 
 const props = defineProps<{
   items: Record<string, unknown>[]

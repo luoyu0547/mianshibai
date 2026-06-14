@@ -1,17 +1,18 @@
 <!-- src/components/resume/sections/SummaryEditor.vue -->
 <template>
   <div class="summary-editor">
-    <el-input
+    <FormattedTextarea
       :model-value="(modelValue.content as string) || ''"
-      type="textarea"
       :rows="5"
-      placeholder="请输入自我评价..."
+      placeholder="写一段个人亮点..."
       @update:model-value="updateContent"
     />
   </div>
 </template>
 
 <script setup lang="ts">
+import FormattedTextarea from '@/components/resume/FormattedTextarea.vue'
+
 const props = defineProps<{
   modelValue: Record<string, unknown>
 }>()

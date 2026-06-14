@@ -55,18 +55,15 @@ import { ref, nextTick, onMounted } from 'vue'
 import type { SectionType, ChatMessageVO, ResumePatchProposal } from '@/types/resume'
 import { getChatHistory } from '@/api/resume'
 import { createSseParser } from '@/utils/sse'
-import { marked } from 'marked'
+import { Marked } from 'marked'
 import NbButton from '@/components/NbButton.vue'
 import NbEmptyState from '@/components/NbEmptyState.vue'
 
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-})
+const markedInstance = new Marked({ breaks: true, gfm: true })
 
 function renderMarkdown(text: string): string {
   if (!text) return ''
-  return marked.parse(text, { async: false }) as string
+  return markedInstance.parse(text) as string
 }
 
 interface ChatMessage {

@@ -69,6 +69,7 @@
       <div v-for="(item, index) in education" :key="index" class="ats-entry ats-entry--compact">
         <div class="ats-entry__head">
           <div>
+            <svg class="ats-icon" viewBox="0 0 24 24" width="14" height="14"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>
             <strong>{{ item.school }}</strong>
             <span v-if="item.major"> · {{ item.major }}</span>
             <span v-if="item.degree"> · {{ item.degree }}</span>
@@ -237,5 +238,13 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
 
 .ats-list li {
   margin-bottom: 2px;
+}
+
+.ats-icon {
+  display: inline-block;
+  vertical-align: -2px;
+  margin-right: 4px;
+  fill: var(--nb-accent, #6C5CE7);
+  flex-shrink: 0;
 }
 </style>

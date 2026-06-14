@@ -74,18 +74,6 @@
       </el-col>
     </el-row>
 
-    <el-row :gutter="16">
-      <el-col :span="12">
-        <el-form-item label="个人网站">
-          <el-input v-model="formData.website" placeholder="作品集 / 个人主页链接" />
-        </el-form-item>
-      </el-col>
-      <el-col :span="12">
-        <el-form-item label="微信">
-          <el-input v-model="formData.wechat" placeholder="可选" />
-        </el-form-item>
-      </el-col>
-    </el-row>
   </el-form>
 </template>
 
