@@ -66,52 +66,38 @@
         </NbEmptyState>
       </NbCard>
 
-      <div v-else class="app-list-page__grid">
-        <NbCard
-          v-for="app in applicationStore.applications"
-          :key="app.id"
-          hoverable
-          class="app-card"
-          @click="router.push(`/applications/${app.id}`)"
-        >
-          <div class="app-card__header">
-            <h3 class="app-card__title">{{ app.jobTitle }}</h3>
-            <NbStatusBadge
-              :label="getStatusDescriptor(applicationStatusMap, app.status).label"
-              :variant="getStatusDescriptor(applicationStatusMap, app.status).variant"
-            />
+      <div v-else class="kanban-board">
+        <div v-for="col in columns" :key="col.key" class="kanban-column">
+          <div class="kanban-column__header">
+            <span>{{ col.title }}</span>
+            <span class="kanban-column__count">{{ appsForColumn(col.statuses).length }}</span>
           </div>
-          <div class="app-card__meta">
-            <span>{{ app.companyName }}</span>
-            <span class="app-card__divider">|</span>
-            <span>{{ app.location }}</span>
-            <template v-if="app.salaryRange">
-              <span class="app-card__divider">|</span>
-              <span class="app-card__salary">{{ app.salaryRange }}</span>
-            </template>
+          <div
+            v-for="app in appsForColumn(col.statuses)"
+            :key="app.id"
+            class="kanban-card"
+            @click="router.push('/applications/' + app.id)"
+          >
+            <h3 class="kanban-card__title">{{ app.jobTitle }}</h3>
+            <div class="kanban-card__company">{{ app.companyName }}</div>
+            <div class="kanban-card__meta">
+              <span v-if="app.location">{{ app.location }}</span>
+              <span v-if="app.salaryRange" style="color: var(--nb-accent)">{{ app.salaryRange }}</span>
+              <span v-if="app.source" style="color: var(--nb-muted)">{{ app.source }}</span>
+            </div>
+            <div v-if="app.nextEventAt" class="kanban-card__event">
+              下一事件: {{ formatDate(app.nextEventAt) }}
+            </div>
+            <div v-if="app.unfinishedTodoCount > 0" class="kanban-card__todo">
+              {{ app.unfinishedTodoCount }} 个待办
+            </div>
+            <div v-if="nextStatusMap[app.status]" class="kanban-card__action" @click.stop>
+              <el-button size="small" type="primary" @click="handleAdvance(app.id, app.status)">
+                推进 → {{ getStatusDescriptor(applicationStatusMap, nextStatusMap[app.status]!).label }}
+              </el-button>
+            </div>
           </div>
-          <div v-if="app.nextEventAt" class="app-card__event">
-            下一事件: {{ formatDate(app.nextEventAt) }}
-          </div>
-          <div v-if="app.unfinishedTodoCount > 0" class="app-card__todo">
-            {{ app.unfinishedTodoCount }} 个待办
-          </div>
-          <div class="app-card__actions" @click.stop>
-            <el-select
-              :model-value="app.status"
-              size="small"
-              style="width: 120px;"
-              @change="(val: ApplicationStatus) => handleStatusChange(app.id, val)"
-            >
-              <el-option
-                v-for="opt in APPLICATION_STATUS_OPTIONS"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
-          </div>
-        </NbCard>
+        </div>
       </div>
     </div>
   </MainLayout>
@@ -126,7 +112,6 @@ import NbCard from '@/components/NbCard.vue'
 import NbButton from '@/components/NbButton.vue'
 import NbPageHeader from '@/components/NbPageHeader.vue'
 import NbStatCard from '@/components/NbStatCard.vue'
-import NbStatusBadge from '@/components/NbStatusBadge.vue'
 import NbLoadingBlock from '@/components/NbLoadingBlock.vue'
 import NbEmptyState from '@/components/NbEmptyState.vue'
 import { useApplicationStore } from '@/stores/application'
@@ -140,6 +125,29 @@ const applicationStore = useApplicationStore()
 
 const keyword = ref('')
 const statusFilter = ref<ApplicationStatus | ''>('')
+
+const nextStatusMap: Partial<Record<ApplicationStatus, ApplicationStatus>> = {
+  pending_submit: 'submitted',
+  submitted: 'hr_contact',
+  hr_contact: 'written_test',
+  written_test: 'first_interview',
+  first_interview: 'second_interview',
+  second_interview: 'final_interview',
+  final_interview: 'offer',
+}
+
+const columns = [
+  { key: 'pending_submit', title: '待投递', statuses: ['pending_submit'] as ReadonlyArray<ApplicationStatus> },
+  { key: 'submitted', title: '已投递', statuses: ['submitted'] as ReadonlyArray<ApplicationStatus> },
+  { key: 'contacting', title: '沟通中', statuses: ['hr_contact'] as ReadonlyArray<ApplicationStatus> },
+  { key: 'interviewing', title: '笔试/面试', statuses: ['written_test', 'first_interview', 'second_interview', 'final_interview'] as ReadonlyArray<ApplicationStatus> },
+  { key: 'offer', title: 'Offer', statuses: ['offer'] as ReadonlyArray<ApplicationStatus> },
+  { key: 'closed', title: '已关闭', statuses: ['rejected', 'withdrawn'] as ReadonlyArray<ApplicationStatus> },
+]
+
+function appsForColumn(statuses: ReadonlyArray<ApplicationStatus>) {
+  return applicationStore.applications.filter(a => statuses.includes(a.status))
+}
 
 const statCards = computed(() => {
   const s = applicationStore.stats!
@@ -176,13 +184,15 @@ function handleStatClick(key: string) {
   loadData()
 }
 
-async function handleStatusChange(id: number, status: ApplicationStatus) {
-  const result = await applicationStore.updateApplicationStatus(id, status)
+async function handleAdvance(id: number, currentStatus: ApplicationStatus) {
+  const nextStatus = nextStatusMap[currentStatus]
+  if (!nextStatus) return
+  const result = await applicationStore.updateApplicationStatus(id, nextStatus)
   if (result) {
-    ElMessage.success('状态已更新')
+    ElMessage.success('已推进')
     loadData()
   } else {
-    ElMessage.error('状态更新失败')
+    ElMessage.error('推进失败')
   }
 }
 </script>
@@ -211,66 +221,99 @@ async function handleStatusChange(id: number, status: ApplicationStatus) {
   flex-wrap: wrap;
 }
 
-.app-list-page__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 20px;
+.kanban-board {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 16px;
 }
 
-.app-card {
-  cursor: pointer;
+.kanban-column {
+  flex: 0 0 280px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
-.app-card__header {
+.kanban-column__header {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  padding: 8px 0;
+  border-bottom: 2px solid var(--nb-border);
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-}
-
-.app-card__title {
-  font-family: var(--font-heading);
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-  flex: 1;
-  margin-right: 8px;
-}
-
-.app-card__meta {
-  display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--nb-muted);
-  flex-wrap: wrap;
 }
 
-.app-card__divider {
-  color: var(--nb-border);
+.kanban-column__count {
+  background: var(--nb-bg);
+  border: 2px solid var(--nb-border);
+  border-radius: 12px;
+  padding: 0 8px;
+  font-size: 13px;
 }
 
-.app-card__salary {
-  color: var(--nb-accent);
+.kanban-card {
+  background: var(--nb-card);
+  border: 2px solid var(--nb-border);
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  box-shadow: var(--nb-shadow-sm);
+  transition: box-shadow 0.15s;
+}
+
+.kanban-card:hover {
+  box-shadow: var(--nb-shadow);
+}
+
+.kanban-card__title {
+  font-family: var(--font-heading);
+  font-size: 15px;
   font-weight: 600;
+  margin: 0 0 4px;
 }
 
-.app-card__event {
+.kanban-card__company {
   font-size: 13px;
+  color: var(--nb-muted);
+}
+
+.kanban-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--nb-muted);
+}
+
+.kanban-card__event {
+  font-size: 12px;
   color: var(--nb-primary);
-  font-weight: 500;
-}
-
-.app-card__todo {
-  font-size: 13px;
-  color: var(--nb-warning);
-  font-weight: 500;
-}
-
-.app-card__actions {
   margin-top: 4px;
+}
+
+.kanban-card__todo {
+  font-size: 12px;
+  color: var(--nb-warning);
+  margin-top: 2px;
+}
+
+.kanban-card__action {
+  margin-top: 8px;
+  text-align: right;
+}
+
+@media (max-width: 768px) {
+  .kanban-board {
+    flex-direction: column;
+    overflow-x: visible;
+  }
+  .kanban-column {
+    flex: 1 1 auto;
+  }
 }
 
 @media (max-width: 900px) {
