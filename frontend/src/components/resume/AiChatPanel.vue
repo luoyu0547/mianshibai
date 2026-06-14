@@ -18,18 +18,15 @@
           <div class="ai-chat-panel__message-body">
             <span class="ai-chat-panel__content" v-html="renderMarkdown(msg.content)"></span>
             <div v-if="msg.role === 'assistant' && visibleProposals(msg).length" class="ai-chat-panel__proposals">
-              <div
+              <PatchCompareCard
                 v-for="item in visibleProposals(msg)"
                 :key="item.index"
-                class="ai-chat-panel__proposal"
-              >
-                <span>AI 建议修改{{ sectionLabel(item.proposal.sectionType) }}</span>
-                <small>{{ item.proposal.reason || '等待确认后应用' }}</small>
-                <div class="ai-chat-panel__proposal-actions">
-                  <NbButton variant="primary" size="small" @click="emit('proposal', item.proposal)">查看对比</NbButton>
-                  <NbButton variant="ghost" size="small" @click="ignoreProposal(msg, item.index)">忽略</NbButton>
-                </div>
-              </div>
+                :proposal="item.proposal"
+                :current-data="getCurrentData(item.proposal.sectionType)"
+                :section-type="item.proposal.sectionType"
+                @accept="emit('proposal', item.proposal)"
+                @reject="ignoreProposal(msg, item.index)"
+              />
             </div>
           </div>
         </div>
@@ -62,6 +59,7 @@ import { createSseParser } from '@/utils/sse'
 import { Marked } from 'marked'
 import NbButton from '@/components/NbButton.vue'
 import NbEmptyState from '@/components/NbEmptyState.vue'
+import PatchCompareCard from './PatchCompareCard.vue'
 
 const markedInstance = new Marked({ breaks: true, gfm: true })
 
@@ -79,6 +77,7 @@ interface ChatMessage {
 
 const props = defineProps<{
   resumeId: number
+  sectionDataMap?: Record<string, unknown>
 }>()
 
 const emit = defineEmits<{
@@ -91,18 +90,6 @@ const inputText = ref('')
 const isLoading = ref(false)
 const messagesContainer = ref<HTMLDivElement>()
 
-const sectionLabelMap: Record<SectionType, string> = {
-  basic: '基本信息',
-  education: '教育经历',
-  work: '工作经历',
-  project: '项目经历',
-  skills: '技能标签',
-  summary: '自我评价',
-}
-
-function sectionLabel(type: SectionType) {
-  return sectionLabelMap[type] || type
-}
 
 function visibleProposals(msg: ChatMessage) {
   const ignored = new Set(msg.ignoredProposalIndexes || [])
@@ -113,6 +100,15 @@ function visibleProposals(msg: ChatMessage) {
 
 function ignoreProposal(msg: ChatMessage, index: number) {
   msg.ignoredProposalIndexes = [...(msg.ignoredProposalIndexes || []), index]
+}
+
+function getCurrentData(sectionType: SectionType): Record<string, unknown> | Record<string, unknown>[] {
+  if (!props.sectionDataMap) return {}
+  const key = sectionType as string
+  if (key in props.sectionDataMap) {
+    return props.sectionDataMap[key] as Record<string, unknown> | Record<string, unknown>[]
+  }
+  return {}
 }
 
 function scrollToBottom() {

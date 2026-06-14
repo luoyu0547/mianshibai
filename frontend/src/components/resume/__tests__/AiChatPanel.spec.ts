@@ -18,12 +18,12 @@ function streamFromText(text: string) {
 }
 
 describe('AiChatPanel', () => {
-  it('renders assistant content and proposals in a vertical message body', async () => {
+  it('renders proposals as PatchCompareCard when receiving resume_patch_proposal', async () => {
     const proposal = JSON.stringify({
       sectionType: 'basic',
       operation: 'replace_section',
       reason: '基本信息可以更规范',
-      sectionData: { name: '张三' },
+      sectionData: { name: '张三', email: 'zhangsan@xx.com' },
     })
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       body: streamFromText(
@@ -32,7 +32,17 @@ describe('AiChatPanel', () => {
     }))
 
     const wrapper = mount(AiChatPanel, {
-      props: { resumeId: 1 },
+      props: {
+        resumeId: 1,
+        sectionDataMap: {
+          basic: { name: '张三', email: 'a@b.com' },
+          education: [],
+          work: [],
+          project: [],
+          skills: {},
+          summary: {},
+        },
+      },
       global: {
         stubs: {
           ElInput: {
@@ -44,6 +54,10 @@ describe('AiChatPanel', () => {
             props: ['disabled'],
           },
           NbEmptyState: true,
+          PatchCompareCard: {
+            template: '<div class="patch-compare-card-stub">查看对比</div>',
+            props: ['proposal', 'currentData', 'sectionType'],
+          },
         },
       },
     })
@@ -54,11 +68,8 @@ describe('AiChatPanel', () => {
       expect(wrapper.text()).toContain('查看对比')
     })
 
-    const assistantBubble = wrapper.find('.ai-chat-panel__bubble--assistant')
-    const messageBody = assistantBubble.find('.ai-chat-panel__message-body')
-
+    const messageBody = wrapper.find('.ai-chat-panel__bubble--assistant .ai-chat-panel__message-body')
     expect(messageBody.exists()).toBe(true)
     expect(messageBody.find('.ai-chat-panel__content').text()).toContain('好的，我会帮你优化简历。')
-    expect(messageBody.find('.ai-chat-panel__proposals').text()).toContain('AI 建议修改基本信息')
   })
 })
