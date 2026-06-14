@@ -159,7 +159,7 @@
               <span v-if="finalText" class="interview-room__transcript-final">{{ finalText }}</span>
               <span v-if="partialText" class="interview-room__transcript-partial">{{ partialText }}</span>
               <span v-if="!partialText && !finalText" class="interview-room__transcript-placeholder">
-                {{ state === 'readyToAnswer' ? '等待回答' : '等待回答' }}
+                {{ '等待回答' }}
               </span>
             </div>
           </div>
@@ -489,7 +489,7 @@ async function startRecording() {
         partialText.value = text
       },
       onFinal: (text) => {
-        finalText.value += (finalText.value ? '' : '') + text
+        finalText.value += text
         partialText.value = ''
       },
       onError: (msg) => {
