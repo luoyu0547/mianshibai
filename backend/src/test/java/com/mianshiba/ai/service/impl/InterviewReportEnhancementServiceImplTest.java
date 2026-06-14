@@ -124,10 +124,13 @@ class InterviewReportEnhancementServiceImplTest {
     }
 
     @Test
-    void runTask_shouldThrowIfNotFound() {
+    void runTask_shouldSkipIfNotFound() {
         when(enhancementMapper.selectById(999L)).thenReturn(null);
 
-        assertThatThrownBy(() -> enhancementService.runTask(999L))
-                .isInstanceOf(BusinessException.class);
+        enhancementService.runTask(999L);
+
+        verify(enhancementMapper).selectById(999L);
+        verify(enhancementMapper, org.mockito.Mockito.never())
+                .updateById(ArgumentMatchers.any(InterviewReportEnhancement.class));
     }
 }
