@@ -13,7 +13,7 @@
       <template v-for="(msg, index) in messages" :key="index">
         <div :class="['ai-chat-panel__bubble', `ai-chat-panel__bubble--${msg.role}`]">
           <span v-if="msg.role === 'assistant'" class="ai-chat-panel__role">AI</span>
-          <span class="ai-chat-panel__content">{{ msg.content }}</span>
+          <span class="ai-chat-panel__content" v-html="renderMarkdown(msg.content)"></span>
           <div v-if="msg.role === 'assistant' && visibleProposals(msg).length" class="ai-chat-panel__proposals">
             <div
               v-for="item in visibleProposals(msg)"
@@ -55,8 +55,19 @@ import { ref, nextTick, onMounted } from 'vue'
 import type { SectionType, ChatMessageVO, ResumePatchProposal } from '@/types/resume'
 import { getChatHistory } from '@/api/resume'
 import { createSseParser } from '@/utils/sse'
+import { marked } from 'marked'
 import NbButton from '@/components/NbButton.vue'
 import NbEmptyState from '@/components/NbEmptyState.vue'
+
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+})
+
+function renderMarkdown(text: string): string {
+  if (!text) return ''
+  return marked.parse(text, { async: false }) as string
+}
 
 interface ChatMessage {
   role: 'user' | 'assistant'

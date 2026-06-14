@@ -7,6 +7,13 @@
         <NbButton variant="ghost" class="rep-back" @click="router.back()">
           <el-icon><ArrowLeft /></el-icon>
         </NbButton>
+        <button
+          class="rep-module-toggle"
+          :title="moduleRailCollapsed ? '展开模块栏' : '收起模块栏'"
+          @click="moduleRailCollapsed = !moduleRailCollapsed"
+        >
+          <el-icon><component :is="moduleRailCollapsed ? Expand : Fold" /></el-icon>
+        </button>
         <el-input
           v-model="title"
           class="rep-title-input"
@@ -16,6 +23,12 @@
       </div>
       <div class="rep-topbar__right">
         <TemplateSelector v-model="templateType" />
+        <NbButton variant="ghost" size="small" @click="toggleAiPanel('chat')">
+          <el-icon><ChatDotSquare /></el-icon> AI 对话
+        </NbButton>
+        <NbButton variant="ghost" size="small" @click="toggleAiPanel('score')">
+          <el-icon><DataAnalysis /></el-icon> AI 评分
+        </NbButton>
         <NbButton variant="ghost" @click="router.push(`/resume/${resumeId}/preview`)">预览</NbButton>
         <NbButton variant="primary" :loading="isSaving" @click="handleSave">保存</NbButton>
       </div>
@@ -23,16 +36,18 @@
 
     <!-- 主体区域 -->
     <div class="rep-body">
-      <aside class="rep-module-rail">
-        <div class="rep-module-rail__title">模块选择</div>
+      <aside class="rep-module-rail" :class="{ 'is-collapsed': moduleRailCollapsed }">
+        <div v-if="!moduleRailCollapsed" class="rep-module-rail__title">模块选择</div>
         <a
           v-for="section in moduleSections"
           :key="section.type"
           class="rep-module-item"
           :href="`#resume-section-${section.type}`"
+          :title="moduleRailCollapsed ? section.label : ''"
         >
-          <span>{{ section.label }}</span>
-          <i :class="hasSectionContent(section.type) ? 'is-on' : ''"></i>
+          <span class="rep-module-item__short">{{ section.short }}</span>
+          <span v-if="!moduleRailCollapsed">{{ section.label }}</span>
+          <i v-if="!moduleRailCollapsed" :class="hasSectionContent(section.type) ? 'is-on' : ''"></i>
         </a>
         <NbButton variant="primary" block @click="wholeOptimizeRef?.open()">整份 AI 优化</NbButton>
       </aside>
@@ -113,15 +128,27 @@
             </template>
           </NbSectionTitle>
           <div class="rep-preview-tools">
-            <span>基础布局</span>
-            <span>智能纠错</span>
-            <span>字号 14</span>
-            <span>行距 1.7</span>
-            <span class="rep-preview-tools__color"></span>
-            <span>间距配置</span>
+            <el-select v-model="templateType" size="small" class="rep-tool-select" placeholder="基础布局">
+              <el-option label="ATS 精英" value="minimal_tech" />
+              <el-option label="技术双栏" value="modern_two_col" />
+              <el-option label="经典正式" value="classic_formal" />
+            </el-select>
+            <NbButton variant="ghost" size="small" @click="wholeOptimizeRef?.open()">智能纠错</NbButton>
+            <el-select v-model="previewFontSize" size="small" class="rep-tool-select rep-tool-select--sm">
+              <el-option v-for="n in fontSizes" :key="n" :label="'字号 ' + n" :value="n" />
+            </el-select>
+            <el-select v-model="previewLineHeight" size="small" class="rep-tool-select rep-tool-select--sm">
+              <el-option v-for="lh in lineHeights" :key="lh" :label="'行距 ' + lh" :value="lh" />
+            </el-select>
+            <el-color-picker v-model="previewAccentColor" size="small" show-alpha />
+            <el-select v-model="previewSpacing" size="small" class="rep-tool-select rep-tool-select--sm">
+              <el-option label="紧凑" value="compact" />
+              <el-option label="标准" value="normal" />
+              <el-option label="宽松" value="relaxed" />
+            </el-select>
           </div>
           <div class="rep-a4-wrap">
-            <div class="rep-a4">
+            <div class="rep-a4" :style="previewA4Style">
               <component
                 :is="templateComponent"
                 v-if="templateComponent"
@@ -131,6 +158,7 @@
                 :project="projectItems"
                 :skills="skillsData"
                 :summary="summaryData"
+                :accent-color="previewAccentColor"
               />
               <div v-else class="rep-a4-empty">
                 <p>简历预览区域</p>
@@ -139,21 +167,6 @@
             </div>
           </div>
         </div>
-
-        <NbCard variant="ai" class="rep-ai-panel">
-          <el-tabs v-model="activeTab" class="rep-tabs">
-            <el-tab-pane label="AI 对话" name="chat">
-              <AiChatPanel
-                :resume-id="resumeId"
-                @extracted="handleExtracted"
-              @proposal="handlePatchProposal"
-              />
-            </el-tab-pane>
-            <el-tab-pane label="AI 评分" name="score">
-              <AiScorePanel :resume-id="resumeId" />
-            </el-tab-pane>
-          </el-tabs>
-        </NbCard>
       </div>
 
       <AiOptimizeDialog
@@ -177,6 +190,29 @@
         :current-data="pendingPatchCurrentData"
         @apply="handlePatchProposalApplied"
       />
+
+      <transition name="rep-ai-slide">
+        <div v-if="aiPanelOpen" class="rep-ai-overlay">
+          <div class="rep-ai-overlay__header">
+            <span>{{ aiPanelMode === 'chat' ? 'AI 对话' : 'AI 评分' }}</span>
+            <NbButton variant="ghost" size="small" @click="aiPanelOpen = false">
+              <el-icon><Close /></el-icon>
+            </NbButton>
+          </div>
+          <div class="rep-ai-overlay__body">
+            <AiChatPanel
+              v-if="aiPanelMode === 'chat'"
+              :resume-id="resumeId"
+              @extracted="handleExtracted"
+              @proposal="handlePatchProposal"
+            />
+            <AiScorePanel
+              v-else
+              :resume-id="resumeId"
+            />
+          </div>
+        </div>
+      </transition>
     </div>
   </div>
 </template>
@@ -185,7 +221,7 @@
 import { ref, computed, onMounted, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft } from '@element-plus/icons-vue'
+import { ArrowLeft, Expand, Fold, ChatDotSquare, DataAnalysis, Close } from '@element-plus/icons-vue'
 import BasicInfoEditor from '@/components/resume/sections/BasicInfoEditor.vue'
 import EducationEditor from '@/components/resume/sections/EducationEditor.vue'
 import WorkExperienceEditor from '@/components/resume/sections/WorkExperienceEditor.vue'
@@ -238,8 +274,34 @@ const sectionIds = ref<Record<SectionType, number[]>>({
   summary: [],
 })
 
-const activeTab = ref('chat')
 const wholeOptimizeRef = ref<InstanceType<typeof WholeResumeOptimizeDialog> | null>(null)
+
+const moduleRailCollapsed = ref(false)
+const aiPanelOpen = ref(false)
+const aiPanelMode = ref<'chat' | 'score'>('chat')
+
+function toggleAiPanel(mode: 'chat' | 'score') {
+  if (aiPanelOpen.value && aiPanelMode.value === mode) {
+    aiPanelOpen.value = false
+  } else {
+    aiPanelMode.value = mode
+    aiPanelOpen.value = true
+  }
+}
+
+const previewFontSize = ref(14)
+const previewLineHeight = ref(1.7)
+const previewAccentColor = ref('#3F6DF6')
+const previewSpacing = ref('normal')
+const fontSizes = [12, 13, 14, 15, 16]
+const lineHeights = [1.4, 1.5, 1.6, 1.7, 1.8, 2.0]
+const spacingScale: Record<string, number> = { compact: 0.85, normal: 1, relaxed: 1.2 }
+const previewA4Style = computed(() => ({
+  fontSize: previewFontSize.value + 'px',
+  lineHeight: previewLineHeight.value,
+  '--nb-accent': previewAccentColor.value,
+  '--nb-spacing-mult': spacingScale[previewSpacing.value] ?? 1,
+}))
 
 const patchConfirmVisible = ref(false)
 const pendingPatchProposal = ref<ResumePatchProposal | null>(null)
@@ -258,13 +320,13 @@ const sectionLabelMap: Record<SectionType, string> = {
   summary: '自我评价',
 }
 
-const moduleSections: { type: SectionType; label: string }[] = [
-  { type: 'basic', label: '基本信息' },
-  { type: 'education', label: '教育经历' },
-  { type: 'skills', label: '专业技能' },
-  { type: 'work', label: '工作经历' },
-  { type: 'project', label: '项目经历' },
-  { type: 'summary', label: '个人简介' },
+const moduleSections: { type: SectionType; label: string; short: string }[] = [
+  { type: 'basic', label: '基本信息', short: '基' },
+  { type: 'education', label: '教育经历', short: '教' },
+  { type: 'skills', label: '专业技能', short: '技' },
+  { type: 'work', label: '工作经历', short: '工' },
+  { type: 'project', label: '项目经历', short: '项' },
+  { type: 'summary', label: '个人简介', short: '简' },
 ]
 
 const sectionDataMap = computed(() => ({
@@ -456,11 +518,10 @@ async function handleSave() {
   display: flex;
   flex-direction: column;
   height: calc(100vh - 60px);
-  margin: -28px -24px;
+  margin: 0;
   background: var(--nb-bg);
 }
 
-/* 顶部工具栏 */
 .rep-topbar {
   display: flex;
   align-items: center;
@@ -470,8 +531,6 @@ async function handleSave() {
   background: var(--nb-surface);
   border-bottom: var(--nb-border);
   flex-shrink: 0;
-  position: sticky;
-  top: 0;
   z-index: 20;
 }
 
@@ -483,313 +542,152 @@ async function handleSave() {
   min-width: 0;
 }
 
-.rep-back {
+.rep-back { flex-shrink: 0; }
+
+.rep-module-toggle {
   flex-shrink: 0;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  border: var(--nb-border); border-radius: var(--nb-radius);
+  background: var(--nb-surface); color: var(--nb-ink);
+  cursor: pointer; font-size: 16px;
+  transition: var(--nb-transition);
 }
+.rep-module-toggle:hover { background: var(--nb-primary-light); color: var(--nb-primary); }
 
-.rep-title-input {
-  flex: 1;
-  max-width: 360px;
-}
-
+.rep-title-input { flex: 1; max-width: 360px; }
 .rep-title-input :deep(.el-input__wrapper) {
-  box-shadow: none !important;
-  border: none !important;
-  background: transparent !important;
-  font-family: var(--font-heading);
-  font-size: 18px;
-  font-weight: 600;
-  padding: 0 !important;
+  box-shadow: none !important; border: none !important;
+  background: transparent !important; font-family: var(--font-heading);
+  font-size: 18px; font-weight: 600; padding: 0 !important;
 }
 
-.rep-topbar__right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
+.rep-topbar__right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
-/* 主体 */
-.rep-body {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
+.rep-body { display: flex; flex: 1; overflow: hidden; position: relative; }
 
+/* Module rail */
 .rep-module-rail {
-  width: 230px;
-  flex: 0 0 230px;
-  padding: 18px 12px;
-  background: #fff;
-  border-right: var(--nb-border);
-  overflow-y: auto;
+  width: 220px; flex: 0 0 220px;
+  padding: 18px 12px; background: #fff;
+  border-right: var(--nb-border); overflow-y: auto;
+  transition: width 0.2s ease, flex-basis 0.2s ease, padding 0.2s ease;
 }
+.rep-module-rail.is-collapsed { width: 52px; flex: 0 0 52px; padding: 12px 6px; }
 
 .rep-module-rail__title {
-  margin: 0 10px 14px;
-  font-family: var(--font-heading);
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--nb-ink);
+  margin: 0 10px 14px; font-family: var(--font-heading);
+  font-size: 15px; font-weight: 800; color: var(--nb-ink); white-space: nowrap;
 }
 
 .rep-module-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 13px 10px;
-  border-bottom: 1px solid var(--nb-border-color-light);
-  color: var(--nb-ink);
-  font-weight: 600;
-  text-decoration: none;
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 10px; border-bottom: 1px solid var(--nb-border-color-light);
+  color: var(--nb-ink); font-weight: 600; text-decoration: none;
   transition: var(--nb-transition);
 }
+.rep-module-rail.is-collapsed .rep-module-item {
+  justify-content: center; padding: 10px 4px;
+  border-bottom: none; border-radius: var(--nb-radius);
+}
+.rep-module-item:hover { color: var(--nb-primary); background: var(--nb-primary-light); border-radius: var(--nb-radius); }
 
-.rep-module-item:hover {
-  color: var(--nb-primary);
-  background: var(--nb-primary-light);
-  border-radius: var(--nb-radius);
+.rep-module-item__short {
+  flex-shrink: 0; width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--nb-radius); background: var(--nb-bg);
+  font-size: 13px; font-family: var(--font-heading);
+}
+.rep-module-rail.is-collapsed .rep-module-item__short {
+  background: var(--nb-primary-light); color: var(--nb-primary);
 }
 
 .rep-module-item i {
-  width: 34px;
-  height: 20px;
-  border-radius: 999px;
-  background: #d1d5db;
-  position: relative;
-  flex-shrink: 0;
+  width: 34px; height: 20px; border-radius: 999px;
+  background: #d1d5db; position: relative; flex-shrink: 0; margin-left: auto;
 }
-
 .rep-module-item i::after {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #fff;
-  transition: var(--nb-transition);
+  content: ''; position: absolute; top: 3px; left: 3px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #fff; transition: var(--nb-transition);
 }
+.rep-module-item i.is-on { background: var(--nb-primary); }
+.rep-module-item i.is-on::after { left: 17px; }
+.rep-module-rail .nb-button { margin-top: 18px; }
 
-.rep-module-item i.is-on {
-  background: var(--nb-primary);
-}
-
-.rep-module-item i.is-on::after {
-  left: 17px;
-}
-
-.rep-module-rail .nb-button {
-  margin-top: 18px;
-}
-
-/* 左侧编辑区 */
+/* Forms */
 .rep-forms {
-  width: 43%;
-  overflow-y: auto;
-  padding: 20px;
+  flex: 1; min-width: 0;
+  overflow-y: auto; padding: 20px;
   border-right: var(--nb-border);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: flex; flex-direction: column; gap: 16px;
 }
+.rep-section { display: flex; flex-direction: column; gap: 14px; }
 
-.rep-section {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
+.rep-ai-bar__inner { display: flex; align-items: center; gap: 16px; }
+.rep-ai-bar__text { flex-shrink: 0; }
+.rep-ai-bar__text h4 { margin: 0; font-family: var(--font-heading); font-size: 14px; font-weight: 700; color: var(--nb-primary-dark); }
+.rep-ai-bar__text p { margin: 2px 0 0; font-size: 12.5px; color: var(--nb-primary); }
 
-/* AI 工具栏 */
-.rep-ai-bar__inner {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.rep-ai-bar__text {
-  flex-shrink: 0;
-}
-
-.rep-ai-bar__text h4 {
-  margin: 0;
-  font-family: var(--font-heading);
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--nb-primary-dark);
-}
-
-.rep-ai-bar__text p {
-  margin: 2px 0 0;
-  font-size: 12.5px;
-  color: var(--nb-primary);
-}
-
-/* 右侧面板 */
+/* Aside */
 .rep-aside {
-  width: calc(57% - 230px);
-  min-width: 520px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--nb-bg);
+  width: 420px; flex: 0 0 420px; min-width: 360px;
+  display: flex; flex-direction: column;
+  overflow: hidden; background: var(--nb-bg);
 }
 
-/* 预览区 */
 .rep-preview {
-  flex: 1;
-  overflow: auto;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  flex: 1; min-height: 0; overflow: auto;
+  padding: 20px; display: flex; flex-direction: column; gap: 14px;
 }
-
-.rep-preview-title {
-  background: var(--nb-surface);
-  margin: -4px -4px 0;
-  padding: 4px 8px;
-  border-radius: var(--nb-radius);
-}
+.rep-preview-title { background: var(--nb-surface); margin: -4px -4px 0; padding: 4px 8px; border-radius: var(--nb-radius); }
 
 .rep-preview-tools {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px 10px;
-  background: #fff;
-  border: var(--nb-border);
-  border-radius: var(--nb-radius);
-  box-shadow: var(--nb-shadow-xs);
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  padding: 8px 10px; background: #fff;
+  border: var(--nb-border); border-radius: var(--nb-radius); box-shadow: var(--nb-shadow-xs);
 }
+.rep-tool-select { width: 108px; }
+.rep-tool-select--sm { width: 88px; }
 
-.rep-preview-tools span {
-  display: inline-flex;
-  align-items: center;
-  height: 28px;
-  padding: 0 10px;
-  border: 1px solid var(--nb-border-color);
-  border-radius: 8px;
-  color: var(--nb-ink);
-  font-size: 12px;
-  font-weight: 600;
-  background: #fff;
-}
-
-.rep-preview-tools__color {
-  width: 28px;
-  min-width: 28px;
-  padding: 0 !important;
-  background: #3f6df6 !important;
-  border-color: #3f6df6 !important;
-}
-
-.rep-a4-wrap {
-  width: 100%;
-  max-width: 680px;
-  margin: 0 auto;
-}
-
+.rep-a4-wrap { width: 100%; max-width: 680px; margin: 0 auto; }
 .rep-a4 {
-  background: #fff;
-  border: var(--nb-border);
-  box-shadow: var(--nb-shadow-lg);
-  border-radius: 4px;
-  padding: 44px 36px;
-  min-height: 600px;
-  font-size: 13px;
-  line-height: 1.6;
+  background: #fff; border: var(--nb-border);
+  box-shadow: var(--nb-shadow-lg); border-radius: 4px;
+  padding: 44px 36px; min-height: 600px;
+  font-size: 13px; line-height: 1.6;
 }
+.rep-a4-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; color: var(--nb-muted); font-size: 15px; font-family: var(--font-body); }
+.rep-a4-empty__hint { font-size: 13px; margin-top: 8px; color: var(--nb-muted-light); }
 
-.rep-a4-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  color: var(--nb-muted);
-  font-size: 15px;
-  font-family: var(--font-body);
+/* AI overlay */
+.rep-ai-overlay {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 420px; background: var(--nb-surface);
+  border-left: var(--nb-border); box-shadow: var(--nb-shadow-lg);
+  display: flex; flex-direction: column; z-index: 30;
 }
-
-.rep-a4-empty__hint {
-  font-size: 13px;
-  margin-top: 8px;
-  color: var(--nb-muted-light);
+.rep-ai-overlay__header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 18px; border-bottom: var(--nb-border);
+  font-family: var(--font-heading); font-size: 15px; font-weight: 700;
+  flex-shrink: 0;
 }
+.rep-ai-overlay__body { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
 
-/* AI 面板 */
-.rep-ai-panel {
-  flex: 0 0 38%;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  border-radius: var(--nb-radius-lg) var(--nb-radius-lg) 0 0;
-  margin: 0 16px 0 0;
-}
+.rep-ai-slide-enter-active,
+.rep-ai-slide-leave-active { transition: transform 0.25s ease, opacity 0.25s ease; }
+.rep-ai-slide-enter-from,
+.rep-ai-slide-leave-to { transform: translateX(100%); opacity: 0; }
 
-.rep-tabs {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.rep-tabs :deep(.el-tabs__content) {
-  flex: 1;
-  overflow: hidden;
-}
-
-.rep-tabs :deep(.el-tab-pane) {
-  height: 100%;
-}
-
-/* 响应式 */
+/* Responsive */
 @media (max-width: 960px) {
-  .rep {
-    height: auto;
-    min-height: calc(100vh - 60px);
-  }
-
-  .rep-body {
-    flex-direction: column;
-    overflow: visible;
-  }
-
-  .rep-module-rail {
-    width: 100%;
-    flex: none;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-    border-right: none;
-    border-bottom: var(--nb-border);
-  }
-
-  .rep-module-rail__title {
-    grid-column: 1 / -1;
-  }
-
-  .rep-forms {
-    width: 100%;
-    border-right: none;
-    border-bottom: var(--nb-border);
-    overflow: visible;
-  }
-
-  .rep-aside {
-    width: 100%;
-    min-width: 0;
-    overflow: visible;
-  }
-
-  .rep-ai-panel {
-    max-height: none;
-    margin: 16px;
-    border-radius: var(--nb-radius-lg);
-  }
+  .rep { height: auto; min-height: calc(100vh - 60px); }
+  .rep-body { flex-direction: column; overflow: visible; }
+  .rep-module-rail { width: 100%; flex: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; border-right: none; border-bottom: var(--nb-border); }
+  .rep-module-rail__title { grid-column: 1 / -1; }
+  .rep-forms { width: 100%; border-right: none; border-bottom: var(--nb-border); overflow: visible; }
+  .rep-aside { width: 100%; min-width: 0; flex: none; }
+  .rep-ai-overlay { width: 100%; position: static; border-left: none; border-top: var(--nb-border); }
 }
 </style>

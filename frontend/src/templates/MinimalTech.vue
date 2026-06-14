@@ -100,6 +100,7 @@ const props = defineProps<{
   project: Record<string, unknown>[]
   skills: Record<string, unknown> | null
   summary: Record<string, unknown> | null
+  accentColor?: string
 }>()
 
 const skillCategories = computed(() => (props.skills?.categories as SkillCategory[] | undefined) ?? [])
