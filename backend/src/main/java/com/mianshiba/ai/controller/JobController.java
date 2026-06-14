@@ -5,13 +5,17 @@ import com.mianshiba.ai.common.ResultUtils;
 import com.mianshiba.ai.model.dto.job.JobImportRequest;
 import com.mianshiba.ai.model.dto.job.JobListQueryRequest;
 import com.mianshiba.ai.model.dto.job.JobMatchRequest;
+import com.mianshiba.ai.model.dto.job.JobRecommendationRefineRequest;
+import com.mianshiba.ai.model.vo.application.JobApplicationVO;
 import com.mianshiba.ai.model.vo.job.CompanyVO;
 import com.mianshiba.ai.model.vo.job.JobGapAnalysisVO;
 import com.mianshiba.ai.model.vo.job.JobImportResultVO;
 import com.mianshiba.ai.model.vo.job.JobKeywordVO;
 import com.mianshiba.ai.model.vo.job.JobMatchVO;
 import com.mianshiba.ai.model.vo.job.JobQuestionPredictionVO;
+import com.mianshiba.ai.model.vo.job.JobRecommendationVO;
 import com.mianshiba.ai.model.vo.job.JobVO;
+import com.mianshiba.ai.service.JobRecommendationService;
 import com.mianshiba.ai.service.JobService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +26,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,6 +42,7 @@ import java.util.List;
 public class JobController {
 
     private final JobService jobService;
+    private final JobRecommendationService jobRecommendationService;
 
     @PostMapping("/import-url")
     @Operation(summary = "解析职位/公司链接")
@@ -127,5 +133,37 @@ public class JobController {
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
             @PathVariable("jobId") Long jobId) {
         return ResultUtils.success(jobService.predictQuestions(authorizationHeader, jobId));
+    }
+
+    @GetMapping("/recommendations")
+    @Operation(summary = "职位推荐列表")
+    public BaseResponse<List<JobRecommendationVO>> listRecommendations(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader) {
+        return ResultUtils.success(jobRecommendationService.listRecommendations(authorizationHeader));
+    }
+
+    @PostMapping("/recommendations/refine")
+    @Operation(summary = "精排推荐")
+    public BaseResponse<List<JobRecommendationVO>> refineRecommendations(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
+            @Valid @RequestBody JobRecommendationRefineRequest request) {
+        return ResultUtils.success(jobRecommendationService.refine(authorizationHeader, request));
+    }
+
+    @PutMapping("/recommendations/{id}/dismiss")
+    @Operation(summary = "忽略推荐")
+    public BaseResponse<Void> dismissRecommendation(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
+            @PathVariable("id") Long id) {
+        jobRecommendationService.dismiss(authorizationHeader, id);
+        return ResultUtils.success(null);
+    }
+
+    @PostMapping("/recommendations/{id}/apply")
+    @Operation(summary = "加入投递计划")
+    public BaseResponse<JobApplicationVO> applyRecommendation(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
+            @PathVariable("id") Long id) {
+        return ResultUtils.success(jobRecommendationService.apply(authorizationHeader, id));
     }
 }
