@@ -357,27 +357,33 @@ function openOptimize(type: SectionType) {
 function handleOptimizeApplied(type: SectionType, data: Record<string, unknown> | Record<string, unknown>[]) {
   switch (type) {
     case 'basic': {
-      const obj = Array.isArray(data) ? data[0] ?? {} : data as Record<string, unknown>
-      basicData.value = { ...obj, avatar: obj.avatar ?? basicData.value.avatar }
+      const obj = Array.isArray(data) ? Object.assign({}, ...data) : data as Record<string, unknown>
+      basicData.value = { ...basicData.value, ...obj, avatar: obj.avatar ?? basicData.value.avatar }
       break
     }
-    case 'education':
-      educationItems.value = Array.isArray(data) ? data as Record<string, unknown>[] : [data as Record<string, unknown>]
+    case 'education': {
+      const optimized = Array.isArray(data) ? data as Record<string, unknown>[] : [data as Record<string, unknown>]
+      educationItems.value = educationItems.value.map((orig, i) => ({ ...orig, ...(optimized[i] ?? {}) }))
       break
-    case 'work':
-      workItems.value = Array.isArray(data) ? data as Record<string, unknown>[] : [data as Record<string, unknown>]
+    }
+    case 'work': {
+      const optimized = Array.isArray(data) ? data as Record<string, unknown>[] : [data as Record<string, unknown>]
+      workItems.value = workItems.value.map((orig, i) => ({ ...orig, ...(optimized[i] ?? {}) }))
       break
-    case 'project':
-      projectItems.value = Array.isArray(data) ? data as Record<string, unknown>[] : [data as Record<string, unknown>]
+    }
+    case 'project': {
+      const optimized = Array.isArray(data) ? data as Record<string, unknown>[] : [data as Record<string, unknown>]
+      projectItems.value = projectItems.value.map((orig, i) => ({ ...orig, ...(optimized[i] ?? {}) }))
       break
+    }
     case 'skills': {
-      const obj = Array.isArray(data) ? data[0] ?? {} : data as Record<string, unknown>
-      skillsData.value = obj
+      const obj = Array.isArray(data) ? Object.assign({}, ...data) : data as Record<string, unknown>
+      skillsData.value = { ...skillsData.value, ...obj }
       break
     }
     case 'summary': {
-      const obj = Array.isArray(data) ? data[0] ?? {} : data as Record<string, unknown>
-      summaryData.value = obj
+      const obj = Array.isArray(data) ? Object.assign({}, ...data) : data as Record<string, unknown>
+      summaryData.value = { ...summaryData.value, ...obj }
       break
     }
   }
@@ -442,27 +448,33 @@ function splitSections(sections: SectionVO[]) {
 function handleExtracted(sectionType: SectionType, sectionData: Record<string, unknown>) {
   switch (sectionType) {
     case 'basic': {
-      const obj = Array.isArray(sectionData) ? sectionData[0] ?? {} : sectionData
-      basicData.value = { ...obj, avatar: obj.avatar ?? basicData.value.avatar }
+      const obj = Array.isArray(sectionData) ? Object.assign({}, ...sectionData) : sectionData
+      basicData.value = { ...basicData.value, ...obj, avatar: obj.avatar ?? basicData.value.avatar }
       break
     }
-    case 'education':
-      educationItems.value = Array.isArray(sectionData) ? sectionData : [sectionData]
+    case 'education': {
+      const optimized = Array.isArray(sectionData) ? sectionData : [sectionData]
+      educationItems.value = educationItems.value.map((orig, i) => ({ ...orig, ...(optimized[i] ?? {}) }))
       break
-    case 'work':
-      workItems.value = Array.isArray(sectionData) ? sectionData : [sectionData]
+    }
+    case 'work': {
+      const optimized = Array.isArray(sectionData) ? sectionData : [sectionData]
+      workItems.value = workItems.value.map((orig, i) => ({ ...orig, ...(optimized[i] ?? {}) }))
       break
-    case 'project':
-      projectItems.value = Array.isArray(sectionData) ? sectionData : [sectionData]
+    }
+    case 'project': {
+      const optimized = Array.isArray(sectionData) ? sectionData : [sectionData]
+      projectItems.value = projectItems.value.map((orig, i) => ({ ...orig, ...(optimized[i] ?? {}) }))
       break
+    }
     case 'skills': {
-      const obj = Array.isArray(sectionData) ? sectionData[0] ?? {} : sectionData
-      skillsData.value = obj
+      const obj = Array.isArray(sectionData) ? Object.assign({}, ...sectionData) : sectionData
+      skillsData.value = { ...skillsData.value, ...obj }
       break
     }
     case 'summary': {
-      const obj = Array.isArray(sectionData) ? sectionData[0] ?? {} : sectionData
-      summaryData.value = obj
+      const obj = Array.isArray(sectionData) ? Object.assign({}, ...sectionData) : sectionData
+      summaryData.value = { ...summaryData.value, ...obj }
       break
     }
   }
