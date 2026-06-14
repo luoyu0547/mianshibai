@@ -70,8 +70,21 @@
           </div>
 
           <div class="interview-room__transcript">
-            <div class="interview-room__transcript-label">实时语音识别</div>
-            <div class="interview-room__transcript-content">
+            <div class="interview-room__transcript-label">
+              {{ isTextMode ? '你的回答（可编辑）' : '实时语音识别' }}
+            </div>
+            <div
+              v-if="isTextMode"
+              class="interview-room__transcript-content interview-room__transcript-content--editable"
+            >
+              <textarea
+                v-model="textAnswer"
+                class="interview-room__text-answer"
+                rows="5"
+                placeholder="请输入你的回答..."
+              />
+            </div>
+            <div v-else class="interview-room__transcript-content">
               <span v-if="finalText" class="interview-room__transcript-final">{{ finalText }}</span>
               <span v-if="partialText" class="interview-room__transcript-partial">{{ partialText }}</span>
               <span v-if="!partialText && !finalText" class="interview-room__transcript-placeholder">
@@ -81,12 +94,8 @@
           </div>
 
           <div class="interview-room__controls">
-            <NbButton
-              variant="accent"
-              @click="stopRecording"
-            >
-              结束回答
-            </NbButton>
+            <NbButton variant="accent" @click="stopRecording">结束回答</NbButton>
+            <NbButton variant="secondary" @click="toggleInputMode(finalText)">切换为文字</NbButton>
           </div>
         </NbCard>
 
@@ -132,8 +141,21 @@
           </div>
 
           <div class="interview-room__transcript">
-            <div class="interview-room__transcript-label">实时语音识别</div>
-            <div class="interview-room__transcript-content">
+            <div class="interview-room__transcript-label">
+              {{ isTextMode ? '你的回答（可编辑）' : '实时语音识别' }}
+            </div>
+            <div
+              v-if="isTextMode"
+              class="interview-room__transcript-content interview-room__transcript-content--editable"
+            >
+              <textarea
+                v-model="textAnswer"
+                class="interview-room__text-answer"
+                rows="5"
+                placeholder="请输入你的回答..."
+              />
+            </div>
+            <div v-else class="interview-room__transcript-content">
               <span v-if="finalText" class="interview-room__transcript-final">{{ finalText }}</span>
               <span v-if="partialText" class="interview-room__transcript-partial">{{ partialText }}</span>
               <span v-if="!partialText && !finalText" class="interview-room__transcript-placeholder">
@@ -142,19 +164,32 @@
             </div>
           </div>
 
-          <div class="interview-room__controls">
-            <NbButton
-              v-if="state === 'readyToAnswer'"
-              variant="primary"
-              :disabled="remainingSeconds !== null && remainingSeconds <= 0"
-              @click="startRecording"
-            >
-              开始回答
+          <div v-if="state === 'readyToAnswer'" class="interview-room__controls">
+            <template v-if="isVoiceMode">
+              <NbButton
+                variant="primary"
+                :disabled="remainingSeconds !== null && remainingSeconds <= 0"
+                @click="startRecording"
+              >
+                开始回答
+              </NbButton>
+            </template>
+            <template v-else>
+              <NbButton
+                variant="primary"
+                :disabled="remainingSeconds !== null && remainingSeconds <= 0"
+                @click="submitAnswer"
+              >
+                提交回答
+              </NbButton>
+            </template>
+            <NbButton variant="secondary" @click="toggleInputMode(finalText)">
+              {{ isVoiceMode ? '切换为文字' : '切换为语音' }}
             </NbButton>
-            <div v-if="isSpinnerState" class="interview-room__spinner">
-              <span class="interview-room__status-spinner"></span>
-              <span>{{ spinnerText }}</span>
-            </div>
+          </div>
+          <div v-else-if="isSpinnerState" class="interview-room__spinner">
+            <span class="interview-room__status-spinner"></span>
+            <span>{{ spinnerText }}</span>
           </div>
         </NbCard>
 
@@ -201,6 +236,7 @@ import { useUserStore } from '@/stores/user'
 import { AsrClient } from '@/utils/audio/asrClient'
 import { downsampleBuffer, floatTo16BitPCM } from '@/utils/audio/pcm'
 import type { InterviewQuestionVO } from '@/types/interview'
+import { useInterviewInputMode } from '@/composables/useInterviewInputMode'
 
 type RoomState =
   | 'idle'
@@ -232,6 +268,25 @@ const sessionInfo = ref<{ targetPosition: string; techDirection: string } | null
 
 const remainingSeconds = ref<number | null>(null)
 let timerInterval: ReturnType<typeof setInterval> | null = null
+
+const {
+  inputMode,
+  textAnswer,
+  isVoiceMode,
+  isTextMode,
+  toggleInputMode,
+} = useInterviewInputMode({
+  onSwitchToText: () => {
+    stopRecordingWithoutSubmit()
+  },
+  onSwitchToVoice: () => {
+    finalText.value = ''
+    partialText.value = ''
+    if (state.value === 'recording') {
+      stopRecordingWithoutSubmit()
+    }
+  },
+})
 
 function startTimer() {
   if (!interviewStore.currentSession?.startedAt || !interviewStore.currentSession?.durationMinutes) return
@@ -458,33 +513,48 @@ async function startRecording() {
 
 function stopRecording() {
   state.value = 'recognizing'
+  stopRecordingWithoutSubmit()
+  setTimeout(() => {
+    submitAnswer()
+  }, 1500)
+}
+
+function stopRecordingWithoutSubmit() {
   if (asrClient) {
     asrClient.sendEnd()
   }
-
   cleanupAudio()
-
   setTimeout(() => {
     if (asrClient) {
       asrClient.close()
       asrClient = null
     }
-    submitAnswer()
   }, 1500)
 }
 
 async function submitAnswer() {
-  const answer = finalText.value.trim()
+  const answer = isTextMode.value
+    ? textAnswer.value.trim()
+    : finalText.value.trim()
+
   if (!answer) {
-    ElMessage.warning('未检测到有效回答，请重新回答')
+    ElMessage.warning(
+      isTextMode.value ? '回答内容不能为空，请输入后提交' : '未检测到有效回答，请重新回答',
+    )
     state.value = 'readyToAnswer'
-    finalText.value = ''
-    partialText.value = ''
+    if (isTextMode.value) {
+      textAnswer.value = ''
+    } else {
+      finalText.value = ''
+      partialText.value = ''
+    }
     return
   }
 
   state.value = 'submittingAnswer'
-  const durationSeconds = Math.round((Date.now() - recordingStartTime) / 1000)
+  const durationSeconds = isTextMode.value
+    ? 0
+    : Math.round((Date.now() - recordingStartTime) / 1000)
   const turnId = currentQuestion.value?.turnId || 0
 
   try {
@@ -507,6 +577,8 @@ async function submitAnswer() {
         currentQuestionNo.value = result.turn.questionNo
         finalText.value = ''
         partialText.value = ''
+        textAnswer.value = ''
+        inputMode.value = 'voice'
         await playQuestionAudio(result.turn)
       } else {
         state.value = 'readyToAnswer'
@@ -985,5 +1057,29 @@ function cleanupAudio() {
   .interview-room__right {
     width: 100%;
   }
+}
+
+.interview-room__transcript-content--editable {
+  padding: 0;
+}
+
+.interview-room__text-answer {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px;
+  border: none;
+  border-radius: var(--nb-radius);
+  background: transparent;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--nb-text);
+  resize: vertical;
+  outline: none;
+}
+
+.interview-room__text-answer::placeholder {
+  color: var(--nb-muted);
+  font-style: italic;
 }
 </style>
