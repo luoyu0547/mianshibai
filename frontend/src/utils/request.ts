@@ -5,7 +5,7 @@ import router from '@/router'
 
 const request = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? '',
-  timeout: 10000,
+  timeout: 180000,
 })
 
 // 请求拦截器：附加 Token

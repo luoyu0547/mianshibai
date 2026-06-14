@@ -11,7 +11,9 @@
 
     <div v-else class="ai-chat-panel__messages" ref="messagesContainer">
       <template v-for="(msg, index) in messages" :key="index">
-        <div :class="['ai-chat-panel__bubble', `ai-chat-panel__bubble--${msg.role}`]">
+        <div
+          v-show="!isLoading || msg.content || (msg.role as string) === 'user'"
+          :class="['ai-chat-panel__bubble', `ai-chat-panel__bubble--${msg.role}`]">
           <span v-if="msg.role === 'assistant'" class="ai-chat-panel__role">AI</span>
           <span class="ai-chat-panel__content" v-html="renderMarkdown(msg.content)"></span>
           <div v-if="msg.role === 'assistant' && visibleProposals(msg).length" class="ai-chat-panel__proposals">
@@ -233,7 +235,6 @@ async function handleSend() {
   font-size: 13px;
   line-height: 1.6;
   word-break: break-word;
-  white-space: pre-wrap;
   display: flex;
   align-items: flex-start;
   gap: 8px;
