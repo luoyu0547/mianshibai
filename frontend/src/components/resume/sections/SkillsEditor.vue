@@ -10,17 +10,15 @@
         />
         <el-button type="danger" text size="small" @click="removeCategory(index)">删除</el-button>
       </div>
-      <div class="tag-list">
-        <el-tag
-          v-for="(skill, skillIndex) in cat.items"
-          :key="skillIndex"
-          closable
-          class="skill-tag"
-          @close="removeSkill(index, skillIndex)"
-        >
-          {{ skill }}
-        </el-tag>
-      </div>
+      <ul class="skill-list" v-if="cat.items.length">
+        <li v-for="(skill, skillIndex) in cat.items" :key="skillIndex" class="skill-list__item">
+          <span class="skill-list__dot" />
+          <span>{{ skill }}</span>
+          <el-button type="danger" text size="small" @click="removeSkill(index, skillIndex)">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+          </el-button>
+        </li>
+      </ul>
       <div class="skill-category__add-row">
         <el-input
           v-model="skillInputValue[index]"
@@ -112,16 +110,36 @@ function handleSkillConfirm(catIndex: number) {
   max-width: 240px;
 }
 
-.tag-list {
+.skill-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 10px;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.skill-tag {
+.skill-list__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
   border: var(--nb-border);
-  box-shadow: var(--nb-shadow-xs);
+  border-radius: var(--nb-radius);
+  background: #fff;
+  font-size: 13px;
+}
+
+.skill-list__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--nb-primary);
+  flex-shrink: 0;
+}
+
+.skill-list__item .el-button {
+  margin-left: auto;
 }
 
 .skill-category__add-row {

@@ -113,6 +113,8 @@ public class ResumeAiServiceImpl implements ResumeAiService {
 
     private static final int MAX_CHAT_SECTION_VALUE_LENGTH = 1000;
 
+    private static final int MAX_AI_SECTION_VALUE_LENGTH = 2000;
+
     private static final Pattern INLINE_FILE_DATA_PATTERN =
             Pattern.compile("^data:[^;]+;base64,.*", Pattern.DOTALL);
 
@@ -227,9 +229,12 @@ public class ResumeAiServiceImpl implements ResumeAiService {
 
     @Override
     public AiScoreVO scoreResume(List<SectionVO> sections, String targetPosition) {
+        List<SectionVO> truncatedSections = sections.stream()
+                .map(this::toTruncatedSectionForAi)
+                .collect(Collectors.toList());
         String sectionsJson;
         try {
-            sectionsJson = objectMapper.writeValueAsString(sections);
+            sectionsJson = objectMapper.writeValueAsString(truncatedSections);
         } catch (JsonProcessingException e) {
             throw new BusinessException(ErrorCode.AI_RESPONSE_PARSE_ERROR);
         }
@@ -395,9 +400,12 @@ public class ResumeAiServiceImpl implements ResumeAiService {
                         .orderByAsc(ResumeSection::getSortOrder));
 
         List<SectionVO> currentSections = sections.stream().map(this::toSectionVO).collect(Collectors.toList());
+        List<SectionVO> truncatedSections = currentSections.stream()
+                .map(this::toTruncatedSectionForAi)
+                .collect(Collectors.toList());
         String targetPosition = request.getTargetPosition() != null ? request.getTargetPosition() : extractTargetPosition(currentSections);
 
-        AiScoreVO beforeScoreResult = scoreResume(currentSections, targetPosition);
+        AiScoreVO beforeScoreResult = scoreResume(truncatedSections, targetPosition);
         Integer beforeScore = beforeScoreResult.getScore();
 
         String jobContext = "";
@@ -424,7 +432,7 @@ public class ResumeAiServiceImpl implements ResumeAiService {
 
         String sectionsJson;
         try {
-            sectionsJson = objectMapper.writeValueAsString(currentSections);
+            sectionsJson = objectMapper.writeValueAsString(truncatedSections);
         } catch (JsonProcessingException e) {
             throw new BusinessException(ErrorCode.RESUME_OPTIMIZE_ERROR);
         }
@@ -644,13 +652,21 @@ public class ResumeAiServiceImpl implements ResumeAiService {
     }
 
     private Map<String, Object> sanitizeSectionData(Map<String, Object> sectionData) {
+        return sanitizeSectionData(sectionData, MAX_CHAT_SECTION_VALUE_LENGTH);
+    }
+
+    private Map<String, Object> sanitizeSectionDataForAi(Map<String, Object> sectionData) {
+        return sanitizeSectionData(sectionData, MAX_AI_SECTION_VALUE_LENGTH);
+    }
+
+    private Map<String, Object> sanitizeSectionData(Map<String, Object> sectionData, int maxLength) {
         if (sectionData == null) {
             return Map.of();
         }
 
         Map<String, Object> sanitized = new LinkedHashMap<>();
         sectionData.forEach((key, value) -> {
-            Object sanitizedValue = sanitizeSectionValue(value);
+            Object sanitizedValue = sanitizeSectionValue(value, maxLength);
             if (sanitizedValue != null) {
                 sanitized.put(key, sanitizedValue);
             }
@@ -659,18 +675,22 @@ public class ResumeAiServiceImpl implements ResumeAiService {
     }
 
     private Object sanitizeSectionValue(Object value) {
+        return sanitizeSectionValue(value, MAX_CHAT_SECTION_VALUE_LENGTH);
+    }
+
+    private Object sanitizeSectionValue(Object value, int maxLength) {
         if (value instanceof String text) {
             if (INLINE_FILE_DATA_PATTERN.matcher(text).matches()) {
                 return null;
             }
-            return text.length() > MAX_CHAT_SECTION_VALUE_LENGTH
-                    ? text.substring(0, MAX_CHAT_SECTION_VALUE_LENGTH) + "...(已截断)"
+            return text.length() > maxLength
+                    ? text.substring(0, maxLength) + "...(已截断)"
                     : text;
         }
         if (value instanceof Map<?, ?> map) {
             Map<String, Object> sanitized = new LinkedHashMap<>();
             map.forEach((key, itemValue) -> {
-                Object sanitizedValue = sanitizeSectionValue(itemValue);
+                Object sanitizedValue = sanitizeSectionValue(itemValue, maxLength);
                 if (sanitizedValue != null) {
                     sanitized.put(String.valueOf(key), sanitizedValue);
                 }
@@ -679,11 +699,19 @@ public class ResumeAiServiceImpl implements ResumeAiService {
         }
         if (value instanceof List<?> list) {
             return list.stream()
-                    .map(this::sanitizeSectionValue)
+                    .map(item -> sanitizeSectionValue(item, maxLength))
                     .filter(item -> item != null)
                     .collect(Collectors.toList());
         }
         return value;
+    }
+
+    private SectionVO toTruncatedSectionForAi(SectionVO section) {
+        SectionVO truncated = new SectionVO();
+        truncated.setSectionType(section.getSectionType());
+        truncated.setSectionData(sanitizeSectionDataForAi(section.getSectionData()));
+        truncated.setSortOrder(section.getSortOrder());
+        return truncated;
     }
 
     private ResumeDetailVO toResumeDetailVO(Resume resume, List<ResumeSection> sections) {
