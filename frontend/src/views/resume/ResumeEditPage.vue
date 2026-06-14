@@ -203,6 +203,7 @@
             <AiChatPanel
               v-if="aiPanelMode === 'chat'"
               :resume-id="resumeId"
+              :section-data-map="sectionDataMap"
               @extracted="handleExtracted"
               @proposal="handlePatchProposal"
             />
@@ -416,9 +417,11 @@ function splitSections(sections: SectionVO[]) {
     const type = section.sectionType
     if (!grouped[type]) grouped[type] = []
     grouped[type].push(section.sectionData)
-    const ids = sectionIds.value[type as SectionType] || []
-    if (!ids.includes(section.id)) {
-      sectionIds.value[type as SectionType] = [...ids, section.id]
+    if (section.id != null) {
+      const ids = sectionIds.value[type as SectionType] || []
+      if (!ids.includes(section.id)) {
+        sectionIds.value[type as SectionType] = [...ids, section.id]
+      }
     }
   }
 
