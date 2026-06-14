@@ -63,6 +63,10 @@
           </el-col>
         </el-row>
 
+        <el-form-item label="在校经历">
+          <FormattedTextarea :model-value="String(item.activities || '')" @update:model-value="val => { item.activities = val }" :rows="3" placeholder="例如：学生会、社团活动、竞赛获奖等" />
+        </el-form-item>
+
       </el-form>
     </NbCard>
     <NbButton variant="ghost" block class="add-btn" @click="addItem">+ 添加教育经历</NbButton>
@@ -72,6 +76,7 @@
 <script setup lang="ts">
 import NbCard from '@/components/NbCard.vue'
 import NbButton from '@/components/NbButton.vue'
+import FormattedTextarea from '@/components/resume/FormattedTextarea.vue'
 
 const props = defineProps<{
   items: Record<string, unknown>[]

@@ -23,6 +23,7 @@ export interface EducationSectionData {
   startDate: string
   endDate: string
   gpa: string
+  activities: string
   highlights: string[]
 }
 
