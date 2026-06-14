@@ -12,6 +12,7 @@ import com.mianshiba.ai.model.entity.JobCrawlRun;
 import com.mianshiba.ai.model.entity.JobCrawlTask;
 import com.mianshiba.ai.model.entity.User;
 import com.mianshiba.ai.model.vo.admin.jobcrawl.AdminJobCrawlTaskVO;
+import com.mianshiba.ai.service.JobBatchCrawlService;
 import com.mianshiba.ai.utils.JwtUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +43,8 @@ class AdminJobCrawlServiceImplTest {
     private JobCrawlRunMapper jobCrawlRunMapper;
     @Mock
     private JobCrawlItemMapper jobCrawlItemMapper;
+    @Mock
+    private JobBatchCrawlService jobBatchCrawlService;
 
     @InjectMocks
     private AdminJobCrawlServiceImpl adminJobCrawlService;
@@ -160,15 +163,16 @@ class AdminJobCrawlServiceImplTest {
         JobCrawlTask task = existingTask(1L, "enabled");
         when(jobCrawlTaskMapper.selectById(1L)).thenReturn(task);
 
-        ArgumentCaptor<JobCrawlRun> captor = ArgumentCaptor.forClass(JobCrawlRun.class);
+        JobCrawlRun mockRun = new JobCrawlRun();
+        mockRun.setId(100L);
+        mockRun.setTaskId(1L);
+        mockRun.setStatus("running");
+        mockRun.setStartedAt(LocalDateTime.now());
+        when(jobBatchCrawlService.runTask(1L)).thenReturn(mockRun);
 
         adminJobCrawlService.runTask("Bearer token", 1L);
 
-        verify(jobCrawlRunMapper).insert(captor.capture());
-        JobCrawlRun inserted = captor.getValue();
-        assertThat(inserted.getTaskId()).isEqualTo(1L);
-        assertThat(inserted.getStatus()).isEqualTo("running");
-        assertThat(inserted.getStartedAt()).isNotNull();
+        verify(jobBatchCrawlService).runTask(1L);
     }
 
     private void mockAdmin() {

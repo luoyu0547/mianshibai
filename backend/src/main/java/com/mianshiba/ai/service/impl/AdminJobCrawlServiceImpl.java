@@ -19,6 +19,7 @@ import com.mianshiba.ai.model.vo.admin.jobcrawl.AdminJobCrawlItemVO;
 import com.mianshiba.ai.model.vo.admin.jobcrawl.AdminJobCrawlRunVO;
 import com.mianshiba.ai.model.vo.admin.jobcrawl.AdminJobCrawlTaskVO;
 import com.mianshiba.ai.service.AdminJobCrawlService;
+import com.mianshiba.ai.service.JobBatchCrawlService;
 import com.mianshiba.ai.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -46,6 +47,7 @@ public class AdminJobCrawlServiceImpl implements AdminJobCrawlService {
     private final JobCrawlTaskMapper jobCrawlTaskMapper;
     private final JobCrawlRunMapper jobCrawlRunMapper;
     private final JobCrawlItemMapper jobCrawlItemMapper;
+    private final JobBatchCrawlService jobBatchCrawlService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -184,14 +186,9 @@ public class AdminJobCrawlServiceImpl implements AdminJobCrawlService {
     @Transactional(rollbackFor = Exception.class)
     public AdminJobCrawlRunVO runTask(String authorizationHeader, Long id) {
         resolveAdminId(authorizationHeader);
-        JobCrawlTask task = getExistingTask(id);
+        getExistingTask(id);
 
-        JobCrawlRun run = new JobCrawlRun();
-        run.setTaskId(task.getId());
-        run.setStatus(STATUS_RUNNING);
-        run.setStartedAt(LocalDateTime.now());
-        jobCrawlRunMapper.insert(run);
-
+        JobCrawlRun run = jobBatchCrawlService.runTask(id);
         return toRunVO(run);
     }
 
