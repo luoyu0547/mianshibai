@@ -59,7 +59,7 @@
           </div>
           <time v-if="item.startDate || item.endDate">{{ item.startDate }} ~ {{ item.endDate || '至今' }}</time>
         </div>
-        <p v-if="item.description" class="ats-entry__desc" v-html="renderMarkdown(String(item.description || ''))"></p>
+        <p v-if="item.description" class="ats-entry__desc" v-html="item.description"></p>
       </div>
     </section>
 
@@ -76,7 +76,7 @@
         <div v-if="(item.techStack as string[])?.length" class="ats-tech">
           技术栈：{{ (item.techStack as string[])?.join('、') }}
         </div>
-        <p v-if="item.description" class="ats-entry__desc" v-html="renderMarkdown(String(item.description || ''))"></p>
+        <p v-if="item.description" class="ats-entry__desc" v-html="item.description"></p>
       </div>
     </section>
 
@@ -93,13 +93,13 @@
           </div>
           <time v-if="item.startDate || item.endDate">{{ item.startDate }} ~ {{ item.endDate || '至今' }}</time>
         </div>
-        <p v-if="item.activities" class="ats-entry__desc" v-html="renderMarkdown(String(item.activities || ''))"></p>
+        <p v-if="item.activities" class="ats-entry__desc" v-html="item.activities"></p>
       </div>
     </section>
 
     <section v-if="summary?.content" class="ats-section">
       <h2>个人简介</h2>
-      <p class="ats-summary" v-html="renderMarkdown(String(summary?.content || ''))"></p>
+      <p class="ats-summary" v-html="summary?.content"></p>
     </section>
   </article>
 </template>
@@ -107,8 +107,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { SkillCategory } from '@/types/resume'
-import { renderMarkdown } from '@/utils/markdown'
-
 function hasContent(value: unknown): boolean {
   if (Array.isArray(value)) return value.length > 0
   return !!value

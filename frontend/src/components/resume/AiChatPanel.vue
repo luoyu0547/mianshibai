@@ -15,18 +15,20 @@
           v-show="!isLoading || msg.content || (msg.role as string) === 'user'"
           :class="['ai-chat-panel__bubble', `ai-chat-panel__bubble--${msg.role}`]">
           <span v-if="msg.role === 'assistant'" class="ai-chat-panel__role">AI</span>
-          <span class="ai-chat-panel__content" v-html="renderMarkdown(msg.content)"></span>
-          <div v-if="msg.role === 'assistant' && visibleProposals(msg).length" class="ai-chat-panel__proposals">
-            <div
-              v-for="item in visibleProposals(msg)"
-              :key="item.index"
-              class="ai-chat-panel__proposal"
-            >
-              <span>AI 建议修改{{ sectionLabel(item.proposal.sectionType) }}</span>
-              <small>{{ item.proposal.reason || '等待确认后应用' }}</small>
-              <div class="ai-chat-panel__proposal-actions">
-                <NbButton variant="primary" size="small" @click="emit('proposal', item.proposal)">查看对比</NbButton>
-                <NbButton variant="ghost" size="small" @click="ignoreProposal(msg, item.index)">忽略</NbButton>
+          <div class="ai-chat-panel__message-body">
+            <span class="ai-chat-panel__content" v-html="renderMarkdown(msg.content)"></span>
+            <div v-if="msg.role === 'assistant' && visibleProposals(msg).length" class="ai-chat-panel__proposals">
+              <div
+                v-for="item in visibleProposals(msg)"
+                :key="item.index"
+                class="ai-chat-panel__proposal"
+              >
+                <span>AI 建议修改{{ sectionLabel(item.proposal.sectionType) }}</span>
+                <small>{{ item.proposal.reason || '等待确认后应用' }}</small>
+                <div class="ai-chat-panel__proposal-actions">
+                  <NbButton variant="primary" size="small" @click="emit('proposal', item.proposal)">查看对比</NbButton>
+                  <NbButton variant="ghost" size="small" @click="ignoreProposal(msg, item.index)">忽略</NbButton>
+                </div>
               </div>
             </div>
           </div>
@@ -278,8 +280,17 @@ async function handleSend() {
 }
 
 .ai-chat-panel__content {
+  display: block;
   flex: 1;
   min-width: 0;
+}
+
+.ai-chat-panel__message-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .ai-chat-panel__typing {
@@ -325,7 +336,6 @@ async function handleSend() {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 10px;
   width: 100%;
 }
 

@@ -78,7 +78,7 @@
             </div>
             <span class="ms-entry-date">{{ item.startDate }} — {{ item.endDate || '至今' }}</span>
           </div>
-          <p v-if="item.description" class="ms-desc" v-html="renderMarkdown(String(item.description || ''))"></p>
+          <p v-if="item.description" class="ms-desc" v-html="item.description"></p>
           <div v-if="(item.techStack as string[])?.length" class="ms-stack">
             {{ (item.techStack as string[])?.join(' / ') }}
           </div>
@@ -95,13 +95,13 @@
             </div>
             <span class="ms-entry-date">{{ item.startDate }} — {{ item.endDate || '至今' }}</span>
           </div>
-          <p v-if="item.description" class="ms-desc" v-html="renderMarkdown(String(item.description || ''))"></p>
+          <p v-if="item.description" class="ms-desc" v-html="item.description"></p>
         </div>
       </div>
 
       <div v-if="summary?.content" class="ms-block">
         <h2 class="ms-block-title">自我评价</h2>
-        <p class="ms-desc" v-html="renderMarkdown(String(summary?.content || ''))"></p>
+        <p class="ms-desc" v-html="summary?.content"></p>
       </div>
     </div>
   </div>
@@ -110,8 +110,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { SkillCategory } from '@/types/resume'
-import { renderMarkdown } from '@/utils/markdown'
-
 function hasContent(value: unknown): boolean {
   if (Array.isArray(value)) return value.length > 0
   return !!value

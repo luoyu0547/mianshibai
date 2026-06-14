@@ -81,7 +81,7 @@
           </div>
           <span class="ec-date">{{ item.startDate }} — {{ item.endDate || '至今' }}</span>
         </div>
-        <p v-if="item.description" class="ec-desc" v-html="renderMarkdown(String(item.description || ''))"></p>
+        <p v-if="item.description" class="ec-desc" v-html="item.description"></p>
         <p v-if="(item.techStack as string[])?.length" class="ec-stack">技术栈：{{ (item.techStack as string[])?.join('、') }}</p>
       </div>
     </div>
@@ -97,7 +97,7 @@
           </div>
           <span class="ec-date">{{ item.startDate }} — {{ item.endDate || '至今' }}</span>
         </div>
-        <p v-if="item.description" class="ec-desc" v-html="renderMarkdown(String(item.description || ''))"></p>
+        <p v-if="item.description" class="ec-desc" v-html="item.description"></p>
       </div>
     </div>
 
@@ -113,7 +113,7 @@
     <!-- 自我评价 -->
     <div v-if="summary?.content" class="ec-block">
       <h2 class="ec-block-title">自我评价</h2>
-      <p class="ec-desc ec-summary" v-html="renderMarkdown(String(summary?.content || ''))"></p>
+      <p class="ec-desc ec-summary" v-html="summary?.content"></p>
     </div>
   </div>
 </template>
@@ -121,8 +121,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { SkillCategory } from '@/types/resume'
-import { renderMarkdown } from '@/utils/markdown'
-
 function hasContent(value: unknown): boolean {
   if (Array.isArray(value)) return value.length > 0
   return !!value
