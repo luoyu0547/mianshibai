@@ -490,8 +490,10 @@ async function handleSave() {
     for (const [type, { ids, data }] of Object.entries(sectionMap)) {
       if (ids.length > 0) {
         for (let i = 0; i < ids.length; i++) {
+          const id = ids[i]
+          if (id == null) continue
           const sectionData = i < data.length ? data[i] : data[0]
-          await updateSectionApi(resumeId.value, ids[i]!, { sectionData })
+          await updateSectionApi(resumeId.value, id, { sectionData })
         }
       } else {
         const sectionData = data[0]
