@@ -6,7 +6,6 @@ import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.util.Map;
 
 /**
  * AI 优化模块请求
@@ -23,7 +22,7 @@ public class AiOptimizeRequest implements Serializable {
     private String sectionType;
 
     @NotNull(message = "模块数据不能为空")
-    private Map<String, Object> sectionData;
+    private Object sectionData;
 
     private Long jobId;
 }

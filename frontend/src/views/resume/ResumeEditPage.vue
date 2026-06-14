@@ -245,6 +245,7 @@ import { useResumeStore } from '@/stores/resume'
 import {
   addSection as addSectionApi,
   updateSection as updateSectionApi,
+  saveVersion,
 } from '@/api/resume'
 import type { SectionVO, SectionType, ResumePatchProposal } from '@/types/resume'
 
@@ -309,7 +310,7 @@ const pendingPatchProposal = ref<ResumePatchProposal | null>(null)
 
 const optimizeVisible = ref(false)
 const optimizeSectionType = ref<SectionType>('basic')
-const optimizeSectionData = ref<Record<string, unknown>>({})
+const optimizeSectionData = ref<Record<string, unknown> | Record<string, unknown>[]>({})
 const optimizeSectionLabel = ref('')
 
 const sectionLabelMap: Record<SectionType, string> = {
@@ -330,11 +331,11 @@ const moduleSections: { type: SectionType; label: string; short: string }[] = [
   { type: 'summary', label: '个人简介', short: '简' },
 ]
 
-const sectionDataMap = computed(() => ({
+const sectionDataMap = computed<Record<string, Record<string, unknown> | Record<string, unknown>[]>>(() => ({
   basic: basicData.value,
-  education: educationItems.value as unknown as Record<string, unknown>,
-  work: workItems.value as unknown as Record<string, unknown>,
-  project: projectItems.value as unknown as Record<string, unknown>,
+  education: educationItems.value,
+  work: workItems.value,
+  project: projectItems.value,
   skills: skillsData.value,
   summary: summaryData.value,
 }))
@@ -342,35 +343,35 @@ const sectionDataMap = computed(() => ({
 const pendingPatchCurrentData = computed<Record<string, unknown> | Record<string, unknown>[]>(() => {
   const type = pendingPatchProposal.value?.sectionType
   if (!type) return {}
-  return sectionDataMap.value[type]
+  return sectionDataMap.value[type] ?? {}
 })
 
 function openOptimize(type: SectionType) {
   optimizeSectionType.value = type
   optimizeSectionLabel.value = sectionLabelMap[type]
-  optimizeSectionData.value = sectionDataMap.value[type]
+  optimizeSectionData.value = sectionDataMap.value[type] ?? {}
   optimizeVisible.value = true
 }
 
-function handleOptimizeApplied(type: SectionType, data: Record<string, unknown>) {
+function handleOptimizeApplied(type: SectionType, data: Record<string, unknown> | Record<string, unknown>[]) {
   switch (type) {
     case 'basic':
-      basicData.value = data
+      basicData.value = data as Record<string, unknown>
       break
     case 'education':
-      educationItems.value = Array.isArray(data) ? data : [data]
+      educationItems.value = Array.isArray(data) ? data as Record<string, unknown>[] : [data as Record<string, unknown>]
       break
     case 'work':
-      workItems.value = Array.isArray(data) ? data : [data]
+      workItems.value = Array.isArray(data) ? data as Record<string, unknown>[] : [data as Record<string, unknown>]
       break
     case 'project':
-      projectItems.value = Array.isArray(data) ? data : [data]
+      projectItems.value = Array.isArray(data) ? data as Record<string, unknown>[] : [data as Record<string, unknown>]
       break
     case 'skills':
-      skillsData.value = data
+      skillsData.value = data as Record<string, unknown>
       break
     case 'summary':
-      summaryData.value = data
+      summaryData.value = data as Record<string, unknown>
       break
   }
 }
@@ -501,6 +502,11 @@ async function handleSave() {
     }
 
     ElMessage.success('保存成功')
+    try {
+      await saveVersion(resumeId.value)
+    } catch {
+      // 版本保存失败不影响主流程
+    }
     await resumeStore.fetchResumeDetail(resumeId.value)
     if (resumeStore.currentResume) {
       splitSections(resumeStore.currentResume.sections)

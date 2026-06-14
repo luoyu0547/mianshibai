@@ -20,7 +20,7 @@ public interface ResumeAiService {
 
     ResumeDetailVO generateResume(String authorizationHeader, AiGenerateRequest request);
 
-    Map<String, Object> optimizeSection(AiOptimizeRequest request, String targetPosition);
+    Object optimizeSection(AiOptimizeRequest request, String targetPosition);
 
     AiScoreVO scoreResume(List<SectionVO> sections, String targetPosition);
 

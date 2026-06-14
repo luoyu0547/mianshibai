@@ -135,7 +135,7 @@ export interface AiGenerateRequest {
 export interface AiOptimizeRequest {
   sectionId: number
   sectionType: SectionType
-  sectionData: Record<string, unknown>
+  sectionData: Record<string, unknown> | Record<string, unknown>[]
 }
 
 export interface AiScoreDimensions {

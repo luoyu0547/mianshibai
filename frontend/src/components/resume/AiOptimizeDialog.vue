@@ -93,18 +93,18 @@ const props = defineProps<{
   visible: boolean
   resumeId: number
   sectionType: SectionType
-  sectionData: Record<string, unknown>
+  sectionData: Record<string, unknown> | Record<string, unknown>[]
   sectionLabel: string
 }>()
 
 const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void
-  (e: 'applied', sectionType: SectionType, data: Record<string, unknown>): void
+  (e: 'applied', sectionType: SectionType, data: Record<string, unknown> | Record<string, unknown>[]): void
 }>()
 
 const loading = ref(false)
 const error = ref('')
-const optimizedData = ref<Record<string, unknown>>({})
+const optimizedData = ref<Record<string, unknown> | Record<string, unknown>[]>({})
 const showJson = ref(false)
 
 const FIELD_LABELS: Record<string, string> = {
@@ -233,8 +233,8 @@ async function doOptimize() {
       sectionType: props.sectionType,
       sectionData: props.sectionData,
     })
-    if (res.code === 0) {
-      optimizedData.value = res.data?.sectionData as Record<string, unknown> ?? {}
+    if (res.code === 0 && res.data) {
+      optimizedData.value = res.data
     } else {
       error.value = '优化失败，请重试'
     }

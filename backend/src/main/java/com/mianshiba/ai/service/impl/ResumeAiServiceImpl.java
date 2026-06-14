@@ -182,7 +182,7 @@ public class ResumeAiServiceImpl implements ResumeAiService {
     }
 
     @Override
-    public Map<String, Object> optimizeSection(AiOptimizeRequest request, String targetPosition) {
+    public Object optimizeSection(AiOptimizeRequest request, String targetPosition) {
         String sectionDataJson;
         try {
             sectionDataJson = objectMapper.writeValueAsString(request.getSectionData());
@@ -219,7 +219,7 @@ public class ResumeAiServiceImpl implements ResumeAiService {
 
         String json = extractJsonFromResponse(aiResponse);
         try {
-            return objectMapper.readValue(json, new TypeReference<Map<String, Object>>() {});
+            return objectMapper.readValue(json, Object.class);
         } catch (JsonProcessingException e) {
             log.error("AI 优化模块响应解析失败，提取后 JSON: {}，原始响应: {}", json, aiResponse, e);
             throw new BusinessException(ErrorCode.AI_RESPONSE_PARSE_ERROR,

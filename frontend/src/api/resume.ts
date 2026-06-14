@@ -62,7 +62,7 @@ export function aiGenerateResume(data: AiGenerateRequest) {
 }
 
 export function aiOptimizeSection(resumeId: number, data: AiOptimizeRequest) {
-  return request.post<BaseResponse<SectionVO>>(`/api/resume/${resumeId}/ai/optimize-section`, data)
+  return request.post<BaseResponse<Record<string, unknown> | Record<string, unknown>[]>>(`/api/resume/${resumeId}/ai/optimize-section`, data)
 }
 
 export function aiScoreResume(resumeId: number) {
@@ -71,6 +71,10 @@ export function aiScoreResume(resumeId: number) {
 
 export function getResumeVersions(id: number) {
   return request.get<BaseResponse<VersionVO[]>>(`/api/resume/${id}/versions`)
+}
+
+export function saveVersion(id: number, changeSummary?: string) {
+  return request.post<BaseResponse<VersionVO>>(`/api/resume/${id}/versions`, { changeSummary })
 }
 
 export function getChatHistory(resumeId: number) {

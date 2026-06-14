@@ -63,7 +63,7 @@ public class ResumeAiController {
 
     @PostMapping("/{resumeId}/ai/optimize-section")
     @Operation(summary = "AI 优化模块")
-    public BaseResponse<Map<String, Object>> optimizeSection(
+    public BaseResponse<Object> optimizeSection(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
             @PathVariable("resumeId") Long resumeId,
             @Valid @RequestBody AiOptimizeRequest request) {
