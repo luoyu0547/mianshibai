@@ -303,6 +303,7 @@ const previewA4Style = computed(() => ({
   '--nb-spacing-mult': spacingScale[previewSpacing.value] ?? 1,
 }))
 
+// unused — kept for reference, will clean up with ResumePatchConfirmDialog
 const patchConfirmVisible = ref(false)
 const pendingPatchProposal = ref<ResumePatchProposal | null>(null)
 
@@ -457,8 +458,7 @@ function handlePatchProposal(proposal: ResumePatchProposal) {
     ElMessage.warning('暂不支持该 AI 修改类型')
     return
   }
-  pendingPatchProposal.value = proposal
-  patchConfirmVisible.value = true
+  handlePatchProposalApplied(proposal)
 }
 
 function handlePatchProposalApplied(proposal: ResumePatchProposal) {
