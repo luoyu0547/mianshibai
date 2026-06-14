@@ -390,7 +390,27 @@ function handleOptimizeApplied(type: SectionType, data: Record<string, unknown> 
 }
 
 function handleWholeOptimizeApplied(sections: SectionVO[]) {
-  splitSections(sections)
+  const grouped: Record<string, Record<string, unknown>[]> = {}
+  for (const section of sections) {
+    const type = section.sectionType
+    if (!grouped[type]) grouped[type] = []
+    grouped[type].push(section.sectionData)
+  }
+  if (grouped.basic?.[0]) basicData.value = { ...basicData.value, ...grouped.basic[0] }
+  if (grouped.education) {
+    const opt = grouped.education
+    educationItems.value = educationItems.value.map((orig, i) => ({ ...orig, ...(opt[i] ?? {}) }))
+  }
+  if (grouped.work) {
+    const opt = grouped.work
+    workItems.value = workItems.value.map((orig, i) => ({ ...orig, ...(opt[i] ?? {}) }))
+  }
+  if (grouped.project) {
+    const opt = grouped.project
+    projectItems.value = projectItems.value.map((orig, i) => ({ ...orig, ...(opt[i] ?? {}) }))
+  }
+  if (grouped.skills?.[0]) skillsData.value = { ...skillsData.value, ...grouped.skills[0] }
+  if (grouped.summary?.[0]) summaryData.value = { ...summaryData.value, ...grouped.summary[0] }
   ElMessage.success('已应用整份简历优化结果，请记得保存')
 }
 
