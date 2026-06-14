@@ -146,6 +146,7 @@
               <AiChatPanel
                 :resume-id="resumeId"
                 @extracted="handleExtracted"
+              @proposal="handlePatchProposal"
               />
             </el-tab-pane>
             <el-tab-pane label="AI 评分" name="score">
@@ -169,6 +170,13 @@
         :resume-id="resumeId"
         @apply="handleWholeOptimizeApplied"
       />
+
+      <ResumePatchConfirmDialog
+        v-model:visible="patchConfirmVisible"
+        :proposal="pendingPatchProposal"
+        :current-data="pendingPatchCurrentData"
+        @apply="handlePatchProposalApplied"
+      />
     </div>
   </div>
 </template>
@@ -190,6 +198,7 @@ import AiChatPanel from '@/components/resume/AiChatPanel.vue'
 import AiScorePanel from '@/components/resume/AiScorePanel.vue'
 import VersionHistory from '@/components/resume/VersionHistory.vue'
 import TemplateSelector from '@/components/resume/TemplateSelector.vue'
+import ResumePatchConfirmDialog from '@/components/resume/ResumePatchConfirmDialog.vue'
 import MinimalTech from '@/templates/MinimalTech.vue'
 import ModernTwoCol from '@/templates/ModernTwoCol.vue'
 import ClassicFormal from '@/templates/ClassicFormal.vue'
@@ -201,7 +210,7 @@ import {
   addSection as addSectionApi,
   updateSection as updateSectionApi,
 } from '@/api/resume'
-import type { SectionVO, SectionType } from '@/types/resume'
+import type { SectionVO, SectionType, ResumePatchProposal } from '@/types/resume'
 
 const route = useRoute()
 const router = useRouter()
@@ -231,6 +240,9 @@ const sectionIds = ref<Record<SectionType, number[]>>({
 
 const activeTab = ref('chat')
 const wholeOptimizeRef = ref<InstanceType<typeof WholeResumeOptimizeDialog> | null>(null)
+
+const patchConfirmVisible = ref(false)
+const pendingPatchProposal = ref<ResumePatchProposal | null>(null)
 
 const optimizeVisible = ref(false)
 const optimizeSectionType = ref<SectionType>('basic')
@@ -263,6 +275,12 @@ const sectionDataMap = computed(() => ({
   skills: skillsData.value,
   summary: summaryData.value,
 }))
+
+const pendingPatchCurrentData = computed<Record<string, unknown> | Record<string, unknown>[]>(() => {
+  const type = pendingPatchProposal.value?.sectionType
+  if (!type) return {}
+  return sectionDataMap.value[type]
+})
 
 function openOptimize(type: SectionType) {
   optimizeSectionType.value = type
@@ -370,6 +388,20 @@ function handleExtracted(sectionType: SectionType, sectionData: Record<string, u
       break
   }
   ElMessage.success(`已更新${sectionType}内容`)
+}
+
+function handlePatchProposal(proposal: ResumePatchProposal) {
+  if (proposal.operation !== 'replace_section') {
+    ElMessage.warning('暂不支持该 AI 修改类型')
+    return
+  }
+  pendingPatchProposal.value = proposal
+  patchConfirmVisible.value = true
+}
+
+function handlePatchProposalApplied(proposal: ResumePatchProposal) {
+  handleOptimizeApplied(proposal.sectionType, proposal.sectionData)
+  ElMessage.success('已应用 AI 修改结果，请检查后保存')
 }
 
 async function handleSave() {

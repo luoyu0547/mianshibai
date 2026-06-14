@@ -14,6 +14,20 @@
         <div :class="['ai-chat-panel__bubble', `ai-chat-panel__bubble--${msg.role}`]">
           <span v-if="msg.role === 'assistant'" class="ai-chat-panel__role">AI</span>
           <span class="ai-chat-panel__content">{{ msg.content }}</span>
+          <div v-if="msg.role === 'assistant' && visibleProposals(msg).length" class="ai-chat-panel__proposals">
+            <div
+              v-for="item in visibleProposals(msg)"
+              :key="item.index"
+              class="ai-chat-panel__proposal"
+            >
+              <span>AI 建议修改{{ sectionLabel(item.proposal.sectionType) }}</span>
+              <small>{{ item.proposal.reason || '等待确认后应用' }}</small>
+              <div class="ai-chat-panel__proposal-actions">
+                <NbButton variant="primary" size="small" @click="emit('proposal', item.proposal)">查看对比</NbButton>
+                <NbButton variant="ghost" size="small" @click="ignoreProposal(msg, item.index)">忽略</NbButton>
+              </div>
+            </div>
+          </div>
         </div>
       </template>
       <div v-if="isLoading" class="ai-chat-panel__bubble ai-chat-panel__bubble--assistant ai-chat-panel__typing">
@@ -38,14 +52,17 @@
 
 <script setup lang="ts">
 import { ref, nextTick, onMounted } from 'vue'
-import type { SectionType, ChatMessageVO } from '@/types/resume'
+import type { SectionType, ChatMessageVO, ResumePatchProposal } from '@/types/resume'
 import { getChatHistory } from '@/api/resume'
+import { createSseParser } from '@/utils/sse'
 import NbButton from '@/components/NbButton.vue'
 import NbEmptyState from '@/components/NbEmptyState.vue'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
+  proposals?: ResumePatchProposal[]
+  ignoredProposalIndexes?: number[]
 }
 
 const props = defineProps<{
@@ -54,12 +71,37 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   extracted: [sectionType: SectionType, sectionData: Record<string, unknown>]
+  proposal: [proposal: ResumePatchProposal]
 }>()
 
 const messages = ref<ChatMessage[]>([])
 const inputText = ref('')
 const isLoading = ref(false)
 const messagesContainer = ref<HTMLDivElement>()
+
+const sectionLabelMap: Record<SectionType, string> = {
+  basic: '基本信息',
+  education: '教育经历',
+  work: '工作经历',
+  project: '项目经历',
+  skills: '技能标签',
+  summary: '自我评价',
+}
+
+function sectionLabel(type: SectionType) {
+  return sectionLabelMap[type] || type
+}
+
+function visibleProposals(msg: ChatMessage) {
+  const ignored = new Set(msg.ignoredProposalIndexes || [])
+  return (msg.proposals || [])
+    .map((proposal, index) => ({ proposal, index }))
+    .filter((item) => !ignored.has(item.index))
+}
+
+function ignoreProposal(msg: ChatMessage, index: number) {
+  msg.ignoredProposalIndexes = [...(msg.ignoredProposalIndexes || []), index]
+}
 
 function scrollToBottom() {
   nextTick(() => {
@@ -117,47 +159,32 @@ async function handleSend() {
 
     const reader = (response.body as ReadableStream<Uint8Array>).getReader()
     const decoder = new TextDecoder()
-    let buffer = ''
+
+    const parser = createSseParser((event) => {
+      if (event.event === 'resume_patch_proposal') {
+        try {
+          const proposal = JSON.parse(event.data) as ResumePatchProposal
+          if (proposal.operation === 'replace_section' && proposal.sectionType && proposal.sectionData) {
+            assistantMsg.proposals = [...(assistantMsg.proposals || []), proposal]
+          }
+        } catch {
+          // ignore unparseable proposal events
+        }
+        return
+      }
+
+      if (event.data && event.data !== '[DONE]') {
+        assistantMsg.content += event.data
+      }
+      scrollToBottom()
+    })
 
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
-
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n')
-      buffer = lines.pop() || ''
-
-      for (const line of lines) {
-        const trimmed = line.trim()
-        if (!trimmed.startsWith('data:')) continue
-        const data = trimmed.slice(5).trim()
-        if (data === '[DONE]') continue
-
-        try {
-          const parsed = JSON.parse(data)
-          if (parsed.content) {
-            assistantMsg.content += parsed.content
-          }
-
-          const extractedMatch = assistantMsg.content.match(
-            /\[EXTRACTED_DATA\]([\s\S]*?)\[\/EXTRACTED_DATA\]/,
-          )
-          if (extractedMatch && extractedMatch[1]) {
-            const extracted = JSON.parse(extractedMatch[1])
-            if (extracted.sectionType && extracted.sectionData) {
-              emit('extracted', extracted.sectionType, extracted.sectionData)
-            }
-            assistantMsg.content = assistantMsg.content.replace(
-              /\[EXTRACTED_DATA\][\s\S]*?\[\/EXTRACTED_DATA\]/,
-              '',
-            )
-          }
-        } catch {
-          assistantMsg.content += data
-        }
-        scrollToBottom()
-      }
+      parser.push(decoder.decode(value, { stream: true }))
     }
+    parser.flush()
   } catch {
     assistantMsg.content = assistantMsg.content || '请求失败，请稍后重试'
   } finally {
@@ -283,5 +310,32 @@ async function handleSend() {
   padding: 12px 16px;
   border-top: var(--nb-border);
   background: var(--nb-surface);
+}
+
+.ai-chat-panel__proposals {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  width: 100%;
+}
+
+.ai-chat-panel__proposal {
+  padding: 10px;
+  border: var(--nb-border);
+  border-radius: var(--nb-radius);
+  background: var(--nb-primary-light);
+}
+
+.ai-chat-panel__proposal small {
+  display: block;
+  margin-top: 4px;
+  color: var(--nb-muted);
+}
+
+.ai-chat-panel__proposal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
 }
 </style>

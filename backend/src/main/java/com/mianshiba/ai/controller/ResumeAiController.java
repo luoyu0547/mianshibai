@@ -1,7 +1,11 @@
 package com.mianshiba.ai.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mianshiba.ai.common.BaseResponse;
 import com.mianshiba.ai.common.ResultUtils;
+import com.mianshiba.ai.exception.BusinessException;
+import com.mianshiba.ai.exception.ErrorCode;
 import com.mianshiba.ai.model.dto.resume.AiGenerateRequest;
 import com.mianshiba.ai.model.dto.resume.AiOptimizeRequest;
 import com.mianshiba.ai.model.dto.resume.ChatRequest;
@@ -9,6 +13,7 @@ import com.mianshiba.ai.model.dto.resume.ResumeImportRequest;
 import com.mianshiba.ai.model.dto.resume.ResumeWholeOptimizeRequest;
 import com.mianshiba.ai.model.vo.resume.AiScoreVO;
 import com.mianshiba.ai.model.vo.resume.ChatMessageVO;
+import com.mianshiba.ai.model.vo.resume.ResumeChatStreamEventVO;
 import com.mianshiba.ai.model.vo.resume.ResumeDetailVO;
 import com.mianshiba.ai.model.vo.resume.ResumeImportPreviewVO;
 import com.mianshiba.ai.model.vo.resume.ResumeWholeOptimizeVO;
@@ -46,6 +51,7 @@ public class ResumeAiController {
     private final ResumeAiService resumeAiService;
     private final ResumeService resumeService;
     private final ExecutorService sseExecutor = Executors.newCachedThreadPool();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @PostMapping("/ai/generate")
     @Operation(summary = "AI 生成简历")
@@ -84,17 +90,20 @@ public class ResumeAiController {
             @Valid @RequestBody ChatRequest chatRequest) {
         SseEmitter emitter = new SseEmitter(60000L);
         sseExecutor.execute(() -> {
-            Flux<String> stream = resumeAiService.chatStream(authorizationHeader, resumeId, chatRequest.getMessage());
-            stream.doOnNext(text -> {
-                        try {
-                            emitter.send(SseEmitter.event().data(text));
-                        } catch (IOException e) {
-                            emitter.completeWithError(e);
-                        }
-                    })
-                    .doOnComplete(emitter::complete)
-                    .doOnError(emitter::completeWithError)
-                    .subscribe();
+            Flux<ResumeChatStreamEventVO> stream = resumeAiService.chatStream(authorizationHeader, resumeId, chatRequest.getMessage());
+            stream.subscribe(event -> {
+                try {
+                    if (ResumeChatStreamEventVO.EVENT_PROPOSAL.equals(event.getEvent())) {
+                        emitter.send(SseEmitter.event()
+                                .name(ResumeChatStreamEventVO.EVENT_PROPOSAL)
+                                .data(toJson(event.getProposal())));
+                    } else {
+                        emitter.send(SseEmitter.event().data(event.getContent()));
+                    }
+                } catch (IOException e) {
+                    emitter.completeWithError(e);
+                }
+            }, emitter::completeWithError, emitter::complete);
         });
         return emitter;
     }
@@ -134,5 +143,13 @@ public class ResumeAiController {
                 .filter(data -> data != null && data.containsKey("targetPosition"))
                 .map(data -> data.get("targetPosition").toString())
                 .orElse(null);
+    }
+
+    private String toJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException e) {
+            throw new BusinessException(ErrorCode.AI_RESPONSE_PARSE_ERROR, "SSE 数据序列化失败");
+        }
     }
 }

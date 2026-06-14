@@ -24,20 +24,26 @@ import com.mianshiba.ai.model.entity.Job;
 import com.mianshiba.ai.model.entity.JobAnalysis;
 import com.mianshiba.ai.model.vo.resume.AiScoreVO;
 import com.mianshiba.ai.model.vo.resume.ChatMessageVO;
+import com.mianshiba.ai.model.vo.resume.ResumeChatStreamEventVO;
 import com.mianshiba.ai.model.vo.resume.ResumeDetailVO;
 import com.mianshiba.ai.model.vo.resume.ResumeImportPreviewVO;
+import com.mianshiba.ai.model.vo.resume.ResumePatchProposalVO;
 import com.mianshiba.ai.model.vo.resume.ResumeWholeOptimizeVO;
 import com.mianshiba.ai.model.vo.resume.SectionVO;
 import com.mianshiba.ai.service.ResumeAiService;
+import com.mianshiba.ai.service.tool.ResumePatchTools;
 import com.mianshiba.ai.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -48,8 +54,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ResumeAiServiceImpl implements ResumeAiService {
-
-    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String GENERATE_SYSTEM_PROMPT =
             "你是一位专业的简历撰写助手。请根据以下信息生成一份简历：\n" +
@@ -82,7 +86,9 @@ public class ResumeAiServiceImpl implements ResumeAiService {
 
     private static final String CHAT_SYSTEM_PROMPT =
             "你是一位专业的简历顾问助手。用户正在编辑简历，以下是当前简历的模块内容摘要：\n%s\n\n" +
-            "请根据用户的问题提供建议。回答要简洁专业。";
+            "请根据用户的问题提供建议。回答要简洁专业。\n" +
+            "如果用户明确要求你修改、补充、润色、重写或填写简历内容，请调用 proposeResumePatch 工具生成待确认的修改提案。\n" +
+            "工具只用于提出修改，不会保存简历；用户确认前不要声称已经修改完成。";
 
     private static final String IMPORT_PARSE_PROMPT =
             "你是一位专业的简历解析助手。请将以下简历文本解析为结构化的 JSON 格式。\n\n" +
@@ -105,6 +111,11 @@ public class ResumeAiServiceImpl implements ResumeAiService {
     private static final Pattern JSON_CODE_BLOCK_PATTERN =
             Pattern.compile("```(?:json)?\\s*\\n?(.*?)\\n?```", Pattern.DOTALL);
 
+    private static final int MAX_CHAT_SECTION_VALUE_LENGTH = 1000;
+
+    private static final Pattern INLINE_FILE_DATA_PATTERN =
+            Pattern.compile("^data:[^;]+;base64,.*", Pattern.DOTALL);
+
     private final ChatClient chatClient;
     private final ResumeMapper resumeMapper;
     private final ResumeSectionMapper resumeSectionMapper;
@@ -113,6 +124,7 @@ public class ResumeAiServiceImpl implements ResumeAiService {
     private final JobMapper jobMapper;
     private final JobAnalysisMapper jobAnalysisMapper;
     private final ResumeChatMessageMapper chatMessageMapper;
+    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -126,14 +138,16 @@ public class ResumeAiServiceImpl implements ResumeAiService {
         String userMessage = String.format("请为「%s」岗位生成一份简历。", request.getTargetPosition());
 
         String aiResponse = callAi(systemPrompt, userMessage);
+        log.debug("AI 生成简历响应: {}", StringUtils.abbreviate(aiResponse, 1000));
 
         String json = extractJsonFromResponse(aiResponse);
         List<Map<String, Object>> sectionItems;
         try {
             sectionItems = objectMapper.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
         } catch (JsonProcessingException e) {
-            log.error("AI 生成简历响应解析失败: {}", aiResponse, e);
-            throw new BusinessException(ErrorCode.AI_RESPONSE_PARSE_ERROR);
+            log.error("AI 生成简历响应解析失败，提取后 JSON: {}，原始响应: {}", json, aiResponse, e);
+            throw new BusinessException(ErrorCode.AI_RESPONSE_PARSE_ERROR,
+                    "AI 生成简历响应解析失败，请稍后重试。原始响应片段: " + StringUtils.abbreviate(aiResponse, 500));
         }
 
         Resume resume = new Resume();
@@ -199,13 +213,15 @@ public class ResumeAiServiceImpl implements ResumeAiService {
         }
 
         String aiResponse = callAi(systemPrompt, sectionDataJson);
+        log.debug("AI 优化模块响应: {}", StringUtils.abbreviate(aiResponse, 1000));
 
         String json = extractJsonFromResponse(aiResponse);
         try {
             return objectMapper.readValue(json, new TypeReference<Map<String, Object>>() {});
         } catch (JsonProcessingException e) {
-            log.error("AI 优化模块响应解析失败: {}", aiResponse, e);
-            throw new BusinessException(ErrorCode.AI_RESPONSE_PARSE_ERROR);
+            log.error("AI 优化模块响应解析失败，提取后 JSON: {}，原始响应: {}", json, aiResponse, e);
+            throw new BusinessException(ErrorCode.AI_RESPONSE_PARSE_ERROR,
+                    "AI 优化模块响应解析失败，请稍后重试。原始响应片段: " + StringUtils.abbreviate(aiResponse, 500));
         }
     }
 
@@ -222,18 +238,20 @@ public class ResumeAiServiceImpl implements ResumeAiService {
                 targetPosition != null ? targetPosition : "未知岗位");
 
         String aiResponse = callAi(systemPrompt, sectionsJson);
+        log.debug("AI 评分响应: {}", StringUtils.abbreviate(aiResponse, 1000));
 
         String json = extractJsonFromResponse(aiResponse);
         try {
             return objectMapper.readValue(json, AiScoreVO.class);
         } catch (JsonProcessingException e) {
-            log.error("AI 评分响应解析失败: {}", aiResponse, e);
-            throw new BusinessException(ErrorCode.AI_RESPONSE_PARSE_ERROR);
+            log.error("AI 评分响应解析失败，提取后 JSON: {}，原始响应: {}", json, aiResponse, e);
+            throw new BusinessException(ErrorCode.AI_RESPONSE_PARSE_ERROR,
+                    "AI 评分响应解析失败，请稍后重试。原始响应片段: " + StringUtils.abbreviate(aiResponse, 500));
         }
     }
 
     @Override
-    public Flux<String> chatStream(String authorizationHeader, Long resumeId, String message) {
+    public Flux<ResumeChatStreamEventVO> chatStream(String authorizationHeader, Long resumeId, String message) {
         Long userId = resolveUserId(authorizationHeader);
         getResumeAndCheckOwner(resumeId, userId);
 
@@ -250,19 +268,31 @@ public class ResumeAiServiceImpl implements ResumeAiService {
 
         String sectionsSummary = buildSectionsSummary(sections);
         String systemPrompt = String.format(CHAT_SYSTEM_PROMPT, sectionsSummary);
-
         StringBuilder fullResponse = new StringBuilder();
+        List<ResumePatchProposalVO> proposals = new ArrayList<>();
+        ResumePatchTools tools = new ResumePatchTools(proposals::add);
 
-        return chatClient.prompt()
+        Flux<ResumeChatStreamEventVO> textStream = chatClient.prompt()
                 .system(systemPrompt)
                 .user(message)
+                .tools(tools)
                 .stream()
                 .content()
                 .doOnNext(fullResponse::append)
+                .map(ResumeChatStreamEventVO::message);
+
+        return textStream
+                .concatWith(Flux.defer(() -> Flux.fromIterable(proposals).map(ResumeChatStreamEventVO::proposal)))
                 .doOnComplete(() -> saveAssistantMessage(resumeId, fullResponse.toString()))
-                .doOnError(e -> {
-                    log.error("AI 对话流异常", e);
-                    saveAssistantMessage(resumeId, fullResponse + "\n[对话异常中断]");
+                .doOnError(e -> log.error("AI 对话流异常", e))
+                .onErrorResume(e -> {
+                    logAiProviderError("AI 对话流调用失败，尝试降级为非流式调用", e);
+                    return Flux.defer(() -> {
+                        String fallbackResponse = callAi(systemPrompt, message);
+                        fullResponse.append(fallbackResponse);
+                        saveAssistantMessage(resumeId, fallbackResponse);
+                        return Flux.just(ResumeChatStreamEventVO.message(fallbackResponse));
+                    });
                 });
     }
 
@@ -306,14 +336,16 @@ public class ResumeAiServiceImpl implements ResumeAiService {
 
         String systemPrompt = String.format(IMPORT_PARSE_PROMPT, request.getRawText());
         String aiResponse = callAi(systemPrompt, "请解析这份简历。");
+        log.debug("AI 导入简历响应: {}", StringUtils.abbreviate(aiResponse, 1000));
 
         String json = extractJsonFromResponse(aiResponse);
         List<Map<String, Object>> sectionItems;
         try {
             sectionItems = objectMapper.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
         } catch (JsonProcessingException e) {
-            log.error("AI 导入简历响应解析失败: {}", aiResponse, e);
-            throw new BusinessException(ErrorCode.RESUME_IMPORT_ERROR);
+            log.error("AI 导入简历响应解析失败，提取后 JSON: {}，原始响应: {}", json, aiResponse, e);
+            throw new BusinessException(ErrorCode.RESUME_IMPORT_ERROR,
+                    "AI 导入简历响应解析失败，请稍后重试。原始响应片段: " + StringUtils.abbreviate(aiResponse, 500));
         }
 
         List<String> warnings = new ArrayList<>();
@@ -399,14 +431,16 @@ public class ResumeAiServiceImpl implements ResumeAiService {
 
         String systemPrompt = String.format(WHOLE_OPTIMIZE_PROMPT, jobContext, sectionsJson);
         String aiResponse = callAi(systemPrompt, "请优化这份简历。");
+        log.debug("AI 整份优化响应: {}", StringUtils.abbreviate(aiResponse, 1000));
 
         String json = extractJsonFromResponse(aiResponse);
         Map<String, Object> result;
         try {
             result = objectMapper.readValue(json, new TypeReference<Map<String, Object>>() {});
         } catch (JsonProcessingException e) {
-            log.error("AI 整份优化响应解析失败: {}", aiResponse, e);
-            throw new BusinessException(ErrorCode.RESUME_OPTIMIZE_ERROR);
+            log.error("AI 整份优化响应解析失败，提取后 JSON: {}，原始响应: {}", json, aiResponse, e);
+            throw new BusinessException(ErrorCode.RESUME_OPTIMIZE_ERROR,
+                    "AI 整份优化响应解析失败，请稍后重试。原始响应片段: " + StringUtils.abbreviate(aiResponse, 500));
         }
 
         @SuppressWarnings("unchecked")
@@ -473,35 +507,183 @@ public class ResumeAiServiceImpl implements ResumeAiService {
 
     private String callAi(String systemPrompt, String userMessage) {
         try {
-            return chatClient.prompt()
+            String response = chatClient.prompt()
                     .system(systemPrompt)
                     .user(userMessage)
                     .call()
                     .content();
+            if (response == null || response.isBlank()) {
+                log.warn("AI 返回空响应");
+                throw new BusinessException(ErrorCode.AI_SERVICE_ERROR, "AI 返回空响应");
+            }
+            return response;
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("AI 服务调用失败", e);
+            logAiProviderError("AI 服务调用失败", e);
             throw new BusinessException(ErrorCode.AI_SERVICE_ERROR);
         }
     }
 
+    private void logAiProviderError(String message, Throwable e) {
+        if (e instanceof WebClientResponseException webClientException) {
+            log.error("{}，status={}，responseBody={}",
+                    message,
+                    webClientException.getStatusCode(),
+                    webClientException.getResponseBodyAsString(),
+                    e);
+            return;
+        }
+        log.error(message, e);
+    }
+
     private String extractJsonFromResponse(String text) {
-        Matcher matcher = JSON_CODE_BLOCK_PATTERN.matcher(text);
+        if (text == null) {
+            return "";
+        }
+        // 1. 清洗常见污染字符（BOM、零宽字符、控制字符）
+        String cleaned = sanitizeJsonText(text);
+
+        // 2. 优先匹配 Markdown JSON 代码块
+        Matcher matcher = JSON_CODE_BLOCK_PATTERN.matcher(cleaned);
         if (matcher.find()) {
             return matcher.group(1).trim();
         }
-        return text.trim();
+
+        // 3. 未匹配到代码块时，尝试定位第一个 JSON 对象/数组边界
+        String json = extractFirstJson(cleaned);
+        if (json != null) {
+            return json;
+        }
+
+        // 4. 兜底返回清洗后的原文，便于上层记录和排查
+        return cleaned;
+    }
+
+    private String sanitizeJsonText(String text) {
+        return text
+                .replace("\uFEFF", "")
+                .replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]", "")
+                .replaceAll("[\\u200B-\\u200D\\uFEFF]", "")
+                .trim();
+    }
+
+    private String extractFirstJson(String text) {
+        int objectStart = text.indexOf('{');
+        int arrayStart = text.indexOf('[');
+
+        int start;
+        char openChar;
+        char closeChar;
+        if (objectStart < 0 && arrayStart < 0) {
+            return null;
+        }
+        if (objectStart < 0) {
+            start = arrayStart;
+            openChar = '[';
+            closeChar = ']';
+        } else if (arrayStart < 0) {
+            start = objectStart;
+            openChar = '{';
+            closeChar = '}';
+        } else {
+            start = Math.min(objectStart, arrayStart);
+            openChar = start == objectStart ? '{' : '[';
+            closeChar = openChar == '{' ? '}' : ']';
+        }
+
+        int end = findMatchingClose(text, start, openChar, closeChar);
+        if (end < 0) {
+            return null;
+        }
+        return text.substring(start, end + 1).trim();
+    }
+
+    private int findMatchingClose(String text, int start, char openChar, char closeChar) {
+        int depth = 0;
+        boolean inString = false;
+        boolean escape = false;
+        for (int i = start; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (inString) {
+                if (escape) {
+                    escape = false;
+                } else if (c == '\\') {
+                    escape = true;
+                } else if (c == '"') {
+                    inString = false;
+                }
+                continue;
+            }
+            if (c == '"') {
+                inString = true;
+                continue;
+            }
+            if (c == openChar) {
+                depth++;
+            } else if (c == closeChar) {
+                depth--;
+                if (depth == 0) {
+                    return i;
+                }
+            }
+        }
+        return -1;
     }
 
     private String buildSectionsSummary(List<ResumeSection> sections) {
         return sections.stream()
                 .map(s -> {
                     try {
-                        return s.getSectionType() + ": " + objectMapper.writeValueAsString(s.getSectionData());
+                        return s.getSectionType() + ": " + objectMapper.writeValueAsString(sanitizeSectionData(s.getSectionData()));
                     } catch (JsonProcessingException e) {
                         return s.getSectionType() + ": (序列化失败)";
                     }
                 })
                 .collect(Collectors.joining("\n"));
+    }
+
+    private Map<String, Object> sanitizeSectionData(Map<String, Object> sectionData) {
+        if (sectionData == null) {
+            return Map.of();
+        }
+
+        Map<String, Object> sanitized = new LinkedHashMap<>();
+        sectionData.forEach((key, value) -> {
+            Object sanitizedValue = sanitizeSectionValue(value);
+            if (sanitizedValue != null) {
+                sanitized.put(key, sanitizedValue);
+            }
+        });
+        return sanitized;
+    }
+
+    private Object sanitizeSectionValue(Object value) {
+        if (value instanceof String text) {
+            if (INLINE_FILE_DATA_PATTERN.matcher(text).matches()) {
+                return null;
+            }
+            return text.length() > MAX_CHAT_SECTION_VALUE_LENGTH
+                    ? text.substring(0, MAX_CHAT_SECTION_VALUE_LENGTH) + "...(已截断)"
+                    : text;
+        }
+        if (value instanceof Map<?, ?> map) {
+            Map<String, Object> sanitized = new LinkedHashMap<>();
+            map.forEach((key, itemValue) -> {
+                Object sanitizedValue = sanitizeSectionValue(itemValue);
+                if (sanitizedValue != null) {
+                    sanitized.put(String.valueOf(key), sanitizedValue);
+                }
+            });
+            return sanitized;
+        }
+        if (value instanceof List<?> list) {
+            return list.stream()
+                    .map(this::sanitizeSectionValue)
+                    .filter(item -> item != null)
+                    .collect(Collectors.toList());
+        }
+        return value;
     }
 
     private ResumeDetailVO toResumeDetailVO(Resume resume, List<ResumeSection> sections) {

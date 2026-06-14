@@ -6,6 +6,7 @@ import com.mianshiba.ai.model.dto.resume.ResumeImportRequest;
 import com.mianshiba.ai.model.dto.resume.ResumeWholeOptimizeRequest;
 import com.mianshiba.ai.model.vo.resume.AiScoreVO;
 import com.mianshiba.ai.model.vo.resume.ChatMessageVO;
+import com.mianshiba.ai.model.vo.resume.ResumeChatStreamEventVO;
 import com.mianshiba.ai.model.vo.resume.ResumeDetailVO;
 import com.mianshiba.ai.model.vo.resume.ResumeImportPreviewVO;
 import com.mianshiba.ai.model.vo.resume.ResumeWholeOptimizeVO;
@@ -23,7 +24,7 @@ public interface ResumeAiService {
 
     AiScoreVO scoreResume(List<SectionVO> sections, String targetPosition);
 
-    Flux<String> chatStream(String authorizationHeader, Long resumeId, String message);
+    Flux<ResumeChatStreamEventVO> chatStream(String authorizationHeader, Long resumeId, String message);
 
     List<ChatMessageVO> getChatHistory(Long resumeId);
 

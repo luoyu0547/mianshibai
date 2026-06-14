@@ -199,3 +199,10 @@ export interface ResumeWholeOptimizeVO {
   globalSuggestions: string[]
   optimizedSections: SectionVO[]
 }
+
+export interface ResumePatchProposal {
+  sectionType: SectionType
+  operation: 'replace_section'
+  reason?: string
+  sectionData: Record<string, unknown>
+}

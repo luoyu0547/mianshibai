@@ -239,6 +239,12 @@ CREATE TABLE IF NOT EXISTS job (
   application_status VARCHAR(32) NOT NULL DEFAULT 'favorite' COMMENT '投递状态：favorite/preparing/applied/interviewing/rejected/offer',
   keywords_json JSON DEFAULT NULL COMMENT 'JD关键词分析',
   predicted_questions_json JSON DEFAULT NULL COMMENT '预测面试题',
+  crawl_task_id BIGINT DEFAULT NULL COMMENT '来源采集任务 id',
+  crawl_run_id BIGINT DEFAULT NULL COMMENT '来源采集运行 id',
+  normalized_fingerprint VARCHAR(255) NOT NULL DEFAULT '' COMMENT '去重指纹',
+  last_seen_at DATETIME DEFAULT NULL COMMENT '最近采集到时间',
+  expire_checked_at DATETIME DEFAULT NULL COMMENT '最近过期检查时间',
+  quality_score INT NOT NULL DEFAULT 0 COMMENT '职位质量分',
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
@@ -316,6 +322,7 @@ CREATE TABLE IF NOT EXISTS job_application (
   contact_name VARCHAR(64) NOT NULL DEFAULT '' COMMENT '联系人',
   contact_info VARCHAR(128) NOT NULL DEFAULT '' COMMENT '联系方式',
   notes TEXT DEFAULT NULL COMMENT '备注',
+  recommendation_id BIGINT DEFAULT NULL COMMENT '来源推荐 id',
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
@@ -522,16 +529,7 @@ CREATE TABLE IF NOT EXISTS coach_task (
   KEY idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 求职教练任务表';
 
-ALTER TABLE job
-  ADD COLUMN crawl_task_id BIGINT DEFAULT NULL COMMENT '来源采集任务 id',
-  ADD COLUMN crawl_run_id BIGINT DEFAULT NULL COMMENT '来源采集运行 id',
-  ADD COLUMN normalized_fingerprint VARCHAR(255) NOT NULL DEFAULT '' COMMENT '去重指纹',
-  ADD COLUMN last_seen_at DATETIME DEFAULT NULL COMMENT '最近采集到时间',
-  ADD COLUMN expire_checked_at DATETIME DEFAULT NULL COMMENT '最近过期检查时间',
-  ADD COLUMN quality_score INT NOT NULL DEFAULT 0 COMMENT '职位质量分';
 
-ALTER TABLE job_application
-  ADD COLUMN recommendation_id BIGINT DEFAULT NULL COMMENT '来源推荐 id';
 
 CREATE TABLE IF NOT EXISTS job_crawl_task (
   id BIGINT NOT NULL AUTO_INCREMENT COMMENT '采集任务 id',
