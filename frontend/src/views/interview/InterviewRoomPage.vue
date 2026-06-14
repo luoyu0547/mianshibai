@@ -524,12 +524,6 @@ function stopRecordingWithoutSubmit() {
     asrClient.sendEnd()
   }
   cleanupAudio()
-  setTimeout(() => {
-    if (asrClient) {
-      asrClient.close()
-      asrClient = null
-    }
-  }, 1500)
 }
 
 async function submitAnswer() {
