@@ -26,6 +26,7 @@ export function useInterviewInputMode(options: UseInterviewInputModeOptions = {}
 
   function switchToVoice() {
     options.onSwitchToVoice?.()
+    textAnswer.value = ''
     inputMode.value = 'voice'
   }
 
