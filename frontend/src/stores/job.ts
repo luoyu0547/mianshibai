@@ -1,6 +1,7 @@
 // src/stores/job.ts
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
+import { ElMessage } from 'element-plus'
 import {
   importJobUrl as importJobUrlApi,
   getJobDetail as getJobDetailApi,
@@ -9,6 +10,10 @@ import {
   favoriteJob as favoriteJobApi,
   unfavoriteJob as unfavoriteJobApi,
   listFavoriteJobs as listFavoriteJobsApi,
+  listJobRecommendations,
+  refineJobRecommendations as refineJobRecommendationsApi,
+  dismissJobRecommendation as dismissJobRecommendationApi,
+  applyJobRecommendation as applyJobRecommendationApi,
 } from '@/api/job'
 import type {
   JobImportRequest,
@@ -16,6 +21,7 @@ import type {
   CompanyVO,
   JobMatchVO,
   JobMatchRequest,
+  JobRecommendationVO,
 } from '@/types/job'
 
 export const useJobStore = defineStore('job', () => {
@@ -24,6 +30,8 @@ export const useJobStore = defineStore('job', () => {
   const currentMatch = ref<JobMatchVO | null>(null)
   const favoriteList = ref<JobVO[]>([])
   const loading = ref(false)
+  const recommendations = ref<JobRecommendationVO[]>([])
+  const recommendationsLoading = ref(false)
 
   async function importUrl(data: JobImportRequest) {
     loading.value = true
@@ -108,6 +116,41 @@ export const useJobStore = defineStore('job', () => {
     }
   }
 
+  async function fetchRecommendations() {
+    recommendationsLoading.value = true
+    try {
+      const res = await listJobRecommendations()
+      recommendations.value = res.data
+    } finally {
+      recommendationsLoading.value = false
+    }
+  }
+
+  async function refineRecommendations(resumeId: number) {
+    const res = await refineJobRecommendationsApi({ resumeId })
+    if (res.data) {
+      recommendations.value = res.data
+      ElMessage.success('精排完成')
+    }
+  }
+
+  async function dismissRecommendation(id: number) {
+    const res = await dismissJobRecommendationApi(id)
+    if (res.code === 0) {
+      ElMessage.success('已忽略')
+      recommendations.value = recommendations.value.filter(r => r.id !== id)
+    }
+  }
+
+  async function applyRecommendation(id: number) {
+    const res = await applyJobRecommendationApi(id)
+    if (res.data) {
+      ElMessage.success('已加入投递计划')
+      recommendations.value = recommendations.value.filter(r => r.id !== id)
+      return res.data
+    }
+  }
+
   return {
     currentJob,
     currentCompany,
@@ -120,5 +163,11 @@ export const useJobStore = defineStore('job', () => {
     matchResume,
     toggleFavorite,
     fetchFavoriteList,
+    recommendations,
+    recommendationsLoading,
+    fetchRecommendations,
+    refineRecommendations,
+    dismissRecommendation,
+    applyRecommendation,
   }
 })

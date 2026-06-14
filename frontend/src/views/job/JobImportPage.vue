@@ -4,8 +4,8 @@
     <div class="job-import-page">
       <NbPageHeader
         eyebrow="职位情报"
-        title="导入职位"
-        description="粘贴招聘网站职位链接，自动解析并生成 AI 分析"
+        title="手动补充职位"
+        description="当系统推荐之外还有目标职位时，可手动粘贴链接补充。"
       >
         <template #actions>
           <NbButton @click="router.push('/job/favorites')">我的收藏</NbButton>

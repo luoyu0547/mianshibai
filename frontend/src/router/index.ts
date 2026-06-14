@@ -72,6 +72,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/job/recommendations',
+      name: 'JobRecommendations',
+      component: () => import('@/views/job/JobRecommendationPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/job/import',
       name: 'JobImport',
       component: () => import('@/views/job/JobImportPage.vue'),

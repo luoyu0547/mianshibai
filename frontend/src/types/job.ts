@@ -115,3 +115,21 @@ export interface JobQuestionPredictionVO {
   systemDesignQuestions: string[]
   hrQuestions: string[]
 }
+
+export interface JobRecommendationRefineRequest {
+  resumeId: number
+}
+
+export interface JobRecommendationVO {
+  id: number
+  job: JobVO
+  stage: string
+  roughScore: number
+  matchResult?: JobMatchVO | null
+  recommendation: string
+  reason: string
+  riskPoints: string[]
+  actionSuggestions: string[]
+  dismissed: boolean
+  applied: boolean
+}
