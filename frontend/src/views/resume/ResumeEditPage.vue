@@ -357,7 +357,7 @@ function openOptimize(type: SectionType) {
 function handleOptimizeApplied(type: SectionType, data: Record<string, unknown> | Record<string, unknown>[]) {
   switch (type) {
     case 'basic':
-      basicData.value = data as Record<string, unknown>
+      basicData.value = { ...(data as Record<string, unknown>), avatar: (data as Record<string, unknown>).avatar ?? basicData.value.avatar }
       break
     case 'education':
       educationItems.value = Array.isArray(data) ? data as Record<string, unknown>[] : [data as Record<string, unknown>]
@@ -436,7 +436,7 @@ function splitSections(sections: SectionVO[]) {
 function handleExtracted(sectionType: SectionType, sectionData: Record<string, unknown>) {
   switch (sectionType) {
     case 'basic':
-      basicData.value = sectionData
+      basicData.value = { ...sectionData, avatar: sectionData.avatar ?? basicData.value.avatar }
       break
     case 'education':
       educationItems.value = Array.isArray(sectionData) ? sectionData : [sectionData]

@@ -456,6 +456,12 @@ public class ResumeAiServiceImpl implements ResumeAiService {
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> optimizedSectionMaps = (List<Map<String, Object>>) result.get("optimizedSections");
 
+        Map<String, Object> originalBasicData = currentSections.stream()
+                .filter(s -> "basic".equals(s.getSectionType()))
+                .findFirst()
+                .map(SectionVO::getSectionData)
+                .orElse(null);
+
         List<SectionVO> optimizedSections = new ArrayList<>();
         if (optimizedSectionMaps != null) {
             for (int i = 0; i < optimizedSectionMaps.size(); i++) {
@@ -464,6 +470,12 @@ public class ResumeAiServiceImpl implements ResumeAiService {
                 sectionVO.setSectionType((String) item.get("sectionType"));
                 @SuppressWarnings("unchecked")
                 Map<String, Object> sectionData = (Map<String, Object>) item.get("sectionData");
+                if ("basic".equals(item.get("sectionType")) && originalBasicData != null && sectionData != null) {
+                    Object origAvatar = originalBasicData.get("avatar");
+                    if (origAvatar != null && !sectionData.containsKey("avatar")) {
+                        sectionData.put("avatar", origAvatar);
+                    }
+                }
                 sectionVO.setSectionData(sectionData);
                 sectionVO.setSortOrder(i);
                 sectionVO.setAiGenerated(1);
