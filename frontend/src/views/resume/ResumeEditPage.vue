@@ -356,9 +356,11 @@ function openOptimize(type: SectionType) {
 
 function handleOptimizeApplied(type: SectionType, data: Record<string, unknown> | Record<string, unknown>[]) {
   switch (type) {
-    case 'basic':
-      basicData.value = { ...(data as Record<string, unknown>), avatar: (data as Record<string, unknown>).avatar ?? basicData.value.avatar }
+    case 'basic': {
+      const obj = Array.isArray(data) ? data[0] ?? {} : data as Record<string, unknown>
+      basicData.value = { ...obj, avatar: obj.avatar ?? basicData.value.avatar }
       break
+    }
     case 'education':
       educationItems.value = Array.isArray(data) ? data as Record<string, unknown>[] : [data as Record<string, unknown>]
       break
@@ -368,12 +370,16 @@ function handleOptimizeApplied(type: SectionType, data: Record<string, unknown> 
     case 'project':
       projectItems.value = Array.isArray(data) ? data as Record<string, unknown>[] : [data as Record<string, unknown>]
       break
-    case 'skills':
-      skillsData.value = data as Record<string, unknown>
+    case 'skills': {
+      const obj = Array.isArray(data) ? data[0] ?? {} : data as Record<string, unknown>
+      skillsData.value = obj
       break
-    case 'summary':
-      summaryData.value = data as Record<string, unknown>
+    }
+    case 'summary': {
+      const obj = Array.isArray(data) ? data[0] ?? {} : data as Record<string, unknown>
+      summaryData.value = obj
       break
+    }
   }
 }
 
@@ -435,9 +441,11 @@ function splitSections(sections: SectionVO[]) {
 
 function handleExtracted(sectionType: SectionType, sectionData: Record<string, unknown>) {
   switch (sectionType) {
-    case 'basic':
-      basicData.value = { ...sectionData, avatar: sectionData.avatar ?? basicData.value.avatar }
+    case 'basic': {
+      const obj = Array.isArray(sectionData) ? sectionData[0] ?? {} : sectionData
+      basicData.value = { ...obj, avatar: obj.avatar ?? basicData.value.avatar }
       break
+    }
     case 'education':
       educationItems.value = Array.isArray(sectionData) ? sectionData : [sectionData]
       break
@@ -447,12 +455,16 @@ function handleExtracted(sectionType: SectionType, sectionData: Record<string, u
     case 'project':
       projectItems.value = Array.isArray(sectionData) ? sectionData : [sectionData]
       break
-    case 'skills':
-      skillsData.value = sectionData
+    case 'skills': {
+      const obj = Array.isArray(sectionData) ? sectionData[0] ?? {} : sectionData
+      skillsData.value = obj
       break
-    case 'summary':
-      summaryData.value = sectionData
+    }
+    case 'summary': {
+      const obj = Array.isArray(sectionData) ? sectionData[0] ?? {} : sectionData
+      summaryData.value = obj
       break
+    }
   }
   ElMessage.success(`已更新${sectionType}内容`)
 }
