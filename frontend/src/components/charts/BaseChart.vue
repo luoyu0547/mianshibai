@@ -6,8 +6,10 @@ import type { EChartsOption } from 'echarts'
 const props = withDefaults(defineProps<{
   option: EChartsOption
   height?: string
+  title?: string
 }>(), {
   height: '320px',
+  title: undefined,
 })
 
 const chartEl = ref<HTMLDivElement>()
@@ -41,10 +43,29 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="chartEl" class="base-chart" :style="{ height: height }" />
+  <div class="chart-shell">
+    <div v-if="title" class="chart-shell__title">{{ title }}</div>
+    <div ref="chartEl" class="base-chart" :style="{ height: height }" />
+  </div>
 </template>
 
 <style scoped>
+.chart-shell {
+  border: var(--nb-border);
+  border-radius: var(--nb-radius-lg);
+  box-shadow: var(--nb-shadow);
+  background: var(--nb-surface);
+  padding: 16px;
+}
+
+.chart-shell__title {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--nb-ink);
+  margin-bottom: 12px;
+}
+
 .base-chart {
   width: 100%;
   min-height: 240px;

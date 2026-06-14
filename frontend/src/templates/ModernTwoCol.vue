@@ -1,75 +1,79 @@
-<!-- src/templates/ModernTwoCol.vue -->
+<!-- 现代双栏风 — 侧边栏 + 主内容区 -->
 <template>
-  <div class="modern-two-col">
-    <div class="modern-two-col__sidebar">
-      <div class="modern-two-col__avatar">
-        {{ (basic?.name as string)?.[0] || '你' }}
-      </div>
-      <h1 class="modern-two-col__name">{{ basic?.name || '你的名字' }}</h1>
-      <p v-if="basic?.targetPosition" class="modern-two-col__position">{{ basic.targetPosition }}</p>
+  <div class="modern-split">
+    <!-- 左侧栏 -->
+    <aside class="ms-sidebar">
+      <div class="ms-avatar">{{ (basic?.name as string)?.[0] || '你' }}</div>
+      <h1 class="ms-name">{{ basic?.name || '你的名字' }}</h1>
+      <p v-if="basic?.targetPosition" class="ms-title">{{ basic.targetPosition }}</p>
 
-      <div class="modern-two-col__contact-list">
-        <div v-if="basic?.email" class="modern-two-col__contact-item">{{ basic.email }}</div>
-        <div v-if="basic?.phone" class="modern-two-col__contact-item">{{ basic.phone }}</div>
-        <div v-if="basic?.city" class="modern-two-col__contact-item">{{ basic.city }}</div>
-        <div v-if="basic?.github" class="modern-two-col__contact-item">{{ basic.github }}</div>
-        <div v-if="basic?.blog" class="modern-two-col__contact-item">{{ basic.blog }}</div>
+      <div class="ms-contact">
+        <div v-if="basic?.email" class="ms-contact-row">{{ basic.email }}</div>
+        <div v-if="basic?.phone" class="ms-contact-row">{{ basic.phone }}</div>
+        <div v-if="basic?.city" class="ms-contact-row">{{ basic.city }}</div>
+        <div v-if="basic?.github" class="ms-contact-row">{{ basic.github }}</div>
+        <div v-if="basic?.blog" class="ms-contact-row">{{ basic.blog }}</div>
       </div>
 
-      <div v-if="skillCategories.length" class="modern-two-col__section">
-        <h2 class="modern-two-col__section-title">技能</h2>
-        <div v-for="(cat, index) in skillCategories" :key="index" class="modern-two-col__skill-cat">
-          <div v-if="cat.name" class="modern-two-col__skill-cat-name">{{ cat.name }}</div>
-          <div v-if="cat.items?.length" class="modern-two-col__skill-tags">
-            <span v-for="(s, si) in cat.items" :key="si" class="modern-two-col__skill-tag">{{ s }}</span>
+      <div v-if="skillCategories.length" class="ms-side-block">
+        <h2 class="ms-side-title">技能</h2>
+        <div v-for="(cat, i) in skillCategories" :key="i" class="ms-skill-group">
+          <div v-if="cat.name" class="ms-skill-label">{{ cat.name }}</div>
+          <div v-if="cat.items?.length" class="ms-tags">
+            <span v-for="(s, si) in cat.items" :key="si" class="ms-tag">{{ s }}</span>
           </div>
         </div>
       </div>
 
-      <div v-if="education.length" class="modern-two-col__section">
-        <h2 class="modern-two-col__section-title">教育</h2>
-        <div v-for="(item, index) in education" :key="index" class="modern-two-col__edu-item">
-          <div class="modern-two-col__edu-school">{{ item.school }}</div>
-          <div class="modern-two-col__edu-detail">{{ item.major }} · {{ item.degree }}</div>
-          <div class="modern-two-col__edu-date">{{ item.startDate }} - {{ item.endDate || '至今' }}</div>
+      <div v-if="education.length" class="ms-side-block">
+        <h2 class="ms-side-title">教育</h2>
+        <div v-for="(item, i) in education" :key="i" class="ms-edu">
+          <div class="ms-edu-school">{{ item.school }}</div>
+          <div class="ms-edu-major">{{ item.major }}<template v-if="item.degree"> · {{ item.degree }}</template></div>
+          <div class="ms-edu-date" v-if="item.startDate">{{ item.startDate }} — {{ item.endDate || '至今' }}</div>
         </div>
       </div>
-    </div>
+    </aside>
 
-    <div class="modern-two-col__main">
-      <div v-if="work.length" class="modern-two-col__section">
-        <h2 class="modern-two-col__section-title-main">工作经历</h2>
-        <div v-for="(item, index) in work" :key="index" class="modern-two-col__entry">
-          <div class="modern-two-col__entry-header">
-            <strong>{{ item.company }}</strong>
-            <span class="modern-two-col__date">{{ item.startDate }} - {{ item.endDate || '至今' }}</span>
+    <!-- 主内容 -->
+    <div class="ms-main">
+      <div v-if="work.length" class="ms-block">
+        <h2 class="ms-block-title">工作经历</h2>
+        <div v-for="(item, i) in work" :key="i" class="ms-entry">
+          <div class="ms-entry-head">
+            <div>
+              <strong class="ms-entry-org">{{ item.company }}</strong>
+              <span v-if="item.position" class="ms-entry-role"> · {{ item.position }}</span>
+            </div>
+            <span class="ms-entry-date">{{ item.startDate }} — {{ item.endDate || '至今' }}</span>
           </div>
-          <div v-if="item.position" class="modern-two-col__sub">{{ item.position }}</div>
-          <p v-if="item.description" class="modern-two-col__desc">{{ item.description }}</p>
-          <ul v-if="(item.highlights as string[])?.length" class="modern-two-col__highlights">
+          <p v-if="item.description" class="ms-desc">{{ item.description }}</p>
+          <ul v-if="(item.highlights as string[])?.length" class="ms-list">
             <li v-for="(h, hi) in item.highlights" :key="hi">{{ h }}</li>
           </ul>
         </div>
       </div>
 
-      <div v-if="project.length" class="modern-two-col__section">
-        <h2 class="modern-two-col__section-title-main">项目经历</h2>
-        <div v-for="(item, index) in project" :key="index" class="modern-two-col__entry">
-          <div class="modern-two-col__entry-header">
-            <strong>{{ item.name }}</strong>
-            <span class="modern-two-col__date">{{ item.startDate }} - {{ item.endDate || '至今' }}</span>
+      <div v-if="project.length" class="ms-block">
+        <h2 class="ms-block-title">项目经历</h2>
+        <div v-for="(item, i) in project" :key="i" class="ms-entry">
+          <div class="ms-entry-head">
+            <div>
+              <strong class="ms-entry-org">{{ item.name }}</strong>
+              <span v-if="item.role" class="ms-entry-role"> · {{ item.role }}</span>
+            </div>
+            <span class="ms-entry-date">{{ item.startDate }} — {{ item.endDate || '至今' }}</span>
           </div>
-          <div v-if="item.role" class="modern-two-col__sub">{{ item.role }}</div>
-          <p v-if="item.description" class="modern-two-col__desc">{{ item.description }}</p>
-          <ul v-if="(item.highlights as string[])?.length" class="modern-two-col__highlights">
+          <p v-if="item.description" class="ms-desc">{{ item.description }}</p>
+          <ul v-if="(item.highlights as string[])?.length" class="ms-list">
             <li v-for="(h, hi) in item.highlights" :key="hi">{{ h }}</li>
           </ul>
         </div>
       </div>
 
-      <div v-if="summary?.content" class="modern-two-col__section">
-        <h2 class="modern-two-col__section-title-main">自我评价</h2>
-        <p class="modern-two-col__desc">{{ summary.content }}</p>
+      <div v-if="summary?.content" class="ms-block">
+        <h2 class="ms-block-title">自我评价</h2>
+        <p class="ms-desc">{{ summary.content }}</p>
       </div>
     </div>
   </div>
@@ -92,173 +96,200 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
 </script>
 
 <style scoped>
-.modern-two-col {
+.modern-split {
   display: flex;
-  font-family: 'Public Sans', sans-serif;
-  color: #2d3436;
+  font-family: var(--font-body);
+  color: var(--nb-ink);
   min-height: 100%;
 }
 
-.modern-two-col__sidebar {
-  width: 35%;
-  background: #f0edff;
-  padding: 32px 20px;
+/* 左侧栏 */
+.ms-sidebar {
+  width: 34%;
+  background: linear-gradient(180deg, var(--nb-primary-light) 0%, rgba(255,255,255,0) 100%);
+  padding: 36px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  border-right: 1px solid var(--nb-border-color-light);
 }
 
-.modern-two-col__avatar {
-  width: 72px;
-  height: 72px;
+.ms-avatar {
+  width: 68px;
+  height: 68px;
   border-radius: 50%;
-  background: var(--nb-primary, #6c5ce7);
+  background: var(--nb-primary-gradient);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Lexend Mega', sans-serif;
-  font-size: 28px;
+  font-family: var(--font-heading);
+  font-size: 26px;
   font-weight: 700;
   margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(91, 94, 244, 0.25);
 }
 
-.modern-two-col__name {
-  font-family: 'Lexend Mega', sans-serif;
+.ms-name {
+  font-family: var(--font-heading);
   font-size: 20px;
   font-weight: 700;
   margin: 0 0 4px;
   text-align: center;
+  letter-spacing: -0.3px;
 }
 
-.modern-two-col__position {
+.ms-title {
   font-size: 13px;
-  color: #6c5ce7;
+  color: var(--nb-primary);
   font-weight: 600;
-  margin: 0 0 16px;
+  margin: 0 0 18px;
+  text-align: center;
 }
 
-.modern-two-col__contact-list {
+.ms-contact {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
+  width: 100%;
+  margin-bottom: 22px;
+  padding: 14px;
+  background: rgba(255,255,255,0.5);
+  border-radius: var(--nb-radius);
+}
+
+.ms-contact-row {
+  font-size: 11.5px;
+  color: var(--nb-muted);
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+.ms-side-block {
   width: 100%;
   margin-bottom: 20px;
 }
 
-.modern-two-col__contact-item {
+.ms-side-title {
+  font-family: var(--font-heading);
   font-size: 11px;
-  color: #636e72;
-  word-break: break-all;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--nb-primary);
+  color: var(--nb-primary);
 }
 
-.modern-two-col__section {
-  width: 100%;
+.ms-skill-group {
+  margin-bottom: 10px;
+}
+
+.ms-skill-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  margin-bottom: 5px;
+  color: var(--nb-ink);
+}
+
+.ms-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.ms-tag {
+  font-size: 10.5px;
+  padding: 3px 9px;
+  background: var(--nb-primary);
+  color: #fff;
+  border-radius: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.ms-edu {
+  margin-bottom: 10px;
+}
+
+.ms-edu-school {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.ms-edu-major {
+  font-size: 11.5px;
+  color: var(--nb-muted);
+}
+
+.ms-edu-date {
+  font-size: 10.5px;
+  color: var(--nb-muted-light);
+}
+
+/* 主内容 */
+.ms-main {
+  width: 66%;
+  padding: 36px 28px;
+}
+
+.ms-block {
+  margin-bottom: 24px;
+}
+
+.ms-block-title {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--nb-ink);
+  margin: 0 0 14px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--nb-border-color);
+}
+
+.ms-entry {
   margin-bottom: 16px;
 }
 
-.modern-two-col__section-title {
-  font-family: 'Lexend Mega', sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin: 0 0 10px;
-  padding-bottom: 4px;
-  border-bottom: 2px solid #6c5ce7;
-}
-
-.modern-two-col__skill-cat {
-  margin-bottom: 8px;
-}
-
-.modern-two-col__skill-cat-name {
-  font-size: 11px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.modern-two-col__skill-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.modern-two-col__skill-tag {
-  font-size: 10px;
-  padding: 2px 6px;
-  background: #6c5ce7;
-  color: #fff;
-  border-radius: 3px;
-}
-
-.modern-two-col__edu-item {
-  margin-bottom: 8px;
-}
-
-.modern-two-col__edu-school {
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.modern-two-col__edu-detail {
-  font-size: 11px;
-  color: #636e72;
-}
-
-.modern-two-col__edu-date {
-  font-size: 10px;
-  color: #636e72;
-}
-
-.modern-two-col__main {
-  width: 65%;
-  padding: 32px 24px;
-}
-
-.modern-two-col__section-title-main {
-  font-family: 'Lexend Mega', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  border-bottom: 2px solid #2d3436;
-  padding-bottom: 4px;
-  margin: 0 0 12px;
-}
-
-.modern-two-col__entry {
-  margin-bottom: 14px;
-}
-
-.modern-two-col__entry-header {
+.ms-entry-head {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  gap: 12px;
+  font-size: 13.5px;
+}
+
+.ms-entry-org {
+  font-weight: 700;
+}
+
+.ms-entry-role {
+  color: var(--nb-muted);
   font-size: 13px;
 }
 
-.modern-two-col__date {
-  font-size: 11px;
-  color: #636e72;
+.ms-entry-date {
+  font-size: 12px;
+  color: var(--nb-muted-light);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.modern-two-col__sub {
-  font-size: 12px;
-  color: #636e72;
+.ms-desc {
+  font-size: 13px;
+  color: var(--nb-muted);
+  margin: 5px 0 0;
+  line-height: 1.7;
 }
 
-.modern-two-col__desc {
-  font-size: 12px;
-  margin: 4px 0;
-  line-height: 1.6;
-}
-
-.modern-two-col__highlights {
-  margin: 4px 0;
-  padding-left: 16px;
-  font-size: 12px;
-  line-height: 1.6;
+.ms-list {
+  margin: 5px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--nb-muted);
+  line-height: 1.7;
 }
 </style>

@@ -17,7 +17,7 @@ async function handleParse() {
   loading.value = true
   try {
     const res = await importResumePreview({ rawText: rawText.value, fileType: 'text' })
-    preview.value = res.data.data
+    preview.value = res.data
   } finally {
     loading.value = false
   }

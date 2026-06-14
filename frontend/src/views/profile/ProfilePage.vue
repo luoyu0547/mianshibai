@@ -33,11 +33,41 @@
               </el-form-item>
 
               <el-form-item label="目标岗位" prop="targetPosition">
-                <el-input v-model="form.targetPosition" placeholder="例如：Java 开发工程师" />
+                <el-select
+                  v-model="form.targetPosition"
+                  placeholder="请选择或输入目标岗位"
+                  style="width: 100%;"
+                  filterable
+                  allow-create
+                  default-first-option
+                  :reserve-keyword="false"
+                >
+                  <el-option
+                    v-for="item in targetPositionOptions"
+                    :key="item"
+                    :label="item"
+                    :value="item"
+                  />
+                </el-select>
               </el-form-item>
 
               <el-form-item label="技术方向" prop="techDirection">
-                <el-input v-model="form.techDirection" placeholder="例如：后端 / 前端 / 全栈" />
+                <el-select
+                  v-model="form.techDirection"
+                  placeholder="请选择技术方向"
+                  style="width: 100%;"
+                  filterable
+                  allow-create
+                  default-first-option
+                  :reserve-keyword="false"
+                >
+                  <el-option
+                    v-for="item in techDirectionOptions"
+                    :key="item"
+                    :label="item"
+                    :value="item"
+                  />
+                </el-select>
               </el-form-item>
 
               <el-form-item label="工作年限" prop="workYears">
@@ -52,7 +82,22 @@
               </el-form-item>
 
               <el-form-item label="城市" prop="city">
-                <el-input v-model="form.city" placeholder="例如：北京" />
+                <el-select
+                  v-model="form.city"
+                  placeholder="请选择或输入所在城市"
+                  style="width: 100%;"
+                  filterable
+                  allow-create
+                  default-first-option
+                  :reserve-keyword="false"
+                >
+                  <el-option
+                    v-for="item in cityOptions"
+                    :key="item"
+                    :label="item"
+                    :value="item"
+                  />
+                </el-select>
               </el-form-item>
 
               <el-form-item label="求职状态" prop="jobStatus">
@@ -94,6 +139,60 @@ import type { UpdateProfileRequest } from '@/types/user'
 const userStore = useUserStore()
 const formRef = ref<FormInstance>()
 const isSaving = ref(false)
+
+const targetPositionOptions = [
+  'Java 开发工程师',
+  '前端开发工程师',
+  '后端开发工程师',
+  '全栈开发工程师',
+  'Python 开发工程师',
+  'Go 开发工程师',
+  'C++ 开发工程师',
+  '算法工程师',
+  'AI 工程师',
+  '大数据工程师',
+  '数据分析师',
+  '测试工程师',
+  '运维工程师',
+  '安全工程师',
+  'iOS 开发工程师',
+  'Android 开发工程师',
+  '产品经理',
+  '项目经理',
+  '架构师',
+  '技术总监',
+]
+
+const techDirectionOptions = [
+  '后端',
+  '前端',
+  '全栈',
+  '移动端',
+  'AI / 机器学习',
+  '大数据',
+  '云计算 / 云原生',
+  '测试开发',
+  '运维 / DevOps',
+  '安全',
+  '嵌入式 / IoT',
+  '游戏开发',
+  '区块链',
+  '其他',
+]
+
+const cityOptions = [
+  '北京', '上海', '广州', '深圳',
+  '杭州', '南京', '苏州', '成都',
+  '武汉', '西安', '重庆', '长沙',
+  '天津', '郑州', '济南', '青岛',
+  '合肥', '福州', '厦门', '东莞',
+  '佛山', '珠海', '大连', '沈阳',
+  '哈尔滨', '长春', '昆明', '贵阳',
+  '南宁', '海口', '石家庄', '太原',
+  '南昌', '兰州', '银川', '西宁',
+  '拉萨', '乌鲁木齐', '呼和浩特',
+  '海外',
+]
 
 const form = reactive<UpdateProfileRequest>({
   userName: '',

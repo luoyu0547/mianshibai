@@ -1,70 +1,71 @@
-<!-- src/views/training/TrainingCenterPage.vue -->
 <template>
   <MainLayout>
     <div class="training-center">
-      <div class="training-center__header">
-        <h1 class="training-center__title">训练中心</h1>
-        <NbButton type="primary" @click="showGenDialog = true">生成新计划</NbButton>
-      </div>
+      <NbPageHeader
+        eyebrow="训练中心"
+        title="八股训练"
+        description="生成个性化训练计划，按天推进面试八股练习，AI 批改追踪掌握进度"
+      >
+        <template #actions>
+          <NbButton variant="primary" @click="showGenDialog = true">生成新计划</NbButton>
+        </template>
+      </NbPageHeader>
 
-      <NbCard class="section-card">
-        <h3 class="section-title">复习工具</h3>
-        <div style="display: flex; gap: 16px;">
-          <router-link to="/training/mistakes" style="text-decoration: none;">
-            <NbButton>错题本</NbButton>
-          </router-link>
-          <router-link to="/training/mastery" style="text-decoration: none;">
-            <NbButton>知识点掌握度</NbButton>
-          </router-link>
+      <NbCard>
+        <NbSectionTitle title="复习工具" />
+        <div class="training-center__tools">
+          <NbButton @click="router.push('/training/mistakes')">错题本</NbButton>
+          <NbButton @click="router.push('/training/mastery')">知识点掌握度</NbButton>
         </div>
       </NbCard>
 
-      <div v-if="trainingStore.loading" class="training-center__loading">
-        <el-icon class="is-loading" :size="32"><LoadingIcon /></el-icon>
-        <span>加载中...</span>
-      </div>
+      <NbCard v-if="trainingStore.loading">
+        <NbLoadingBlock title="加载训练计划..." :rows="4" />
+      </NbCard>
 
       <template v-else>
-        <NbCard v-if="trainingStore.activePlan" class="section-card">
-          <h3 class="section-title">当前训练计划</h3>
+        <NbCard v-if="trainingStore.activePlan" variant="accent">
+          <NbSectionTitle title="当前训练计划">
+            <template #actions>
+              <NbButton @click="router.push(`/training/plan/${trainingStore.activePlan.id}`)">查看详情</NbButton>
+            </template>
+          </NbSectionTitle>
           <div class="active-plan">
-            <div class="active-plan__header">
-              <h4 class="active-plan__title">{{ trainingStore.activePlan.title }}</h4>
-              <router-link :to="`/training/plan/${trainingStore.activePlan.id}`">
-                <NbButton>查看详情</NbButton>
-              </router-link>
-            </div>
+            <h4 class="active-plan__title">{{ trainingStore.activePlan.title }}</h4>
             <p v-if="trainingStore.activePlan.summary" class="active-plan__summary">
               {{ trainingStore.activePlan.summary }}
             </p>
             <el-progress
               :percentage="activePlanProgress"
               :stroke-width="12"
-              :format="activePlanProgressFormat"
+              :format="() => activePlanProgressText"
             />
-            <div v-if="trainingStore.activePlan.focusTopics.length > 0" class="tag-cloud">
-              <el-tag
+            <div v-if="trainingStore.activePlan.focusTopics.length > 0" class="active-plan__topics">
+              <NbStatusBadge
                 v-for="topic in trainingStore.activePlan.focusTopics"
                 :key="topic"
-                size="small"
-                class="nb-tag"
-              >
-                {{ topic }}
-              </el-tag>
+                :label="topic"
+                variant="info"
+              />
             </div>
           </div>
         </NbCard>
 
-        <NbCard v-else class="section-card">
-          <h3 class="section-title">当前训练计划</h3>
-          <p class="empty-hint">暂无进行中的训练计划，点击上方按钮生成新计划</p>
+        <NbCard v-else>
+          <NbEmptyState
+            title="暂无进行中的训练计划"
+            description="点击上方「生成新计划」按钮，AI 将根据你的简历或职位生成个性化八股练习计划"
+          >
+            <template #action>
+              <NbButton variant="primary" @click="showGenDialog = true">生成新计划</NbButton>
+            </template>
+          </NbEmptyState>
         </NbCard>
 
         <NbCard
           v-if="trainingStore.activePlan && groupedQuestions.length > 0"
-          class="section-card"
         >
-          <h3 class="section-title">题目列表</h3>
+          <NbSectionTitle title="题目列表" />
           <div
             v-for="group in groupedQuestions"
             :key="group.dayIndex"
@@ -80,22 +81,16 @@
               >
                 <div class="question-item__info">
                   <span class="question-item__title">{{ q.title }}</span>
-                  <el-tag size="small" class="nb-tag">{{ q.topic }}</el-tag>
-                  <el-tag
-                    :type="difficultyTagType(q.difficulty)"
-                    size="small"
-                    class="nb-tag"
-                  >
-                    {{ difficultyLabel(q.difficulty) }}
-                  </el-tag>
+                  <NbStatusBadge :label="q.topic" variant="info" />
+                  <NbStatusBadge
+                    :label="getStatusDescriptor(trainingDifficultyMap, q.difficulty).label"
+                    :variant="getStatusDescriptor(trainingDifficultyMap, q.difficulty).variant"
+                  />
                 </div>
-                <el-tag
-                  :type="questionStatusTagType(q.status)"
-                  size="small"
-                  class="nb-tag"
-                >
-                  {{ QUESTION_STATUS_LABELS[q.status] }}
-                </el-tag>
+                <NbStatusBadge
+                  :label="getStatusDescriptor(trainingQuestionStatusMap, q.status).label"
+                  :variant="getStatusDescriptor(trainingQuestionStatusMap, q.status).variant"
+                />
               </div>
             </div>
           </div>
@@ -103,43 +98,42 @@
 
         <NbCard
           v-if="trainingStore.activePlan && trainingStore.activePlan.algorithmRecommendations.length > 0"
-          class="section-card"
         >
-          <h3 class="section-title">算法推荐</h3>
+          <NbSectionTitle title="算法推荐" />
           <div class="algo-list">
-            <div
+            <NbCard
               v-for="algo in trainingStore.activePlan.algorithmRecommendations"
               :key="algo.id"
-              class="algo-item"
+              compact
+              :variant="algo.completed ? 'success' : 'warning'"
             >
-              <div class="algo-item__info">
-                <el-tag size="small" class="nb-tag">{{ algo.category }}</el-tag>
-                <span class="algo-item__platform">[{{ algo.platform }}]</span>
-                <span class="algo-item__ref">{{ algo.problemRef }}</span>
-                <span class="algo-item__reason">{{ algo.reason }}</span>
+              <div class="algo-item">
+                <div class="algo-item__info">
+                  <NbStatusBadge :label="algo.category" variant="info" />
+                  <span class="algo-item__platform">[{{ algo.platform }}]</span>
+                  <span class="algo-item__ref">{{ algo.problemRef }}</span>
+                  <span class="algo-item__reason">{{ algo.reason }}</span>
+                </div>
+                <NbButton
+                  v-if="!algo.completed"
+                  variant="success"
+                  @click="handleCompleteAlgo(algo.id)"
+                >
+                  完成
+                </NbButton>
+                <NbButton
+                  v-else
+                  @click="handleReopenAlgo(algo.id)"
+                >
+                  重开
+                </NbButton>
               </div>
-              <NbButton
-                v-if="!algo.completed"
-                type="success"
-                @click="handleCompleteAlgo(algo.id)"
-              >
-                完成
-              </NbButton>
-              <NbButton
-                v-else
-                @click="handleReopenAlgo(algo.id)"
-              >
-                重开
-              </NbButton>
-            </div>
+            </NbCard>
           </div>
         </NbCard>
 
-        <NbCard
-          v-if="historyPlans.length > 0"
-          class="section-card"
-        >
-          <h3 class="section-title">历史计划</h3>
+        <NbCard v-if="historyPlans.length > 0">
+          <NbSectionTitle title="历史计划" />
           <div class="history-list">
             <div
               v-for="plan in historyPlans"
@@ -149,13 +143,10 @@
             >
               <div class="history-item__info">
                 <span class="history-item__title">{{ plan.title }}</span>
-                <el-tag
-                  :type="plan.status === 'completed' ? 'success' : 'info'"
-                  size="small"
-                  class="nb-tag"
-                >
-                  {{ plan.status === 'completed' ? '已完成' : '已归档' }}
-                </el-tag>
+                <NbStatusBadge
+                  :label="plan.status === 'completed' ? '已完成' : '已归档'"
+                  :variant="plan.status === 'completed' ? 'success' : 'muted'"
+                />
               </div>
               <span class="history-item__date">{{ formatDate(plan.createTime) }}</span>
             </div>
@@ -192,16 +183,22 @@
 import { ref, computed, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Loading as LoadingIcon } from '@element-plus/icons-vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import NbCard from '@/components/NbCard.vue'
 import NbButton from '@/components/NbButton.vue'
+import NbPageHeader from '@/components/NbPageHeader.vue'
+import NbSectionTitle from '@/components/NbSectionTitle.vue'
+import NbStatusBadge from '@/components/NbStatusBadge.vue'
+import NbLoadingBlock from '@/components/NbLoadingBlock.vue'
+import NbEmptyState from '@/components/NbEmptyState.vue'
 import { useTrainingStore } from '@/stores/training'
+import type { TrainingQuestionVO } from '@/types/training'
 import {
-  QUESTION_STATUS_LABELS,
-  TRAINING_DIFFICULTY_OPTIONS,
-} from '@/types/training'
-import type { TrainingQuestionStatus, TrainingDifficulty, TrainingQuestionVO } from '@/types/training'
+  trainingQuestionStatusMap,
+  trainingDifficultyMap,
+  getStatusDescriptor,
+} from '@/utils/statusMaps'
+import { formatDate } from '@/utils/date'
 
 const router = useRouter()
 const trainingStore = useTrainingStore()
@@ -241,36 +238,14 @@ const activePlanProgress = computed(() => {
   return Math.round((reviewed / plan.questions.length) * 100)
 })
 
-function activePlanProgressFormat(percentage: number) {
+const activePlanProgressText = computed(() => {
   const plan = trainingStore.activePlan
   if (!plan) return ''
   const reviewed = plan.questions.filter(
     (q) => q.status === 'reviewed' || q.status === 'mastered',
   ).length
   return `${reviewed}/${plan.questions.length}`
-}
-
-function questionStatusTagType(status: TrainingQuestionStatus) {
-  if (status === 'mastered') return 'success'
-  if (status === 'reviewed') return ''
-  if (status === 'answered') return 'warning'
-  if (status === 'skipped') return 'info'
-  return 'danger'
-}
-
-function difficultyTagType(difficulty: TrainingDifficulty) {
-  if (difficulty === 'hard') return 'danger'
-  if (difficulty === 'medium') return 'warning'
-  return 'success'
-}
-
-function difficultyLabel(difficulty: TrainingDifficulty) {
-  return TRAINING_DIFFICULTY_OPTIONS.find((o) => o.value === difficulty)?.label || difficulty
-}
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('zh-CN')
-}
+})
 
 async function handleGenerate() {
   generating.value = true
@@ -322,51 +297,17 @@ onMounted(() => {
   gap: 24px;
 }
 
-.training-center__header {
+.training-center__tools {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.training-center__title {
-  font-family: var(--font-heading);
-  font-size: 28px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.training-center__loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 64px 0;
-  color: var(--nb-muted);
-}
-
-.section-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.section-title {
-  font-family: var(--font-heading);
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
+  gap: 16px;
+  margin-top: 16px;
 }
 
 .active-plan {
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-.active-plan__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  margin-top: 16px;
 }
 
 .active-plan__title {
@@ -383,20 +324,10 @@ onMounted(() => {
   line-height: 1.5;
 }
 
-.tag-cloud {
+.active-plan__topics {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-.nb-tag {
-  border: var(--nb-border);
-  box-shadow: 2px 2px 0 var(--nb-border);
-}
-
-.empty-hint {
-  color: var(--nb-muted);
-  margin: 0;
 }
 
 .day-group {
@@ -431,7 +362,7 @@ onMounted(() => {
   padding: 10px 12px;
   border: var(--nb-border);
   border-radius: var(--nb-radius);
-  background: var(--nb-bg);
+  background: var(--nb-surface);
   cursor: pointer;
   transition: var(--nb-transition);
 }
@@ -462,6 +393,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  margin-top: 16px;
 }
 
 .algo-item {
@@ -469,10 +401,6 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
-  border: var(--nb-border);
-  border-radius: var(--nb-radius);
-  background: var(--nb-bg);
 }
 
 .algo-item__info {
@@ -502,6 +430,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-top: 16px;
 }
 
 .history-item {
@@ -511,7 +440,7 @@ onMounted(() => {
   padding: 10px 12px;
   border: var(--nb-border);
   border-radius: var(--nb-radius);
-  background: var(--nb-bg);
+  background: var(--nb-surface);
   cursor: pointer;
   transition: var(--nb-transition);
 }

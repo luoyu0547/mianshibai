@@ -1,18 +1,27 @@
 <!-- src/components/resume/AiChatPanel.vue -->
 <template>
   <div class="ai-chat-panel">
-    <div class="ai-chat-panel__messages" ref="messagesContainer">
-      <div
-        v-for="(msg, index) in messages"
-        :key="index"
-        :class="['ai-chat-panel__bubble', `ai-chat-panel__bubble--${msg.role}`]"
-      >
-        {{ msg.content }}
-      </div>
+    <div v-if="messages.length === 0 && !isLoading" class="ai-chat-panel__empty">
+      <NbEmptyState
+        variant="ai"
+        title="AI 简历助手"
+        description="告诉 AI 你的需求，它会帮你优化简历内容"
+      />
+    </div>
+
+    <div v-else class="ai-chat-panel__messages" ref="messagesContainer">
+      <template v-for="(msg, index) in messages" :key="index">
+        <div :class="['ai-chat-panel__bubble', `ai-chat-panel__bubble--${msg.role}`]">
+          <span v-if="msg.role === 'assistant'" class="ai-chat-panel__role">AI</span>
+          <span class="ai-chat-panel__content">{{ msg.content }}</span>
+        </div>
+      </template>
       <div v-if="isLoading" class="ai-chat-panel__bubble ai-chat-panel__bubble--assistant ai-chat-panel__typing">
-        <span></span><span></span><span></span>
+        <span class="ai-chat-panel__role">AI</span>
+        <span class="ai-chat-panel__typing-dots"><span></span><span></span><span></span></span>
       </div>
     </div>
+
     <div class="ai-chat-panel__input">
       <el-input
         v-model="inputText"
@@ -20,9 +29,9 @@
         :disabled="isLoading"
         @keyup.enter="handleSend"
       />
-      <el-button type="primary" :disabled="isLoading || !inputText.trim()" @click="handleSend">
+      <NbButton variant="primary" :disabled="isLoading || !inputText.trim()" @click="handleSend">
         发送
-      </el-button>
+      </NbButton>
     </div>
   </div>
 </template>
@@ -31,6 +40,8 @@
 import { ref, nextTick, onMounted } from 'vue'
 import type { SectionType, ChatMessageVO } from '@/types/resume'
 import { getChatHistory } from '@/api/resume'
+import NbButton from '@/components/NbButton.vue'
+import NbEmptyState from '@/components/NbEmptyState.vue'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -62,8 +73,8 @@ onMounted(async () => {
   if (props.resumeId) {
     try {
       const res = await getChatHistory(props.resumeId)
-      if (res.data.code === 0 && res.data.data) {
-        messages.value = res.data.data.map((m: ChatMessageVO) => ({
+      if (res.code === 0 && res.data) {
+        messages.value = res.data.map((m: ChatMessageVO) => ({
           role: m.role as 'user' | 'assistant',
           content: m.content,
         }))
@@ -163,24 +174,34 @@ async function handleSend() {
   height: 100%;
 }
 
+.ai-chat-panel__empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
 .ai-chat-panel__messages {
   flex: 1;
-  max-height: 300px;
   overflow-y: auto;
-  padding: 12px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .ai-chat-panel__bubble {
-  max-width: 80%;
-  padding: 8px 12px;
+  max-width: 85%;
+  padding: 10px 14px;
   border-radius: var(--nb-radius);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.6;
   word-break: break-word;
   white-space: pre-wrap;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 .ai-chat-panel__bubble--user {
@@ -189,23 +210,53 @@ async function handleSend() {
   color: #fff;
   border: var(--nb-border);
   box-shadow: var(--nb-shadow);
+  flex-direction: row-reverse;
 }
 
 .ai-chat-panel__bubble--assistant {
   align-self: flex-start;
-  background: var(--nb-bg);
-  color: var(--nb-text);
+  background: var(--nb-surface);
+  color: var(--nb-ink);
   border: var(--nb-border);
+  box-shadow: var(--nb-shadow-xs);
+}
+
+.ai-chat-panel__role {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  background: var(--nb-accent);
+  color: #fff;
+  border: var(--nb-border);
+  border-radius: var(--nb-radius-sm);
+  font-family: var(--font-heading);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.ai-chat-panel__bubble--user .ai-chat-panel__role {
+  display: none;
+}
+
+.ai-chat-panel__content {
+  flex: 1;
+  min-width: 0;
 }
 
 .ai-chat-panel__typing {
-  display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 10px 14px;
 }
 
-.ai-chat-panel__typing span {
+.ai-chat-panel__typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ai-chat-panel__typing-dots span {
   width: 6px;
   height: 6px;
   background: var(--nb-muted);
@@ -213,11 +264,11 @@ async function handleSend() {
   animation: chat-typing 1.2s infinite;
 }
 
-.ai-chat-panel__typing span:nth-child(2) {
+.ai-chat-panel__typing-dots span:nth-child(2) {
   animation-delay: 0.2s;
 }
 
-.ai-chat-panel__typing span:nth-child(3) {
+.ai-chat-panel__typing-dots span:nth-child(3) {
   animation-delay: 0.4s;
 }
 
@@ -229,8 +280,8 @@ async function handleSend() {
 .ai-chat-panel__input {
   display: flex;
   gap: 8px;
-  padding: 12px;
+  padding: 12px 16px;
   border-top: var(--nb-border);
-  background: var(--nb-card);
+  background: var(--nb-surface);
 }
 </style>

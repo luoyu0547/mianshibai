@@ -48,8 +48,8 @@ export const useTrainingStore = defineStore('training', () => {
     loading.value = true
     try {
       const res = await generateTrainingPlanApi(data)
-      if (res.data.code === 0) {
-        return res.data.data
+      if (res.code === 0) {
+        return res.data
       }
       return null
     } finally {
@@ -61,8 +61,8 @@ export const useTrainingStore = defineStore('training', () => {
     loading.value = true
     try {
       const res = await getActiveTrainingPlanApi()
-      if (res.data.code === 0) {
-        activePlan.value = res.data.data
+      if (res.code === 0) {
+        activePlan.value = res.data
       }
     } finally {
       loading.value = false
@@ -73,8 +73,8 @@ export const useTrainingStore = defineStore('training', () => {
     loading.value = true
     try {
       const res = await listTrainingPlansApi()
-      if (res.data.code === 0) {
-        plans.value = res.data.data
+      if (res.code === 0) {
+        plans.value = res.data
       }
     } finally {
       loading.value = false
@@ -85,8 +85,8 @@ export const useTrainingStore = defineStore('training', () => {
     loading.value = true
     try {
       const res = await getTrainingPlanApi(id)
-      if (res.data.code === 0) {
-        currentPlan.value = res.data.data
+      if (res.code === 0) {
+        currentPlan.value = res.data
       }
     } finally {
       loading.value = false
@@ -95,20 +95,20 @@ export const useTrainingStore = defineStore('training', () => {
 
   async function archivePlan(id: number) {
     const res = await archiveTrainingPlanApi(id)
-    return res.data.code === 0
+    return res.code === 0
   }
 
   async function completePlan(id: number) {
     const res = await completeTrainingPlanApi(id)
-    return res.data.code === 0
+    return res.code === 0
   }
 
   async function fetchQuestion(id: number) {
     loading.value = true
     try {
       const res = await getTrainingQuestionApi(id)
-      if (res.data.code === 0) {
-        currentQuestion.value = res.data.data
+      if (res.code === 0) {
+        currentQuestion.value = res.data
       }
     } finally {
       loading.value = false
@@ -117,20 +117,20 @@ export const useTrainingStore = defineStore('training', () => {
 
   async function masterQuestion(id: number) {
     const res = await masterTrainingQuestionApi(id)
-    return res.data.code === 0
+    return res.code === 0
   }
 
   async function skipQuestion(id: number) {
     const res = await skipTrainingQuestionApi(id)
-    return res.data.code === 0
+    return res.code === 0
   }
 
   async function submitAnswer(id: number, data: TrainingAnswerSubmitRequest) {
     loading.value = true
     try {
       const res = await submitTrainingAnswerApi(id, data)
-      if (res.data.code === 0) {
-        return res.data.data
+      if (res.code === 0) {
+        return res.data
       }
       return null
     } finally {
@@ -140,27 +140,27 @@ export const useTrainingStore = defineStore('training', () => {
 
   async function fetchAnswers(id: number) {
     const res = await listTrainingQuestionAnswersApi(id)
-    if (res.data.code === 0) {
-      answers.value = res.data.data
+    if (res.code === 0) {
+      answers.value = res.data
     }
   }
 
   async function completeAlgorithm(id: number) {
     const res = await completeAlgorithmRecommendationApi(id)
-    return res.data.code === 0
+    return res.code === 0
   }
 
   async function reopenAlgorithm(id: number) {
     const res = await reopenAlgorithmRecommendationApi(id)
-    return res.data.code === 0
+    return res.code === 0
   }
 
   async function fetchMistakes(params?: TrainingMistakeQueryRequest) {
     loading.value = true
     try {
       const res = await listTrainingMistakesApi(params)
-      if (res.data.code === 0) {
-        mistakes.value = res.data.data
+      if (res.code === 0) {
+        mistakes.value = res.data
       }
     } finally {
       loading.value = false
@@ -171,8 +171,8 @@ export const useTrainingStore = defineStore('training', () => {
     loading.value = true
     try {
       const res = await listTopicMasteryApi()
-      if (res.data.code === 0) {
-        topicMasteries.value = res.data.data
+      if (res.code === 0) {
+        topicMasteries.value = res.data
       }
     } finally {
       loading.value = false
@@ -183,8 +183,8 @@ export const useTrainingStore = defineStore('training', () => {
     loading.value = true
     try {
       const res = await listSkillTagMasteryApi()
-      if (res.data.code === 0) {
-        skillTagMasteries.value = res.data.data
+      if (res.code === 0) {
+        skillTagMasteries.value = res.data
       }
     } finally {
       loading.value = false
@@ -193,8 +193,8 @@ export const useTrainingStore = defineStore('training', () => {
 
   async function fetchMasterySummary() {
     const res = await getTrainingMasterySummaryApi()
-    if (res.data.code === 0) {
-      masterySummary.value = res.data.data
+    if (res.code === 0) {
+      masterySummary.value = res.data
     }
   }
 
@@ -202,7 +202,7 @@ export const useTrainingStore = defineStore('training', () => {
     loading.value = true
     try {
       const res = await rebuildTrainingMasteryApi()
-      if (res.data.code === 0) {
+      if (res.code === 0) {
         return true
       }
       return false

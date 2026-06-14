@@ -21,7 +21,7 @@ const router = createRouter({
       path: '/profile',
       name: 'Profile',
       component: () => import('@/views/profile/ProfilePage.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, skipProfileCheck: true },
     },
     {
       path: '/resume',
@@ -229,6 +229,16 @@ router.beforeEach(async (to, from, next) => {
   // 非管理员访问管理员路由，回到用户端首页
   if (to.meta.requiresAdmin && userStore.userInfo?.userRole !== 'admin') {
     next('/')
+    return
+  }
+
+  // 个人资料未完善，强制跳转资料页（仅跳过 Profile 页本身）
+  if (
+    userStore.isLoggedIn &&
+    !userStore.hasProfile &&
+    !to.meta.skipProfileCheck
+  ) {
+    next('/profile')
     return
   }
 

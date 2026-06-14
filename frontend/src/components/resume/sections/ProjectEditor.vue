@@ -1,7 +1,7 @@
 <!-- src/components/resume/sections/ProjectEditor.vue -->
 <template>
   <div class="project-editor">
-    <div v-for="(item, index) in items" :key="index" class="project-item">
+    <NbCard v-for="(item, index) in items" :key="index" variant="muted" compact class="project-item">
       <div class="project-item__header">
         <span class="project-item__title">项目经历 {{ index + 1 }}</span>
         <el-button type="danger" text size="small" @click="removeItem(index)">删除</el-button>
@@ -85,13 +85,15 @@
           </div>
         </el-form-item>
       </el-form>
-    </div>
-    <el-button class="add-btn" @click="addItem">+ 添加项目经历</el-button>
+    </NbCard>
+    <NbButton variant="ghost" block class="add-btn" @click="addItem">+ 添加项目经历</NbButton>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
+import NbCard from '@/components/NbCard.vue'
+import NbButton from '@/components/NbButton.vue'
 
 const props = defineProps<{
   items: Record<string, unknown>[]
@@ -160,13 +162,10 @@ function handleTagConfirm(itemIndex: number) {
 </script>
 
 <style scoped>
-.project-item {
-  background: var(--nb-card);
-  border: var(--nb-border);
-  box-shadow: var(--nb-shadow);
-  border-radius: var(--nb-radius-lg);
-  padding: 20px;
-  margin-bottom: 16px;
+.project-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .project-item__header {
@@ -178,13 +177,8 @@ function handleTagConfirm(itemIndex: number) {
 
 .project-item__title {
   font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 16px;
-}
-
-.add-btn {
-  width: 100%;
-  border-style: dashed;
+  font-weight: 700;
+  font-size: 15px;
 }
 
 .tag-list {
@@ -196,7 +190,7 @@ function handleTagConfirm(itemIndex: number) {
 
 .highlight-tag {
   border: var(--nb-border);
-  box-shadow: 2px 2px 0 var(--nb-border);
+  box-shadow: var(--nb-shadow-xs);
 }
 
 .tag-input {

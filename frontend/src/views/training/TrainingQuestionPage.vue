@@ -1,57 +1,55 @@
 <template>
   <MainLayout>
     <div class="tq-page">
-      <div v-if="trainingStore.loading && !question" class="tq-page__loading">
-        <el-icon class="is-loading" :size="32"><LoadingIcon /></el-icon>
-        <span>加载中...</span>
-      </div>
+      <NbCard v-if="trainingStore.loading && !question">
+        <NbLoadingBlock title="加载题目..." :rows="4" />
+      </NbCard>
 
       <template v-else-if="question">
-        <div class="tq-page__header">
-          <el-button text @click="goBack">&larr; 返回训练计划</el-button>
+        <div class="tq-page__back">
+          <NbButton variant="ghost" @click="goBack">&larr; 返回训练计划</NbButton>
         </div>
 
-        <div class="tq-page__title-row">
-          <h2 class="tq-page__title">{{ question.title }}</h2>
-          <div class="tq-page__actions">
-            <NbButton type="success" :loading="actionLoading === 'master'" @click="handleMaster">标记已掌握</NbButton>
-            <NbButton type="secondary" :loading="actionLoading === 'skip'" @click="handleSkip">跳过</NbButton>
-          </div>
-        </div>
+        <NbPageHeader :title="question.title">
+          <template #actions>
+            <NbButton variant="success" :loading="actionLoading === 'master'" @click="handleMaster">标记已掌握</NbButton>
+            <NbButton variant="secondary" :loading="actionLoading === 'skip'" @click="handleSkip">跳过</NbButton>
+          </template>
+        </NbPageHeader>
 
         <div class="tq-page__tags">
-          <el-tag effect="dark">{{ question.topic }}</el-tag>
-          <el-tag :type="difficultyTagType(question.difficulty)" effect="dark">
-            {{ difficultyLabel(question.difficulty) }}
-          </el-tag>
-          <el-tag type="info" effect="plain">{{ question.sourceType }}</el-tag>
-          <el-tag :type="statusTagType(question.status)" effect="dark">
-            {{ QUESTION_STATUS_LABELS[question.status] }}
-          </el-tag>
+          <NbStatusBadge :label="question.topic" variant="info" />
+          <NbStatusBadge
+            :label="getStatusDescriptor(trainingDifficultyMap, question.difficulty).label"
+            :variant="getStatusDescriptor(trainingDifficultyMap, question.difficulty).variant"
+          />
+          <NbStatusBadge :label="question.sourceType" variant="default" />
+          <NbStatusBadge
+            :label="getStatusDescriptor(trainingQuestionStatusMap, question.status).label"
+            :variant="getStatusDescriptor(trainingQuestionStatusMap, question.status).variant"
+          />
           <template v-if="question.skillTags?.length">
-            <el-tag
+            <NbStatusBadge
               v-for="tag in question.skillTags"
               :key="tag"
-              size="small"
-              effect="plain"
-              class="tq-page__skill-tag"
-            >
-              {{ tag }}
-            </el-tag>
+              :label="tag"
+              variant="muted"
+            />
           </template>
         </div>
 
         <NbCard>
-          <div class="tq-page__content" v-html="question.content"></div>
+          <NbSectionTitle title="题目内容" />
+          <div class="tq-page__content nb-prewrap">{{ question.content }}</div>
           <el-collapse v-if="question.referenceAnswer" class="tq-page__ref-collapse">
             <el-collapse-item title="参考答案" name="ref">
-              <div class="tq-page__ref-answer">{{ question.referenceAnswer }}</div>
+              <div class="tq-page__ref-answer nb-prewrap">{{ question.referenceAnswer }}</div>
             </el-collapse-item>
           </el-collapse>
         </NbCard>
 
         <NbCard v-if="!latestReview">
-          <h3 class="tq-page__section-title">作答</h3>
+          <NbSectionTitle title="作答" />
           <el-input
             v-model="answerText"
             type="textarea"
@@ -62,7 +60,7 @@
           />
           <div class="tq-page__submit-row">
             <NbButton
-              type="primary"
+              variant="primary"
               :loading="submitting"
               :disabled="!answerText.trim()"
               @click="handleSubmit"
@@ -72,8 +70,8 @@
           </div>
         </NbCard>
 
-        <NbCard v-if="latestReview" class="tq-page__review">
-          <h3 class="tq-page__section-title">AI 批改结果</h3>
+        <NbCard v-if="latestReview" variant="ai">
+          <NbSectionTitle title="AI 批改结果" />
 
           <div class="tq-page__score-row">
             <div class="tq-page__total-score">
@@ -102,13 +100,10 @@
 
           <div class="tq-page__mastery-row">
             <span>掌握程度：</span>
-            <el-tag
-              effect="dark"
-              :color="masteryColor(latestReview.masteryLevel)"
-              style="border: none; color: #fff;"
-            >
-              {{ masteryLabel(latestReview.masteryLevel) }}
-            </el-tag>
+            <NbStatusBadge
+              :label="getStatusDescriptor(trainingMasteryMap, latestReview.masteryLevel).label"
+              :variant="getStatusDescriptor(trainingMasteryMap, latestReview.masteryLevel).variant"
+            />
           </div>
 
           <div v-if="latestReview.strengths?.length" class="tq-page__review-section">
@@ -153,7 +148,7 @@
 
           <div v-if="latestReview.recommendedAnswer" class="tq-page__review-section">
             <h4 class="tq-page__review-heading">推荐答案</h4>
-            <div class="tq-page__rec-answer">{{ latestReview.recommendedAnswer }}</div>
+            <div class="tq-page__rec-answer nb-prewrap">{{ latestReview.recommendedAnswer }}</div>
           </div>
 
           <div v-if="latestReview.followUpQuestions?.length" class="tq-page__review-section">
@@ -165,32 +160,31 @@
         </NbCard>
 
         <NbCard v-if="trainingStore.answers.length > 0">
-          <h3 class="tq-page__section-title">历史作答</h3>
+          <NbSectionTitle title="历史作答" />
           <div class="tq-page__history-list">
             <div v-for="ans in trainingStore.answers" :key="ans.id" class="tq-page__history-item">
               <div class="tq-page__history-meta">
-                <span class="tq-page__history-time">{{ formatTime(ans.createTime) }}</span>
-                <el-tag
+                <span class="tq-page__history-time">{{ formatDateTime(ans.createTime) }}</span>
+                <NbStatusBadge
                   v-if="ans.review"
-                  effect="dark"
-                  :color="masteryColor(ans.review.masteryLevel)"
-                  size="small"
-                  style="border: none; color: #fff;"
-                >
-                  {{ masteryLabel(ans.review.masteryLevel) }}
-                </el-tag>
+                  :label="getStatusDescriptor(trainingMasteryMap, ans.review.masteryLevel).label"
+                  :variant="getStatusDescriptor(trainingMasteryMap, ans.review.masteryLevel).variant"
+                />
                 <span v-if="ans.review" class="tq-page__history-score">{{ ans.review.totalScore }} 分</span>
               </div>
-              <div class="tq-page__history-preview">{{ ans.answerText }}</div>
+              <div class="tq-page__history-preview nb-prewrap">{{ ans.answerText }}</div>
             </div>
           </div>
         </NbCard>
       </template>
 
-      <div v-else class="tq-page__empty">
-        <p>未找到该题目</p>
-        <el-button type="primary" text @click="router.push('/training')">返回训练中心</el-button>
-      </div>
+      <NbCard v-else>
+        <NbEmptyState title="未找到该题目">
+          <template #action>
+            <NbButton variant="primary" @click="router.push('/training')">返回训练中心</NbButton>
+          </template>
+        </NbEmptyState>
+      </NbCard>
     </div>
   </MainLayout>
 </template>
@@ -199,17 +193,22 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Loading as LoadingIcon } from '@element-plus/icons-vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import NbCard from '@/components/NbCard.vue'
 import NbButton from '@/components/NbButton.vue'
+import NbPageHeader from '@/components/NbPageHeader.vue'
+import NbSectionTitle from '@/components/NbSectionTitle.vue'
+import NbStatusBadge from '@/components/NbStatusBadge.vue'
+import NbLoadingBlock from '@/components/NbLoadingBlock.vue'
+import NbEmptyState from '@/components/NbEmptyState.vue'
 import { useTrainingStore } from '@/stores/training'
 import {
-  QUESTION_STATUS_LABELS,
-  MASTERY_LEVEL_OPTIONS,
-  TRAINING_DIFFICULTY_OPTIONS,
-} from '@/types/training'
-import type { TrainingDifficulty, TrainingQuestionStatus, MasteryLevel } from '@/types/training'
+  trainingMasteryMap,
+  trainingQuestionStatusMap,
+  trainingDifficultyMap,
+  getStatusDescriptor,
+} from '@/utils/statusMaps'
+import { formatDateTime } from '@/utils/date'
 
 const route = useRoute()
 const router = useRouter()
@@ -293,78 +292,18 @@ async function handleSkip() {
     actionLoading.value = null
   }
 }
-
-function difficultyTagType(d: TrainingDifficulty) {
-  if (d === 'easy') return 'success'
-  if (d === 'medium') return 'warning'
-  return 'danger'
-}
-
-function difficultyLabel(d: TrainingDifficulty) {
-  return TRAINING_DIFFICULTY_OPTIONS.find(o => o.value === d)?.label ?? d
-}
-
-function statusTagType(s: TrainingQuestionStatus) {
-  if (s === 'pending') return 'info'
-  if (s === 'answered') return 'warning'
-  if (s === 'reviewed') return ''
-  if (s === 'mastered') return 'success'
-  return 'info'
-}
-
-function masteryColor(m: MasteryLevel) {
-  return MASTERY_LEVEL_OPTIONS.find(o => o.value === m)?.color ?? '#636E72'
-}
-
-function masteryLabel(m: MasteryLevel) {
-  return MASTERY_LEVEL_OPTIONS.find(o => o.value === m)?.label ?? m
-}
-
-function formatTime(dateStr: string) {
-  return new Date(dateStr).toLocaleString('zh-CN')
-}
 </script>
 
 <style scoped>
 .tq-page {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
 }
 
-.tq-page__loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 64px 0;
-  color: var(--nb-muted);
-}
-
-.tq-page__header {
+.tq-page__back {
   display: flex;
   align-items: center;
-}
-
-.tq-page__title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.tq-page__title {
-  font-family: var(--font-heading);
-  font-size: 24px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.tq-page__actions {
-  display: flex;
-  gap: 12px;
-  flex-shrink: 0;
 }
 
 .tq-page__tags {
@@ -374,14 +313,9 @@ function formatTime(dateStr: string) {
   flex-wrap: wrap;
 }
 
-.tq-page__skill-tag {
-  border: var(--nb-border);
-  box-shadow: 2px 2px 0 var(--nb-border);
-}
-
 .tq-page__content {
   line-height: 1.8;
-  white-space: pre-wrap;
+  margin-top: 16px;
 }
 
 .tq-page__ref-collapse {
@@ -390,19 +324,11 @@ function formatTime(dateStr: string) {
 
 .tq-page__ref-answer {
   line-height: 1.8;
-  white-space: pre-wrap;
   color: var(--nb-muted);
-  background: var(--nb-bg);
+  background: var(--nb-muted-surface);
   padding: 12px;
   border-radius: var(--nb-radius);
   border: var(--nb-border);
-}
-
-.tq-page__section-title {
-  font-family: var(--font-heading);
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 16px 0;
 }
 
 .tq-page__submit-row {
@@ -411,15 +337,12 @@ function formatTime(dateStr: string) {
   justify-content: flex-end;
 }
 
-.tq-page__review {
-  border-color: var(--nb-primary);
-}
-
 .tq-page__score-row {
   display: flex;
   gap: 32px;
   align-items: center;
   flex-wrap: wrap;
+  margin-top: 16px;
   margin-bottom: 20px;
 }
 
@@ -433,7 +356,7 @@ function formatTime(dateStr: string) {
   border: var(--nb-border);
   border-radius: var(--nb-radius-lg);
   box-shadow: var(--nb-shadow);
-  background: var(--nb-bg);
+  background: var(--nb-surface);
 }
 
 .tq-page__total-score-num {
@@ -493,10 +416,10 @@ function formatTime(dateStr: string) {
   margin: 0 0 8px 0;
 }
 
-.tq-page__review-heading--green { color: #00B894; }
-.tq-page__review-heading--red { color: #e74c3c; }
-.tq-page__review-heading--orange { color: #f39c12; }
-.tq-page__review-heading--blue { color: #3498db; }
+.tq-page__review-heading--green { color: var(--nb-success); }
+.tq-page__review-heading--red { color: var(--nb-danger); }
+.tq-page__review-heading--orange { color: var(--nb-warning); }
+.tq-page__review-heading--blue { color: var(--nb-secondary); }
 
 .tq-page__review-list {
   list-style: none;
@@ -521,19 +444,18 @@ function formatTime(dateStr: string) {
   margin-top: 2px;
 }
 
-.tq-page__icon--green { color: #00B894; }
-.tq-page__icon--red { color: #e74c3c; }
-.tq-page__icon--orange { color: #f39c12; }
-.tq-page__icon--blue { color: #3498db; }
+.tq-page__icon--green { color: var(--nb-success); }
+.tq-page__icon--red { color: var(--nb-danger); }
+.tq-page__icon--orange { color: var(--nb-warning); }
+.tq-page__icon--blue { color: var(--nb-secondary); }
 
 .tq-page__rec-answer {
-  background: var(--nb-bg);
+  background: var(--nb-muted-surface);
   border: var(--nb-border);
   border-radius: var(--nb-radius);
   padding: 16px;
   line-height: 1.8;
-  white-space: pre-wrap;
-  box-shadow: 2px 2px 0 var(--nb-border);
+  box-shadow: var(--nb-shadow-xs);
 }
 
 .tq-page__followup-list {
@@ -546,13 +468,14 @@ function formatTime(dateStr: string) {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  margin-top: 16px;
 }
 
 .tq-page__history-item {
   border: var(--nb-border);
   border-radius: var(--nb-radius);
   padding: 12px;
-  background: var(--nb-bg);
+  background: var(--nb-surface);
 }
 
 .tq-page__history-meta {
@@ -577,19 +500,9 @@ function formatTime(dateStr: string) {
 .tq-page__history-preview {
   font-size: 14px;
   color: var(--nb-text);
-  white-space: pre-wrap;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
-}
-
-.tq-page__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 64px 0;
-  color: var(--nb-muted);
 }
 </style>

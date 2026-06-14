@@ -16,8 +16,10 @@ export class AsrClient {
   }
 
   connect(): void {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
-    const wsUrl = baseUrl.replace(/^http/, 'ws').replace(/\/$/, '')
+    const baseUrl = import.meta.env.VITE_API_BASE_URL ?? ''
+    const wsUrl = baseUrl
+      ? baseUrl.replace(/^http/, 'ws').replace(/\/$/, '')
+      : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
     const url = `${wsUrl}/ws/interview/asr?sessionId=${this.options.sessionId}&turnId=${this.options.turnId}&token=${encodeURIComponent(this.options.token)}`
 
     this.ws = new WebSocket(url)

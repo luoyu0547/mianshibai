@@ -1,93 +1,105 @@
 <!-- src/views/resume/ResumeEditPage.vue -->
 <template>
-  <div class="resume-edit-page">
-    <div class="resume-edit-page__topbar">
-      <el-input
-        v-model="title"
-        class="resume-edit-page__title-input"
-        placeholder="简历标题"
-        size="large"
-      />
-      <TemplateSelector v-model="templateType" />
-      <div class="resume-edit-page__topbar-actions">
-        <el-button :loading="isSaving" type="primary" @click="handleSave">保存</el-button>
-        <el-button @click="router.push(`/resume/${resumeId}/preview`)">预览</el-button>
+  <div class="rep">
+    <!-- 顶部工具栏 -->
+    <header class="rep-topbar">
+      <div class="rep-topbar__left">
+        <NbButton variant="ghost" class="rep-back" @click="router.back()">
+          <el-icon><ArrowLeft /></el-icon>
+        </NbButton>
+        <el-input
+          v-model="title"
+          class="rep-title-input"
+          placeholder="简历标题"
+          size="large"
+        />
       </div>
-    </div>
+      <div class="rep-topbar__right">
+        <TemplateSelector v-model="templateType" />
+        <NbButton variant="ghost" @click="router.push(`/resume/${resumeId}/preview`)">预览</NbButton>
+        <NbButton variant="primary" :loading="isSaving" @click="handleSave">保存</NbButton>
+      </div>
+    </header>
 
-    <div class="resume-edit-page__body">
-      <div class="resume-edit-page__left">
-        <el-collapse v-model="activeSections" class="section-collapse">
-          <el-collapse-item name="basic">
-            <template #title>
-              <div class="section-header">
-                <span>基本信息</span>
-                <el-button size="small" text class="ai-btn" @click.stop="openOptimize('basic')">AI 优化</el-button>
-              </div>
+    <!-- 主体区域 -->
+    <div class="rep-body">
+      <!-- 左侧编辑区 -->
+      <div class="rep-forms">
+        <NbCard class="rep-section">
+          <NbSectionTitle title="基本信息" description="个人联系方式与求职意向">
+            <template #actions>
+              <NbButton variant="ghost" @click="openOptimize('basic')">AI 优化</NbButton>
             </template>
-            <BasicInfoEditor v-model="basicData" />
-          </el-collapse-item>
+          </NbSectionTitle>
+          <BasicInfoEditor v-model="basicData" />
+        </NbCard>
 
-          <el-collapse-item name="education">
-            <template #title>
-              <div class="section-header">
-                <span>教育经历</span>
-                <el-button size="small" text class="ai-btn" @click.stop="openOptimize('education')">AI 优化</el-button>
-              </div>
+        <NbCard class="rep-section">
+          <NbSectionTitle title="教育经历" description="学校、专业与学术亮点">
+            <template #actions>
+              <NbButton variant="ghost" @click="openOptimize('education')">AI 优化</NbButton>
             </template>
-            <EducationEditor :items="educationItems" @update:items="educationItems = $event" />
-          </el-collapse-item>
+          </NbSectionTitle>
+          <EducationEditor :items="educationItems" @update:items="educationItems = $event" />
+        </NbCard>
 
-          <el-collapse-item name="work">
-            <template #title>
-              <div class="section-header">
-                <span>工作经历</span>
-                <el-button size="small" text class="ai-btn" @click.stop="openOptimize('work')">AI 优化</el-button>
-              </div>
+        <NbCard class="rep-section">
+          <NbSectionTitle title="工作经历" description="公司、职位与工作成果">
+            <template #actions>
+              <NbButton variant="ghost" @click="openOptimize('work')">AI 优化</NbButton>
             </template>
-            <WorkExperienceEditor :items="workItems" @update:items="workItems = $event" />
-          </el-collapse-item>
+          </NbSectionTitle>
+          <WorkExperienceEditor :items="workItems" @update:items="workItems = $event" />
+        </NbCard>
 
-          <el-collapse-item name="project">
-            <template #title>
-              <div class="section-header">
-                <span>项目经历</span>
-                <el-button size="small" text class="ai-btn" @click.stop="openOptimize('project')">AI 优化</el-button>
-              </div>
+        <NbCard class="rep-section">
+          <NbSectionTitle title="项目经历" description="项目名称、技术栈与亮点">
+            <template #actions>
+              <NbButton variant="ghost" @click="openOptimize('project')">AI 优化</NbButton>
             </template>
-            <ProjectEditor :items="projectItems" @update:items="projectItems = $event" />
-          </el-collapse-item>
+          </NbSectionTitle>
+          <ProjectEditor :items="projectItems" @update:items="projectItems = $event" />
+        </NbCard>
 
-          <el-collapse-item name="skills">
-            <template #title>
-              <div class="section-header">
-                <span>技能标签</span>
-                <el-button size="small" text class="ai-btn" @click.stop="openOptimize('skills')">AI 优化</el-button>
-              </div>
+        <NbCard class="rep-section">
+          <NbSectionTitle title="技能标签" description="按分类组织你的技能">
+            <template #actions>
+              <NbButton variant="ghost" @click="openOptimize('skills')">AI 优化</NbButton>
             </template>
-            <SkillsEditor v-model="skillsData" />
-          </el-collapse-item>
+          </NbSectionTitle>
+          <SkillsEditor v-model="skillsData" />
+        </NbCard>
 
-          <el-collapse-item name="summary">
-            <template #title>
-              <div class="section-header">
-                <span>自我评价</span>
-                <el-button size="small" text class="ai-btn" @click.stop="openOptimize('summary')">AI 优化</el-button>
-              </div>
+        <NbCard class="rep-section">
+          <NbSectionTitle title="自我评价" description="一段简短的个人亮点">
+            <template #actions>
+              <NbButton variant="ghost" @click="openOptimize('summary')">AI 优化</NbButton>
             </template>
-            <SummaryEditor v-model="summaryData" />
-          </el-collapse-item>
-        </el-collapse>
+          </NbSectionTitle>
+          <SummaryEditor v-model="summaryData" />
+        </NbCard>
 
-        <div class="resume-edit-page__ai-bar">
-          <el-button type="primary" class="ai-generate-btn">一键 AI 生成</el-button>
-        </div>
+        <NbCard variant="ai" class="rep-ai-bar">
+          <div class="rep-ai-bar__inner">
+            <div class="rep-ai-bar__text">
+              <h4>AI 全局优化</h4>
+              <p>一键智能优化全部模块</p>
+            </div>
+            <NbButton variant="primary" block>一键 AI 生成</NbButton>
+          </div>
+        </NbCard>
       </div>
 
-      <div class="resume-edit-page__right">
-        <div class="resume-edit-page__preview">
-          <div class="a4-container">
-            <div class="a4-page">
+      <!-- 右侧面板 -->
+      <div class="rep-aside">
+        <div class="rep-preview">
+          <NbSectionTitle title="实时预览" description="所见即所得的简历效果" class="rep-preview-title">
+            <template #actions>
+              <VersionHistory :resume-id="resumeId" />
+            </template>
+          </NbSectionTitle>
+          <div class="rep-a4-wrap">
+            <div class="rep-a4">
               <component
                 :is="templateComponent"
                 v-if="templateComponent"
@@ -98,15 +110,16 @@
                 :skills="skillsData"
                 :summary="summaryData"
               />
-              <div v-else class="a4-placeholder">
+              <div v-else class="rep-a4-empty">
                 <p>简历预览区域</p>
-                <p class="a4-placeholder__hint">选择模板后在此显示预览</p>
+                <p class="rep-a4-empty__hint">选择模板后在此显示预览</p>
               </div>
             </div>
           </div>
         </div>
-        <div class="resume-edit-page__chat-panel">
-          <el-tabs v-model="activeTab" class="chat-tabs">
+
+        <NbCard variant="ai" class="rep-ai-panel">
+          <el-tabs v-model="activeTab" class="rep-tabs">
             <el-tab-pane label="AI 对话" name="chat">
               <AiChatPanel
                 :resume-id="resumeId"
@@ -117,10 +130,7 @@
               <AiScorePanel :resume-id="resumeId" />
             </el-tab-pane>
           </el-tabs>
-        </div>
-        <div class="resume-edit-page__version-bar">
-          <VersionHistory :resume-id="resumeId" />
-        </div>
+        </NbCard>
       </div>
 
       <AiOptimizeDialog
@@ -139,6 +149,7 @@
 import { ref, computed, onMounted, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { ArrowLeft } from '@element-plus/icons-vue'
 import BasicInfoEditor from '@/components/resume/sections/BasicInfoEditor.vue'
 import EducationEditor from '@/components/resume/sections/EducationEditor.vue'
 import WorkExperienceEditor from '@/components/resume/sections/WorkExperienceEditor.vue'
@@ -153,6 +164,9 @@ import TemplateSelector from '@/components/resume/TemplateSelector.vue'
 import MinimalTech from '@/templates/MinimalTech.vue'
 import ModernTwoCol from '@/templates/ModernTwoCol.vue'
 import ClassicFormal from '@/templates/ClassicFormal.vue'
+import NbCard from '@/components/NbCard.vue'
+import NbButton from '@/components/NbButton.vue'
+import NbSectionTitle from '@/components/NbSectionTitle.vue'
 import { useResumeStore } from '@/stores/resume'
 import {
   addSection as addSectionApi,
@@ -186,7 +200,6 @@ const sectionIds = ref<Record<SectionType, number[]>>({
   summary: [],
 })
 
-const activeSections = ref(['basic'])
 const activeTab = ref('chat')
 
 const optimizeVisible = ref(false)
@@ -282,8 +295,6 @@ function splitSections(sections: SectionVO[]) {
   summaryData.value = grouped.summary?.[0] || {}
 }
 
-
-
 function handleExtracted(sectionType: SectionType, sectionData: Record<string, unknown>) {
   switch (sectionType) {
     case 'basic':
@@ -356,154 +367,226 @@ async function handleSave() {
 </script>
 
 <style scoped>
-.resume-edit-page {
+.rep {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px);
-  margin: -32px -24px;
+  height: calc(100vh - 60px);
+  margin: -28px -24px;
+  background: var(--nb-bg);
 }
 
-.resume-edit-page__topbar {
+/* 顶部工具栏 */
+.rep-topbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
-  padding: 12px 24px;
-  background: var(--nb-card);
+  padding: 10px 24px;
+  background: var(--nb-surface);
   border-bottom: var(--nb-border);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.rep-topbar__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.rep-back {
   flex-shrink: 0;
 }
 
-.resume-edit-page__title-input :deep(.el-input__wrapper) {
+.rep-title-input {
+  flex: 1;
+  max-width: 360px;
+}
+
+.rep-title-input :deep(.el-input__wrapper) {
   box-shadow: none !important;
   border: none !important;
+  background: transparent !important;
   font-family: var(--font-heading);
   font-size: 18px;
   font-weight: 600;
+  padding: 0 !important;
 }
 
-.resume-edit-page__topbar-actions {
+.rep-topbar__right {
   display: flex;
+  align-items: center;
   gap: 8px;
-  margin-left: auto;
+  flex-shrink: 0;
 }
 
-.resume-edit-page__body {
+/* 主体 */
+.rep-body {
   display: flex;
   flex: 1;
   overflow: hidden;
 }
 
-.resume-edit-page__left {
+/* 左侧编辑区 */
+.rep-forms {
   width: 50%;
   overflow-y: auto;
-  padding: 24px;
+  padding: 20px;
   border-right: var(--nb-border);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.section-collapse :deep(.el-collapse-item__header) {
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 16px;
+.rep-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.section-header {
+/* AI 工具栏 */
+.rep-ai-bar__inner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding-right: 16px;
+  gap: 16px;
 }
 
-.ai-btn {
+.rep-ai-bar__text {
+  flex-shrink: 0;
+}
+
+.rep-ai-bar__text h4 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--nb-primary-dark);
+}
+
+.rep-ai-bar__text p {
+  margin: 2px 0 0;
+  font-size: 12.5px;
   color: var(--nb-primary);
-  font-size: 12px;
 }
 
-.resume-edit-page__ai-bar {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: var(--nb-border);
-}
-
-.ai-generate-btn {
-  width: 100%;
-}
-
-.resume-edit-page__right {
+/* 右侧面板 */
+.rep-aside {
   width: 50%;
   display: flex;
   flex-direction: column;
-}
-
-.resume-edit-page__preview {
-  flex: 6;
-  overflow: auto;
-  padding: 24px;
+  overflow: hidden;
   background: var(--nb-bg);
-  display: flex;
-  justify-content: center;
 }
 
-.a4-container {
+/* 预览区 */
+.rep-preview {
+  flex: 1;
+  overflow: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rep-preview-title {
+  background: var(--nb-surface);
+  margin: -4px -4px 0;
+  padding: 4px 8px;
+  border-radius: var(--nb-radius);
+}
+
+.rep-a4-wrap {
   width: 100%;
   max-width: 680px;
+  margin: 0 auto;
 }
 
-.a4-page {
+.rep-a4 {
   background: #fff;
   border: var(--nb-border);
-  box-shadow: var(--nb-shadow);
-  border-radius: 2px;
-  padding: 40px 32px;
+  box-shadow: var(--nb-shadow-lg);
+  border-radius: 4px;
+  padding: 44px 36px;
   min-height: 600px;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.6;
 }
 
-.a4-placeholder {
+.rep-a4-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 400px;
   color: var(--nb-muted);
-  font-size: 16px;
+  font-size: 15px;
+  font-family: var(--font-body);
 }
 
-.a4-placeholder__hint {
+.rep-a4-empty__hint {
   font-size: 13px;
   margin-top: 8px;
-  color: var(--nb-muted);
+  color: var(--nb-muted-light);
 }
 
-.resume-edit-page__chat-panel {
-  flex: 4;
-  border-top: var(--nb-border);
-  background: var(--nb-card);
+/* AI 面板 */
+.rep-ai-panel {
+  flex: 0 0 38%;
   overflow: hidden;
-}
-
-.chat-tabs :deep(.el-tabs__content) {
-  height: calc(100% - 40px);
-  overflow: hidden;
-}
-
-.chat-tabs :deep(.el-tab-pane) {
-  height: 100%;
-}
-
-.resume-edit-page__version-bar {
-  padding: 8px 12px;
-  border-top: var(--nb-border);
-  background: var(--nb-card);
-}
-
-.chat-placeholder {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  border-radius: var(--nb-radius-lg) var(--nb-radius-lg) 0 0;
+  margin: 0 16px 0 0;
+}
+
+.rep-tabs {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.rep-tabs :deep(.el-tabs__content) {
+  flex: 1;
+  overflow: hidden;
+}
+
+.rep-tabs :deep(.el-tab-pane) {
   height: 100%;
-  color: var(--nb-muted);
-  font-size: 14px;
+}
+
+/* 响应式 */
+@media (max-width: 960px) {
+  .rep {
+    height: auto;
+    min-height: calc(100vh - 60px);
+  }
+
+  .rep-body {
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .rep-forms {
+    width: 100%;
+    border-right: none;
+    border-bottom: var(--nb-border);
+    overflow: visible;
+  }
+
+  .rep-aside {
+    width: 100%;
+    overflow: visible;
+  }
+
+  .rep-ai-panel {
+    max-height: none;
+    margin: 16px;
+    border-radius: var(--nb-radius-lg);
+  }
 }
 </style>

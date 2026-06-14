@@ -30,15 +30,15 @@ export const useCoachStore = defineStore('coach', () => {
     generating.value = true
     try {
       const res = await generateCoachPlanApi(data)
-      if (res.data.code === 0) {
+      if (res.code === 0) {
         overview.value = {
-          latestDiagnosis: res.data.data.diagnosis,
-          activePlan: res.data.data.plan,
-          todayTasks: res.data.data.plan.tasks.filter((task) => task.dayIndex === 1),
+          latestDiagnosis: res.data.diagnosis,
+          activePlan: res.data.plan,
+          todayTasks: res.data.plan.tasks.filter((task) => task.dayIndex === 1),
           diagnosisCount: (overview.value?.diagnosisCount || 0) + 1,
           planCount: (overview.value?.planCount || 0) + 1,
         }
-        return res.data.data
+        return res.data
       }
       return null
     } finally {
@@ -50,7 +50,7 @@ export const useCoachStore = defineStore('coach', () => {
     loading.value = true
     try {
       const res = await getCoachOverviewApi()
-      if (res.data.code === 0) overview.value = res.data.data
+      if (res.code === 0) overview.value = res.data
     } finally {
       loading.value = false
     }
@@ -58,14 +58,14 @@ export const useCoachStore = defineStore('coach', () => {
 
   async function fetchDiagnoses() {
     const res = await listCoachDiagnosesApi()
-    if (res.data.code === 0) diagnoses.value = res.data.data
+    if (res.code === 0) diagnoses.value = res.data
   }
 
   async function fetchDiagnosis(id: number) {
     loading.value = true
     try {
       const res = await getCoachDiagnosisApi(id)
-      if (res.data.code === 0) currentDiagnosis.value = res.data.data
+      if (res.code === 0) currentDiagnosis.value = res.data
     } finally {
       loading.value = false
     }
@@ -73,14 +73,14 @@ export const useCoachStore = defineStore('coach', () => {
 
   async function fetchPlans() {
     const res = await listCoachPlansApi()
-    if (res.data.code === 0) plans.value = res.data.data
+    if (res.code === 0) plans.value = res.data
   }
 
   async function fetchPlan(id: number) {
     loading.value = true
     try {
       const res = await getCoachPlanApi(id)
-      if (res.data.code === 0) currentPlan.value = res.data.data
+      if (res.code === 0) currentPlan.value = res.data
     } finally {
       loading.value = false
     }
@@ -88,7 +88,7 @@ export const useCoachStore = defineStore('coach', () => {
 
   async function completeTask(id: number) {
     const res = await completeCoachTaskApi(id)
-    if (res.data.code !== 0) return false
+    if (res.code !== 0) return false
     if (currentPlan.value) {
       const task = currentPlan.value.tasks.find((item) => item.id === id)
       if (task) task.status = 'completed'
@@ -99,7 +99,7 @@ export const useCoachStore = defineStore('coach', () => {
 
   async function reopenTask(id: number) {
     const res = await reopenCoachTaskApi(id)
-    if (res.data.code !== 0) return false
+    if (res.code !== 0) return false
     if (currentPlan.value) {
       const task = currentPlan.value.tasks.find((item) => item.id === id)
       if (task) task.status = 'pending'

@@ -1,43 +1,52 @@
 <!-- src/components/resume/VersionHistory.vue -->
 <template>
   <div class="version-history">
-    <el-button @click="drawerVisible = true">
+    <NbButton variant="ghost" @click="drawerVisible = true">
       <el-icon><Clock /></el-icon>
       版本历史
-    </el-button>
+    </NbButton>
 
-    <el-drawer v-model="drawerVisible" title="版本历史" direction="rtl" size="360px">
-      <div v-if="loading" class="version-history__loading">
-        <el-icon class="is-loading"><Loading /></el-icon>
-        <span>加载中...</span>
-      </div>
+    <el-drawer v-model="drawerVisible" title="版本历史" direction="rtl" size="380px">
+      <NbLoadingBlock v-if="loading" title="加载版本记录..." :rows="4" />
 
-      <el-timeline v-else-if="versions.length" class="version-history__timeline">
-        <el-timeline-item
-          v-for="version in versions"
+      <div v-else-if="versions.length" class="version-history__timeline">
+        <div
+          v-for="(version, index) in versions"
           :key="version.id"
-          :timestamp="formatTime(version.createTime)"
-          placement="top"
+          class="version-history__entry"
         >
-          <div class="version-history__item">
-            <span class="version-history__version">v{{ version.version }}</span>
-            <span class="version-history__summary">{{ version.changeSummary || '自动保存' }}</span>
+          <div class="version-history__node">
+            <span class="version-history__dot" :class="{ 'version-history__dot--latest': index === 0 }"></span>
+            <span v-if="index < versions.length - 1" class="version-history__line"></span>
           </div>
-        </el-timeline-item>
-      </el-timeline>
-
-      <div v-else class="version-history__empty">
-        <p>暂无版本记录</p>
+          <div class="version-history__content">
+            <div class="version-history__entry-head">
+              <span class="version-history__version">v{{ version.version }}</span>
+              <span v-if="index === 0" class="version-history__latest-tag">当前</span>
+            </div>
+            <p class="version-history__summary">{{ version.changeSummary || '自动保存' }}</p>
+            <span class="version-history__time">{{ formatTime(version.createTime) }}</span>
+          </div>
+        </div>
       </div>
+
+      <NbEmptyState
+        v-else
+        title="暂无版本记录"
+        description="保存简历后会自动生成版本快照"
+      />
     </el-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { Clock, Loading } from '@element-plus/icons-vue'
+import { Clock } from '@element-plus/icons-vue'
 import { getResumeVersions } from '@/api/resume'
 import type { VersionVO } from '@/types/resume'
+import NbButton from '@/components/NbButton.vue'
+import NbEmptyState from '@/components/NbEmptyState.vue'
+import NbLoadingBlock from '@/components/NbLoadingBlock.vue'
 
 const props = defineProps<{
   resumeId: number
@@ -52,8 +61,8 @@ watch(drawerVisible, async (visible) => {
     loading.value = true
     try {
       const res = await getResumeVersions(props.resumeId)
-      if (res.data.code === 0) {
-        versions.value = res.data.data || []
+      if (res.code === 0) {
+        versions.value = res.data || []
       }
     } finally {
       loading.value = false
@@ -75,41 +84,86 @@ function formatTime(time: string): string {
 </script>
 
 <style scoped>
-.version-history__loading {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: center;
-  padding: 32px 0;
-  color: var(--nb-muted);
-}
-
 .version-history__timeline {
   padding: 8px 0;
 }
 
-.version-history__item {
+.version-history__entry {
+  display: flex;
+  gap: 14px;
+  padding-bottom: 4px;
+}
+
+.version-history__node {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+
+.version-history__dot {
+  width: 14px;
+  height: 14px;
+  border: var(--nb-border);
+  border-radius: 50%;
+  background: var(--nb-surface);
+  flex-shrink: 0;
+}
+
+.version-history__dot--latest {
+  background: var(--nb-primary);
+}
+
+.version-history__line {
+  width: 2px;
+  flex: 1;
+  min-height: 32px;
+  background: var(--nb-border-color);
+  opacity: 0.3;
+  margin-top: 4px;
+}
+
+.version-history__content {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 20px;
+}
+
+.version-history__entry-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
 .version-history__version {
   font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 700;
+  font-size: 15px;
   color: var(--nb-primary);
+}
+
+.version-history__latest-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  background: rgba(108, 92, 231, 0.12);
+  color: var(--nb-primary);
+  border: 1px solid var(--nb-primary);
+  border-radius: var(--nb-radius-sm);
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .version-history__summary {
   font-size: 13px;
-  color: var(--nb-text);
+  line-height: 1.5;
+  color: var(--nb-ink);
+  margin: 0 0 4px;
 }
 
-.version-history__empty {
-  text-align: center;
-  padding: 32px 0;
+.version-history__time {
+  font-size: 12px;
   color: var(--nb-muted);
-  font-size: 14px;
 }
 </style>

@@ -1,56 +1,67 @@
 <template>
   <AdminLayout>
     <section class="admin-page">
-      <div class="admin-page__header">
-        <div>
-          <p class="admin-page__eyebrow">User Detail</p>
-          <h1>{{ user?.userName || user?.userAccount || '用户详情' }}</h1>
-        </div>
-        <el-button @click="router.push('/admin/users')">返回列表</el-button>
-      </div>
+      <NbPageHeader
+        eyebrow="User Detail"
+        :title="user?.userName || user?.userAccount || '用户详情'"
+      >
+        <template #actions>
+          <NbButton @click="router.push('/admin/users')">返回列表</NbButton>
+        </template>
+      </NbPageHeader>
 
-      <el-skeleton v-if="adminStore.loading && !user" :rows="6" animated />
+      <NbCard v-if="adminStore.loading && !user">
+        <NbLoadingBlock title="加载用户信息..." :rows="6" />
+      </NbCard>
+
       <template v-else-if="user">
-        <NbCard class="profile-card">
-          <div>
-            <span>账号</span>
-            <strong>{{ user.userAccount }}</strong>
-          </div>
-          <div>
-            <span>角色</span>
-            <el-select v-model="selectedRole" @change="changeRole">
-              <el-option label="普通用户" value="user" />
-              <el-option label="管理员" value="admin" />
-            </el-select>
-          </div>
-          <div>
-            <span>状态</span>
-            <el-tag :type="user.userStatus === 0 ? 'success' : 'warning'">{{ user.userStatus === 0 ? '正常' : '禁用' }}</el-tag>
-          </div>
-          <div class="profile-card__actions">
-            <el-button v-if="user.userStatus === 0" type="warning" @click="disableUser">禁用用户</el-button>
-            <el-button v-else type="success" @click="enableUser">启用用户</el-button>
+        <NbCard>
+          <div class="profile">
+            <div class="profile__field">
+              <span class="profile__label">账号</span>
+              <strong class="profile__value">{{ user.userAccount }}</strong>
+            </div>
+            <div class="profile__field">
+              <span class="profile__label">角色</span>
+              <el-select v-model="selectedRole" @change="changeRole">
+                <el-option label="普通用户" value="user" />
+                <el-option label="管理员" value="admin" />
+              </el-select>
+            </div>
+            <div class="profile__field">
+              <span class="profile__label">状态</span>
+              <NbStatusBadge
+                :label="getStatusDescriptor(userStatusMap, user.userStatus).label"
+                :variant="getStatusDescriptor(userStatusMap, user.userStatus).variant"
+              />
+            </div>
+            <div class="profile__actions">
+              <NbButton v-if="user.userStatus === 0" variant="warning" @click="disableUser">禁用用户</NbButton>
+              <NbButton v-else variant="success" @click="enableUser">启用用户</NbButton>
+            </div>
           </div>
         </NbCard>
 
         <div class="metric-grid">
-          <NbCard v-for="metric in metrics" :key="metric.label" class="metric-card">
-            <span>{{ metric.label }}</span>
-            <strong>{{ metric.value }}</strong>
-          </NbCard>
+          <NbStatCard
+            v-for="metric in metrics"
+            :key="metric.key"
+            :label="metric.label"
+            :value="metric.value"
+          />
         </div>
 
-        <NbCard class="info-card">
-          <h2>基础信息</h2>
-          <dl>
-            <dt>邮箱</dt><dd>{{ user.email || '-' }}</dd>
-            <dt>手机号</dt><dd>{{ user.phone || '-' }}</dd>
-            <dt>目标岗位</dt><dd>{{ user.targetPosition || '-' }}</dd>
-            <dt>技术方向</dt><dd>{{ user.techDirection || '-' }}</dd>
-            <dt>工作年限</dt><dd>{{ user.workYears ?? '-' }}</dd>
-            <dt>城市</dt><dd>{{ user.city || '-' }}</dd>
-            <dt>求职状态</dt><dd>{{ user.jobStatus || '-' }}</dd>
-            <dt>注册时间</dt><dd>{{ user.createTime || '-' }}</dd>
+        <NbCard>
+          <NbSectionTitle title="基础信息" />
+          <dl class="info-grid">
+            <dt>邮箱</dt><dd>{{ displayText(user.email) }}</dd>
+            <dt>手机号</dt><dd>{{ displayText(user.phone) }}</dd>
+            <dt>目标岗位</dt><dd>{{ displayText(user.targetPosition) }}</dd>
+            <dt>技术方向</dt><dd>{{ displayText(user.techDirection) }}</dd>
+            <dt>工作年限</dt><dd>{{ user.workYears != null ? user.workYears : '-' }}</dd>
+            <dt>城市</dt><dd>{{ displayText(user.city) }}</dd>
+            <dt>求职状态</dt><dd>{{ displayText(user.jobStatus) }}</dd>
+            <dt>注册时间</dt><dd>{{ formatDateTime(user.createTime) }}</dd>
           </dl>
         </NbCard>
       </template>
@@ -64,7 +75,16 @@ import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import NbCard from '@/components/NbCard.vue'
+import NbButton from '@/components/NbButton.vue'
+import NbPageHeader from '@/components/NbPageHeader.vue'
+import NbSectionTitle from '@/components/NbSectionTitle.vue'
+import NbStatusBadge from '@/components/NbStatusBadge.vue'
+import NbStatCard from '@/components/NbStatCard.vue'
+import NbLoadingBlock from '@/components/NbLoadingBlock.vue'
 import { useAdminStore } from '@/stores/admin'
+import { userStatusMap, getStatusDescriptor } from '@/utils/statusMaps'
+import { displayText } from '@/utils/text'
+import { formatDateTime } from '@/utils/date'
 
 const route = useRoute()
 const router = useRouter()
@@ -77,13 +97,13 @@ const user = computed(() => adminStore.currentUser)
 const metrics = computed(() => {
   const current = user.value
   return [
-    { label: '简历', value: current?.resumeCount ?? 0 },
-    { label: '面试', value: current?.interviewCount ?? 0 },
-    { label: '已完成面试', value: current?.completedInterviewCount ?? 0 },
-    { label: '投递', value: current?.applicationCount ?? 0 },
-    { label: '训练计划', value: current?.trainingPlanCount ?? 0 },
-    { label: '八股作答', value: current?.trainingAnswerCount ?? 0 },
-    { label: 'AI 批改', value: current?.trainingReviewCount ?? 0 },
+    { key: 'resume', label: '简历', value: current?.resumeCount ?? 0 },
+    { key: 'interview', label: '面试', value: current?.interviewCount ?? 0 },
+    { key: 'completed', label: '已完成面试', value: current?.completedInterviewCount ?? 0 },
+    { key: 'application', label: '投递', value: current?.applicationCount ?? 0 },
+    { key: 'trainingPlan', label: '训练计划', value: current?.trainingPlanCount ?? 0 },
+    { key: 'trainingAnswer', label: '八股作答', value: current?.trainingAnswerCount ?? 0 },
+    { key: 'trainingReview', label: 'AI 批改', value: current?.trainingReviewCount ?? 0 },
   ]
 })
 
@@ -98,18 +118,30 @@ async function loadUser() {
 }
 
 async function changeRole(role: string) {
-  await adminStore.updateUserRole(userId.value, role)
-  ElMessage.success('角色已更新')
+  const result = await adminStore.updateUserRole(userId.value, role)
+  if (result) {
+    ElMessage.success('角色已更新')
+  } else {
+    ElMessage.error('角色更新失败，请重试')
+  }
 }
 
 async function disableUser() {
-  await adminStore.disableUser(userId.value)
-  ElMessage.success('已禁用用户')
+  const result = await adminStore.disableUser(userId.value)
+  if (result) {
+    ElMessage.success('已禁用用户')
+  } else {
+    ElMessage.error('禁用失败，请重试')
+  }
 }
 
 async function enableUser() {
-  await adminStore.enableUser(userId.value)
-  ElMessage.success('已启用用户')
+  const result = await adminStore.enableUser(userId.value)
+  if (result) {
+    ElMessage.success('已启用用户')
+  } else {
+    ElMessage.error('启用失败，请重试')
+  }
 }
 
 onMounted(loadUser)
@@ -117,50 +149,35 @@ onMounted(loadUser)
 
 <style scoped>
 .admin-page {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 20px;
 }
 
-.admin-page__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.admin-page__header h1 {
-  margin: 0;
-  font-size: 34px;
-}
-
-.admin-page__eyebrow {
-  margin: 0 0 6px;
-  color: var(--nb-primary);
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.profile-card {
+.profile {
   display: grid;
   grid-template-columns: repeat(4, minmax(140px, 1fr));
   gap: 16px;
   align-items: center;
 }
 
-.profile-card span,
-.metric-card span {
-  display: block;
-  margin-bottom: 6px;
+.profile__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile__label {
   color: var(--nb-muted);
   font-weight: 700;
+  font-size: 13px;
 }
 
-.profile-card strong,
-.metric-card strong {
-  font-size: 26px;
+.profile__value {
+  font-size: 18px;
 }
 
-.profile-card__actions {
+.profile__actions {
   display: flex;
   justify-content: flex-end;
 }
@@ -171,32 +188,28 @@ onMounted(loadUser)
   gap: 16px;
 }
 
-.info-card h2 {
-  margin: 0 0 16px;
-}
-
-.info-card dl {
+.info-grid {
   display: grid;
   grid-template-columns: 120px 1fr;
   gap: 12px 18px;
-  margin: 0;
+  margin: 16px 0 0;
 }
 
-.info-card dt {
+.info-grid dt {
   color: var(--nb-muted);
   font-weight: 700;
 }
 
-.info-card dd {
+.info-grid dd {
   margin: 0;
 }
 
 @media (max-width: 900px) {
-  .profile-card {
+  .profile {
     grid-template-columns: 1fr;
   }
 
-  .profile-card__actions {
+  .profile__actions {
     justify-content: flex-start;
   }
 }

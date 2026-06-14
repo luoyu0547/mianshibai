@@ -199,13 +199,16 @@ async function handleRegister() {
       userPassword: registerForm.userPassword,
       checkPassword: registerForm.checkPassword,
     })
-    if (res.data.code === 0) {
-      ElMessage.success('注册成功，请登录')
-      activeTab.value = 'login'
-      // 清空注册表单
-      registerForm.userAccount = ''
-      registerForm.userPassword = ''
-      registerForm.checkPassword = ''
+    if (res.code === 0) {
+      ElMessage.success('注册成功，正在自动登录...')
+      const success = await userStore.login({
+        userAccount: registerForm.userAccount,
+        userPassword: registerForm.userPassword,
+      })
+      if (success) {
+        ElMessage.success('登录成功，请完善个人资料')
+        router.push('/profile')
+      }
     }
   } finally {
     isLoading.value = false

@@ -1,83 +1,95 @@
-<!-- src/templates/MinimalTech.vue -->
+<!-- 极简专业风 — 单栏、清晰排版、ATS友好 -->
 <template>
-  <div class="minimal-tech">
-    <div class="minimal-tech__header">
-      <h1 class="minimal-tech__name">{{ basic?.name || '你的名字' }}</h1>
-      <div class="minimal-tech__contact">
-        <span v-if="basic?.email">{{ basic.email }}</span>
-        <span v-if="basic?.phone">{{ basic.phone }}</span>
-        <span v-if="basic?.city">{{ basic.city }}</span>
-        <span v-if="basic?.github">{{ basic.github }}</span>
-        <span v-if="basic?.blog">{{ basic.blog }}</span>
+  <div class="minimal-clean">
+    <!-- 头部 -->
+    <div class="mc-header">
+      <h1 class="mc-name">{{ basic?.name || '你的名字' }}</h1>
+      <div v-if="basic?.targetPosition" class="mc-title">{{ basic.targetPosition }}</div>
+      <div class="mc-contact">
+        <span v-if="basic?.email" class="mc-contact-item">
+          <span class="mc-contact-icon">✉</span>{{ basic.email }}
+        </span>
+        <span v-if="basic?.phone" class="mc-contact-item">
+          <span class="mc-contact-icon">☎</span>{{ basic.phone }}
+        </span>
+        <span v-if="basic?.city" class="mc-contact-item">
+          <span class="mc-contact-icon">⌂</span>{{ basic.city }}
+        </span>
+        <span v-if="basic?.github" class="mc-contact-item">
+          <span class="mc-contact-icon">⌘</span>{{ basic.github }}
+        </span>
+        <span v-if="basic?.blog" class="mc-contact-item">
+          <span class="mc-contact-icon">◈</span>{{ basic.blog }}
+        </span>
       </div>
     </div>
 
-    <div v-if="skillCategories.length" class="minimal-tech__section">
-      <h2 class="minimal-tech__section-title">技能</h2>
-      <div class="minimal-tech__skills">
-        <template v-for="(cat, index) in skillCategories" :key="index">
-          <div v-if="cat.items?.length" class="minimal-tech__skill-group">
-            <span class="minimal-tech__skill-cat">{{ cat.name }}：</span>
-            <span>{{ cat.items.join(' / ') }}</span>
+    <!-- 技能 -->
+    <div v-if="skillCategories.length" class="mc-block">
+      <h2 class="mc-block-title">专业技能</h2>
+      <div class="mc-skills">
+        <div v-for="(cat, i) in skillCategories" :key="i" class="mc-skill-group">
+          <span class="mc-skill-cat">{{ cat.name }}</span>
+          <span class="mc-skill-items">{{ (cat.items as string[])?.join('  ·  ') }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 工作经历 -->
+    <div v-if="work.length" class="mc-block">
+      <h2 class="mc-block-title">工作经历</h2>
+      <div v-for="(item, i) in work" :key="i" class="mc-entry">
+        <div class="mc-entry-head">
+          <div class="mc-entry-main">
+            <strong class="mc-entry-org">{{ item.company }}</strong>
+            <span v-if="item.position" class="mc-entry-role">{{ item.position }}</span>
           </div>
-        </template>
-      </div>
-    </div>
-
-    <div v-if="work.length" class="minimal-tech__section">
-      <h2 class="minimal-tech__section-title">工作经历</h2>
-      <div v-for="(item, index) in work" :key="index" class="minimal-tech__entry">
-        <div class="minimal-tech__entry-header">
-          <strong>{{ item.company }}</strong>
-          <span v-if="item.startDate || item.endDate" class="minimal-tech__date">
-            {{ item.startDate }} - {{ item.endDate || '至今' }}
-          </span>
+          <span v-if="item.startDate" class="mc-entry-date">{{ item.startDate }} — {{ item.endDate || '至今' }}</span>
         </div>
-        <div v-if="item.position" class="minimal-tech__sub">{{ item.position }}</div>
-        <p v-if="item.description" class="minimal-tech__desc">{{ item.description }}</p>
-        <ul v-if="(item.highlights as string[])?.length" class="minimal-tech__highlights">
+        <p v-if="item.description" class="mc-desc">{{ item.description }}</p>
+        <ul v-if="(item.highlights as string[])?.length" class="mc-list">
           <li v-for="(h, hi) in item.highlights" :key="hi">{{ h }}</li>
         </ul>
       </div>
     </div>
 
-    <div v-if="project.length" class="minimal-tech__section">
-      <h2 class="minimal-tech__section-title">项目经历</h2>
-      <div v-for="(item, index) in project" :key="index" class="minimal-tech__entry">
-        <div class="minimal-tech__entry-header">
-          <strong>{{ item.name }}</strong>
-          <span v-if="item.startDate || item.endDate" class="minimal-tech__date">
-            {{ item.startDate }} - {{ item.endDate || '至今' }}
-          </span>
+    <!-- 项目经历 -->
+    <div v-if="project.length" class="mc-block">
+      <h2 class="mc-block-title">项目经历</h2>
+      <div v-for="(item, i) in project" :key="i" class="mc-entry">
+        <div class="mc-entry-head">
+          <div class="mc-entry-main">
+            <strong class="mc-entry-org">{{ item.name }}</strong>
+            <span v-if="item.role" class="mc-entry-role">{{ item.role }}</span>
+          </div>
+          <span v-if="item.startDate" class="mc-entry-date">{{ item.startDate }} — {{ item.endDate || '至今' }}</span>
         </div>
-        <div v-if="item.role" class="minimal-tech__sub">{{ item.role }}</div>
-        <p v-if="item.description" class="minimal-tech__desc">{{ item.description }}</p>
-        <ul v-if="(item.highlights as string[])?.length" class="minimal-tech__highlights">
+        <p v-if="item.description" class="mc-desc">{{ item.description }}</p>
+        <ul v-if="(item.highlights as string[])?.length" class="mc-list">
           <li v-for="(h, hi) in item.highlights" :key="hi">{{ h }}</li>
         </ul>
       </div>
     </div>
 
-    <div v-if="education.length" class="minimal-tech__section">
-      <h2 class="minimal-tech__section-title">教育经历</h2>
-      <div v-for="(item, index) in education" :key="index" class="minimal-tech__entry">
-        <div class="minimal-tech__entry-header">
-          <strong>{{ item.school }}</strong>
-          <span v-if="item.startDate || item.endDate" class="minimal-tech__date">
-            {{ item.startDate }} - {{ item.endDate || '至今' }}
-          </span>
+    <!-- 教育经历 -->
+    <div v-if="education.length" class="mc-block">
+      <h2 class="mc-block-title">教育经历</h2>
+      <div v-for="(item, i) in education" :key="i" class="mc-entry">
+        <div class="mc-entry-head">
+          <div class="mc-entry-main">
+            <strong class="mc-entry-org">{{ item.school }}</strong>
+            <span class="mc-entry-role">{{ item.major }}<template v-if="item.degree"> · {{ item.degree }}</template></span>
+          </div>
+          <span v-if="item.startDate" class="mc-entry-date">{{ item.startDate }} — {{ item.endDate || '至今' }}</span>
         </div>
-        <div class="minimal-tech__sub">
-          <span v-if="item.major">{{ item.major }}</span>
-          <span v-if="item.degree"> · {{ item.degree }}</span>
-          <span v-if="item.gpa"> · GPA: {{ item.gpa }}</span>
-        </div>
+        <div v-if="item.gpa" class="mc-meta">GPA: {{ item.gpa }}</div>
       </div>
     </div>
 
-    <div v-if="summary?.content" class="minimal-tech__section">
-      <h2 class="minimal-tech__section-title">自我评价</h2>
-      <p class="minimal-tech__desc">{{ summary.content }}</p>
+    <!-- 自我评价 -->
+    <div v-if="summary?.content" class="mc-block">
+      <h2 class="mc-block-title">自我评价</h2>
+      <p class="mc-desc mc-summary">{{ summary.content }}</p>
     </div>
   </div>
 </template>
@@ -99,94 +111,154 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
 </script>
 
 <style scoped>
-.minimal-tech {
-  font-family: 'Public Sans', sans-serif;
-  color: #2d3436;
+.minimal-clean {
+  font-family: var(--font-body);
+  color: var(--nb-ink);
+  line-height: 1.7;
 }
 
-.minimal-tech__header {
-  margin-bottom: 20px;
-  border-bottom: 3px solid #2d3436;
-  padding-bottom: 12px;
+/* 头部 */
+.mc-header {
+  text-align: center;
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid var(--nb-primary);
 }
 
-.minimal-tech__name {
-  font-family: 'Lexend Mega', sans-serif;
-  font-size: 28px;
+.mc-name {
+  font-family: var(--font-heading);
+  font-size: 32px;
   font-weight: 700;
   margin: 0 0 6px;
-  letter-spacing: 1px;
+  letter-spacing: -0.5px;
+  color: var(--nb-ink);
 }
 
-.minimal-tech__contact {
+.mc-title {
+  font-size: 15px;
+  color: var(--nb-primary);
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.mc-contact {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  font-size: 12px;
-  color: #636e72;
+  justify-content: center;
+  gap: 6px 18px;
+  font-size: 12.5px;
+  color: var(--nb-muted);
 }
 
-.minimal-tech__section {
-  margin-bottom: 16px;
+.mc-contact-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.minimal-tech__section-title {
-  font-family: 'Lexend Mega', sans-serif;
-  font-size: 14px;
+.mc-contact-icon {
+  font-size: 11px;
+  opacity: 0.5;
+}
+
+/* 内容块 */
+.mc-block {
+  margin-bottom: 22px;
+}
+
+.mc-block-title {
+  font-family: var(--font-heading);
+  font-size: 15px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
-  border-bottom: 1.5px solid #2d3436;
-  padding-bottom: 4px;
-  margin: 0 0 10px;
+  color: var(--nb-primary);
+  margin: 0 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1.5px solid var(--nb-primary-light);
 }
 
-.minimal-tech__skills {
+/* 技能 */
+.mc-skills {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  font-size: 12px;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.minimal-tech__skill-group {
+.mc-skill-group {
+  font-size: 13px;
   line-height: 1.6;
 }
 
-.minimal-tech__skill-cat {
-  font-weight: 600;
+.mc-skill-cat {
+  font-weight: 700;
+  color: var(--nb-ink);
 }
 
-.minimal-tech__entry {
-  margin-bottom: 12px;
+.mc-skill-items {
+  color: var(--nb-muted);
 }
 
-.minimal-tech__entry-header {
+/* 条目 */
+.mc-entry {
+  margin-bottom: 16px;
+}
+
+.mc-entry-head {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  gap: 12px;
 }
 
-.minimal-tech__date {
-  font-size: 11px;
-  color: #636e72;
+.mc-entry-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.mc-entry-org {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--nb-ink);
+}
+
+.mc-entry-role {
+  font-size: 13px;
+  color: var(--nb-muted);
+}
+
+.mc-entry-date {
+  font-size: 12px;
+  color: var(--nb-muted-light);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.minimal-tech__sub {
-  font-size: 12px;
-  color: #636e72;
+.mc-desc {
+  font-size: 13px;
+  color: var(--nb-muted);
+  margin: 6px 0 0;
+  line-height: 1.7;
 }
 
-.minimal-tech__desc {
-  font-size: 12px;
-  margin: 4px 0;
-  line-height: 1.6;
+.mc-summary {
+  font-size: 13.5px;
 }
 
-.minimal-tech__highlights {
-  margin: 4px 0;
-  padding-left: 16px;
+.mc-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--nb-muted);
+  line-height: 1.7;
+}
+
+.mc-meta {
   font-size: 12px;
-  line-height: 1.6;
+  color: var(--nb-muted-light);
+  margin-top: 2px;
 }
 </style>

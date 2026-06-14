@@ -2,10 +2,15 @@
 <template>
   <MainLayout>
     <div class="job-import-page">
-      <div class="job-import-page__header">
-        <h1 class="job-import-page__title">导入职位</h1>
-        <el-button text @click="router.push('/job/favorites')">我的收藏</el-button>
-      </div>
+      <NbPageHeader
+        eyebrow="职位情报"
+        title="导入职位"
+        description="粘贴招聘网站职位链接，自动解析并生成 AI 分析"
+      >
+        <template #actions>
+          <NbButton @click="router.push('/job/favorites')">我的收藏</NbButton>
+        </template>
+      </NbPageHeader>
 
       <NbCard class="job-import-page__form-card">
         <el-form label-position="top" @submit.prevent="handleImport">
@@ -25,7 +30,7 @@
             </el-select>
           </el-form-item>
           <el-form-item>
-            <NbButton type="primary" :loading="jobStore.loading" block @click="handleImport">
+            <NbButton variant="primary" :loading="jobStore.loading" block @click="handleImport">
               开始导入
             </NbButton>
           </el-form-item>
@@ -33,14 +38,14 @@
       </NbCard>
 
       <NbCard v-if="lastResult" class="job-import-page__result-card">
-        <h3 class="job-import-page__result-title">导入结果</h3>
+        <NbSectionTitle title="导入结果" />
         <div v-if="lastResult.job" class="job-import-page__result-item">
           <span>职位：{{ lastResult.job.title }}</span>
-          <el-button type="primary" text @click="router.push(`/job/${lastResult.jobId}`)">查看详情</el-button>
+          <NbButton variant="ghost" @click="router.push(`/job/${lastResult.jobId}`)">查看详情</NbButton>
         </div>
         <div v-if="lastResult.company" class="job-import-page__result-item">
           <span>公司：{{ lastResult.company.name }}</span>
-          <el-button type="primary" text @click="router.push(`/company/${lastResult.companyId}`)">查看详情</el-button>
+          <NbButton variant="ghost" @click="router.push(`/company/${lastResult.companyId}`)">查看详情</NbButton>
         </div>
       </NbCard>
     </div>
@@ -54,6 +59,8 @@ import { ElMessage } from 'element-plus'
 import MainLayout from '@/layouts/MainLayout.vue'
 import NbCard from '@/components/NbCard.vue'
 import NbButton from '@/components/NbButton.vue'
+import NbPageHeader from '@/components/NbPageHeader.vue'
+import NbSectionTitle from '@/components/NbSectionTitle.vue'
 import { useJobStore } from '@/stores/job'
 import type { JobImportResultVO } from '@/types/job'
 
@@ -99,32 +106,12 @@ async function handleImport() {
   margin: 0 auto;
 }
 
-.job-import-page__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.job-import-page__title {
-  font-family: var(--font-heading);
-  font-size: 28px;
-  font-weight: 600;
-  margin: 0;
-}
-
 .job-import-page__form-card {
   padding: 32px;
 }
 
 .job-import-page__result-card {
   padding: 24px;
-}
-
-.job-import-page__result-title {
-  font-family: var(--font-heading);
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 16px 0;
 }
 
 .job-import-page__result-item {

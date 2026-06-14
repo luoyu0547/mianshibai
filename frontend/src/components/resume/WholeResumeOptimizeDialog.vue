@@ -23,7 +23,7 @@ async function handleOptimize() {
       resumeId: props.resumeId,
       jobId: props.jobId,
     })
-    result.value = res.data.data
+    result.value = res.data
   } finally {
     loading.value = false
   }

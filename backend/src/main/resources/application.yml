@@ -1,6 +1,8 @@
 spring:
   application:
     name: mianshiba-ai-backend
+  profiles:
+    active: local
   ai:
     deepseek:
       api-key: ${AI_DEEPSEEK_API_KEY}
@@ -9,9 +11,13 @@ spring:
           model: deepseek-chat
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DATABASE}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:mianshiba}?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: ${MYSQL_USERNAME}
     password: ${MYSQL_PASSWORD}
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:sql/init.sql
   security:
     jwt:
       secret: ${JWT_SECRET}

@@ -2,17 +2,21 @@
 <template>
   <MainLayout>
     <div class="resume-preview-page">
-      <div class="resume-preview-page__toolbar">
-        <el-button @click="router.back()">
-          <el-icon><ArrowLeft /></el-icon>
-          返回编辑
-        </el-button>
-        <TemplateSelector v-model="templateType" />
-        <el-button type="primary" :loading="exporting" @click="exportPdf">
-          <el-icon><Download /></el-icon>
-          导出 PDF
-        </el-button>
-      </div>
+      <header class="resume-preview-page__toolbar">
+        <div class="resume-preview-page__toolbar-left">
+          <NbButton variant="ghost" @click="router.back()">
+            <el-icon><ArrowLeft /></el-icon>
+            返回编辑
+          </NbButton>
+        </div>
+        <div class="resume-preview-page__toolbar-right">
+          <TemplateSelector v-model="templateType" />
+          <NbButton variant="primary" :loading="exporting" @click="exportPdf">
+            <el-icon><Download /></el-icon>
+            导出 PDF
+          </NbButton>
+        </div>
+      </header>
 
       <div class="resume-preview-page__content">
         <div class="resume-preview-page__a4-wrapper">
@@ -50,6 +54,7 @@ import TemplateSelector from '@/components/resume/TemplateSelector.vue'
 import MinimalTech from '@/templates/MinimalTech.vue'
 import ModernTwoCol from '@/templates/ModernTwoCol.vue'
 import ClassicFormal from '@/templates/ClassicFormal.vue'
+import NbButton from '@/components/NbButton.vue'
 import { useResumeStore } from '@/stores/resume'
 import type { SectionVO } from '@/types/resume'
 
@@ -144,15 +149,22 @@ async function exportPdf() {
 .resume-preview-page__toolbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
   padding: 12px 24px;
-  background: var(--nb-card);
+  background: var(--nb-surface);
   border-bottom: var(--nb-border);
   box-shadow: var(--nb-shadow);
   position: sticky;
   top: 64px;
   z-index: 10;
   margin: -32px -24px 0;
+}
+
+.resume-preview-page__toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .resume-preview-page__content {

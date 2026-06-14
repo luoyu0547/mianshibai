@@ -1,61 +1,68 @@
 <template>
   <MainLayout>
     <div class="interview-report-page">
-      <div class="interview-report-page__header">
-        <el-button text @click="router.back()">
-          <el-icon><ArrowLeft /></el-icon>
-          返回
-        </el-button>
-        <h1 class="interview-report-page__title">面试报告</h1>
-      </div>
+      <NbPageHeader
+        eyebrow="面试复盘"
+        title="面试报告"
+        description="AI 面试官的详细评估与改进建议"
+      />
 
-      <div v-if="interviewStore.loading" class="interview-report-page__loading">
-        <el-icon class="is-loading" :size="32"><LoadingIcon /></el-icon>
-        <span>加载中...</span>
-      </div>
+      <NbCard v-if="interviewStore.loading">
+        <NbLoadingBlock title="加载面试报告..." :rows="5" />
+      </NbCard>
 
       <template v-else-if="report">
         <div class="interview-report-page__score-section">
-          <NbCard class="interview-report-page__total-score">
-            <div class="interview-report-page__score-label">综合评分</div>
-            <div class="interview-report-page__score-value">{{ report.totalScore }}</div>
-            <div class="interview-report-page__score-hint">满分 100</div>
-          </NbCard>
+          <NbStatCard
+            label="综合评分"
+            :value="report.totalScore"
+            hint="满分 100 分"
+            variant="primary"
+            class="interview-report-page__total-score"
+          />
         </div>
 
         <div class="interview-report-page__dimensions">
-          <NbCard v-for="dim in dimensions" :key="dim.key" class="interview-report-page__dim-card">
-            <div class="interview-report-page__dim-header">
-              <span class="interview-report-page__dim-label">{{ dim.label }}</span>
-              <span class="interview-report-page__dim-score">{{ report[dim.key] }}</span>
-            </div>
-            <el-progress
-              :percentage="report[dim.key]"
-              :stroke-width="12"
-              :color="dim.color"
-              :show-text="false"
-            />
-          </NbCard>
+          <NbStatCard
+            v-for="dim in dimensions"
+            :key="dim.key"
+            :label="dim.label"
+            :value="report[dim.key]"
+            :variant="dim.statVariant"
+            class="interview-report-page__dim-card"
+          >
+            <template #action>
+              <div class="interview-report-page__dim-bar">
+                <div
+                  class="interview-report-page__dim-bar-fill"
+                  :style="{ width: `${report[dim.key]}%`, background: dim.color }"
+                ></div>
+              </div>
+            </template>
+          </NbStatCard>
         </div>
 
         <NbCard class="interview-report-page__section">
-          <h3 class="interview-report-page__section-title">AI 总结</h3>
+          <NbSectionTitle title="AI 总结" />
           <p class="interview-report-page__summary-text">{{ report.summary }}</p>
         </NbCard>
 
         <NbCard class="interview-report-page__section">
-          <div class="interview-report-page__section-header">
-            <h3 class="interview-report-page__section-title">复盘增强</h3>
-            <el-tag v-if="enhancement" :type="enhancement.status === 'completed' ? 'success' : enhancement.status === 'failed' ? 'danger' : 'warning'" size="small">
-              {{ enhancement.status === 'pending' || enhancement.status === 'running' ? '生成中' : enhancement.status === 'completed' ? '已完成' : '失败' }}
-            </el-tag>
-          </div>
+          <NbSectionTitle title="复盘增强">
+            <template #meta>
+              <NbStatusBadge
+                v-if="enhancement"
+                :label="enhancementStatusLabel"
+                :variant="enhancementStatusVariant"
+              />
+            </template>
+          </NbSectionTitle>
           <p v-if="!enhancement || enhancement.status === 'pending' || enhancement.status === 'running'" class="interview-report-page__summary-text">
             AI 正在生成逐题复盘和优秀回答，稍后会自动刷新。
           </p>
           <template v-else-if="enhancement.status === 'failed'">
             <p class="interview-report-page__summary-text">{{ enhancement.errorMessage || '复盘增强生成失败' }}</p>
-            <el-button type="primary" size="small" @click="retryEnhancement" style="margin-top: 12px">重新生成</el-button>
+            <NbButton variant="primary" @click="retryEnhancement" style="margin-top: 12px">重新生成</NbButton>
           </template>
           <template v-else>
             <p class="interview-report-page__summary-text">{{ enhancement.summary }}</p>
@@ -63,12 +70,15 @@
               <BaseChart :option="reportRadarOption" height="320px" />
             </div>
             <div v-if="enhancement.skillGaps.length > 0" class="interview-report-page__tags">
-              <el-tag v-for="gap in enhancement.skillGaps" :key="gap.name" type="warning" size="small" style="margin: 2px 4px 2px 0">
-                {{ gap.name }} · {{ gap.severity }}
-              </el-tag>
+              <NbStatusBadge
+                v-for="gap in enhancement.skillGaps"
+                :key="gap.name"
+                :label="`${gap.name} · ${gap.severity}`"
+                variant="warning"
+              />
             </div>
-            <div v-if="enhancement.actionItems.length > 0" style="margin-top: 16px">
-              <div class="interview-report-page__turn-label" style="margin-bottom: 8px">下一步行动</div>
+            <div v-if="enhancement.actionItems.length > 0" class="interview-report-page__action-items">
+              <div class="interview-report-page__action-header">下一步行动</div>
               <ul class="interview-report-page__suggestions">
                 <li v-for="(item, idx) in enhancement.actionItems" :key="idx">{{ item }}</li>
               </ul>
@@ -77,7 +87,7 @@
         </NbCard>
 
         <NbCard v-if="report.suggestions.length > 0" class="interview-report-page__section">
-          <h3 class="interview-report-page__section-title">改进建议</h3>
+          <NbSectionTitle title="改进建议" />
           <ul class="interview-report-page__suggestions">
             <li v-for="(suggestion, idx) in report.suggestions" :key="idx">
               {{ suggestion }}
@@ -86,7 +96,7 @@
         </NbCard>
 
         <NbCard class="interview-report-page__section">
-          <h3 class="interview-report-page__section-title">答题回顾</h3>
+          <NbSectionTitle title="答题回顾" description="点击展开查看每道题的详细分析" />
           <el-collapse>
             <el-collapse-item
               v-for="turn in report.turns"
@@ -122,8 +132,13 @@
                   </div>
                   <div v-if="findTurnReview(turn.id)?.knowledgePoints?.length" class="interview-report-page__turn-block">
                     <div class="interview-report-page__turn-label">考察知识点</div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px">
-                      <el-tag v-for="kp in findTurnReview(turn.id)?.knowledgePoints" :key="kp" size="small">{{ kp }}</el-tag>
+                    <div class="interview-report-page__turn-tags">
+                      <NbStatusBadge
+                        v-for="kp in findTurnReview(turn.id)?.knowledgePoints"
+                        :key="kp"
+                        :label="kp"
+                        variant="info"
+                      />
                     </div>
                   </div>
                 </template>
@@ -133,21 +148,21 @@
         </NbCard>
 
         <NbCard v-if="previousCompletedSessionId" class="interview-report-page__section">
-          <h3 class="interview-report-page__section-title">报告对比</h3>
-          <el-button type="primary" size="small" @click="compareWithPrevious">与上次报告对比</el-button>
-          <div v-if="comparison" style="margin-top: 16px">
+          <NbSectionTitle title="报告对比" description="与上次面试报告进行趋势对比" />
+          <NbButton variant="primary" @click="compareWithPrevious">与上次报告对比</NbButton>
+          <div v-if="comparison" class="interview-report-page__comparison">
             <div class="interview-report-page__compare-scores">
               <span>{{ comparison.baseTotalScore }} 分</span>
-              <span style="margin: 0 8px">→</span>
-              <span :style="{ color: comparison.totalDelta >= 0 ? '#00B894' : '#E17055' }">
+              <span class="interview-report-page__compare-arrow">&rarr;</span>
+              <span :class="comparison.totalDelta >= 0 ? 'interview-report-page__compare-up' : 'interview-report-page__compare-down'">
                 {{ comparison.targetTotalScore }} 分（{{ comparison.totalDelta >= 0 ? '+' : '' }}{{ comparison.totalDelta }}）
               </span>
             </div>
-            <div style="margin-top: 12px">
+            <div class="interview-report-page__compare-dims">
               <div v-for="dim in comparison.dimensions" :key="dim.key" class="interview-report-page__compare-dim">
-                <span>{{ dim.label }}</span>
-                <span>{{ dim.baseScore }} → {{ dim.targetScore }}</span>
-                <span :style="{ color: dim.delta >= 0 ? '#00B894' : '#E17055' }">
+                <span class="interview-report-page__compare-dim-label">{{ dim.label }}</span>
+                <span class="interview-report-page__compare-dim-scores">{{ dim.baseScore }} &rarr; {{ dim.targetScore }}</span>
+                <span :class="dim.delta >= 0 ? 'interview-report-page__compare-up' : 'interview-report-page__compare-down'">
                   {{ dim.delta >= 0 ? '+' : '' }}{{ dim.delta }}
                 </span>
               </div>
@@ -161,17 +176,21 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, Loading as LoadingIcon } from '@element-plus/icons-vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import NbCard from '@/components/NbCard.vue'
+import NbButton from '@/components/NbButton.vue'
+import NbPageHeader from '@/components/NbPageHeader.vue'
+import NbSectionTitle from '@/components/NbSectionTitle.vue'
+import NbStatCard from '@/components/NbStatCard.vue'
+import NbStatusBadge from '@/components/NbStatusBadge.vue'
+import NbLoadingBlock from '@/components/NbLoadingBlock.vue'
 import BaseChart from '@/components/charts/BaseChart.vue'
 import { buildRadarOption } from '@/utils/charts/reviewCharts'
 import { useInterviewStore } from '@/stores/interview'
 
 const route = useRoute()
-const router = useRouter()
 const interviewStore = useInterviewStore()
 
 const sessionId = computed(() => Number(route.params.id) || 0)
@@ -187,11 +206,27 @@ const reportRadarOption = computed(() => {
 })
 
 const dimensions = [
-  { key: 'accuracyScore' as const, label: '技术准确性', color: '#6C5CE7' },
-  { key: 'clarityScore' as const, label: '表达清晰度', color: '#00CEC9' },
-  { key: 'depthScore' as const, label: '项目深度', color: '#FD79A8' },
-  { key: 'matchingScore' as const, label: '岗位匹配度', color: '#00B894' },
+  { key: 'accuracyScore' as const, label: '技术准确性', color: '#6C5CE7', statVariant: 'primary' as const },
+  { key: 'clarityScore' as const, label: '表达清晰度', color: '#00CEC9', statVariant: 'success' as const },
+  { key: 'depthScore' as const, label: '项目深度', color: '#FD79A8', statVariant: 'accent' as const },
+  { key: 'matchingScore' as const, label: '岗位匹配度', color: '#00B894', statVariant: 'warning' as const },
 ]
+
+const enhancementStatusLabel = computed(() => {
+  if (!enhancement.value) return ''
+  const status = enhancement.value.status
+  if (status === 'pending' || status === 'running') return '生成中'
+  if (status === 'completed') return '已完成'
+  return '失败'
+})
+
+const enhancementStatusVariant = computed<'info' | 'success' | 'danger'>(() => {
+  if (!enhancement.value) return 'info'
+  const status = enhancement.value.status
+  if (status === 'completed') return 'success'
+  if (status === 'failed') return 'danger'
+  return 'info'
+})
 
 let enhancementTimer: number | undefined
 
@@ -255,59 +290,17 @@ onUnmounted(() => {
   margin: 0 auto;
 }
 
-.interview-report-page__header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.interview-report-page__title {
-  font-family: var(--font-heading);
-  font-size: 28px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.interview-report-page__loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 64px 0;
-  color: var(--nb-muted);
-}
-
 .interview-report-page__score-section {
   display: flex;
   justify-content: center;
 }
 
 .interview-report-page__total-score {
-  text-align: center;
-  padding: 32px 48px;
-  min-width: 200px;
+  min-width: 240px;
 }
 
-.interview-report-page__score-label {
-  font-family: var(--font-heading);
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--nb-muted);
-  margin-bottom: 8px;
-}
-
-.interview-report-page__score-value {
-  font-family: var(--font-heading);
-  font-size: 64px;
-  font-weight: 700;
-  color: var(--nb-primary);
-  line-height: 1;
-}
-
-.interview-report-page__score-hint {
-  font-size: 13px;
-  color: var(--nb-muted);
-  margin-top: 8px;
+.interview-report-page__total-score :deep(.nb-stat-card__value) {
+  font-size: 56px;
 }
 
 .interview-report-page__dimensions {
@@ -320,35 +313,23 @@ onUnmounted(() => {
   padding: 16px 20px;
 }
 
-.interview-report-page__dim-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+.interview-report-page__dim-bar {
+  width: 60px;
+  height: 6px;
+  background: var(--nb-bg);
+  border: var(--nb-border);
+  border-radius: var(--nb-radius-sm);
+  overflow: hidden;
 }
 
-.interview-report-page__dim-label {
-  font-family: var(--font-heading);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.interview-report-page__dim-score {
-  font-family: var(--font-heading);
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--nb-primary);
+.interview-report-page__dim-bar-fill {
+  height: 100%;
+  border-radius: var(--nb-radius-sm);
+  transition: width 0.5s ease;
 }
 
 .interview-report-page__section {
   padding: 24px;
-}
-
-.interview-report-page__section-title {
-  font-family: var(--font-heading);
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 16px;
 }
 
 .interview-report-page__summary-text {
@@ -356,6 +337,25 @@ onUnmounted(() => {
   line-height: 1.8;
   color: var(--nb-text);
   margin: 0;
+}
+
+.interview-report-page__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.interview-report-page__action-items {
+  margin-top: 16px;
+}
+
+.interview-report-page__action-header {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--nb-muted);
+  margin-bottom: 8px;
 }
 
 .interview-report-page__suggestions {
@@ -401,42 +401,64 @@ onUnmounted(() => {
   color: var(--nb-text);
 }
 
-.interview-report-page__section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.interview-report-page__section-header .interview-report-page__section-title {
-  margin: 0;
-}
-
-.interview-report-page__tags {
+.interview-report-page__turn-tags {
   display: flex;
   flex-wrap: wrap;
-  margin-top: 12px;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.interview-report-page__comparison {
+  margin-top: 16px;
 }
 
 .interview-report-page__compare-scores {
   font-family: var(--font-heading);
   font-size: 18px;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.interview-report-page__compare-arrow {
+  color: var(--nb-muted);
+}
+
+.interview-report-page__compare-up {
+  color: var(--nb-success);
+}
+
+.interview-report-page__compare-down {
+  color: var(--nb-danger);
+}
+
+.interview-report-page__compare-dims {
+  margin-top: 12px;
 }
 
 .interview-report-page__compare-dim {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   padding: 8px 0;
-  border-bottom: 1px solid var(--nb-border);
+  border-bottom: var(--nb-border);
   font-size: 14px;
+}
+
+.interview-report-page__compare-dim-label {
+  font-weight: 600;
+}
+
+.interview-report-page__compare-dim-scores {
+  color: var(--nb-muted);
 }
 
 .interview-report-page__chart-card {
   margin-top: 16px;
-  border: 2px solid #111;
-  border-radius: 12px;
+  border: var(--nb-border);
+  border-radius: var(--nb-radius);
   padding: 12px;
-  background: #fff;
+  background: var(--nb-surface);
 }
 </style>

@@ -37,8 +37,8 @@ export const useInterviewStore = defineStore('interview', () => {
     loading.value = true
     try {
       const res = await listApi()
-      if (res.data.code === 0) {
-        sessions.value = res.data.data
+      if (res.code === 0) {
+        sessions.value = res.data
       }
     } finally {
       loading.value = false
@@ -49,8 +49,8 @@ export const useInterviewStore = defineStore('interview', () => {
     loading.value = true
     try {
       const res = await getDetailApi(id)
-      if (res.data.code === 0) {
-        currentSession.value = res.data.data
+      if (res.code === 0) {
+        currentSession.value = res.data
       }
     } finally {
       loading.value = false
@@ -66,8 +66,8 @@ export const useInterviewStore = defineStore('interview', () => {
     loading.value = true
     try {
       const res = await startApi(sessionId)
-      if (res.data.code === 0) {
-        currentQuestion.value = res.data.data
+      if (res.code === 0) {
+        currentQuestion.value = res.data
       }
       return res
     } finally {
@@ -89,8 +89,8 @@ export const useInterviewStore = defineStore('interview', () => {
     loading.value = true
     try {
       const res = await getReportApi(sessionId)
-      if (res.data.code === 0) {
-        currentReport.value = res.data.data
+      if (res.code === 0) {
+        currentReport.value = res.data
       }
     } finally {
       loading.value = false
@@ -99,7 +99,7 @@ export const useInterviewStore = defineStore('interview', () => {
 
   async function cancelSession(sessionId: number) {
     const res = await cancelApi(sessionId)
-    if (res.data.code === 0) {
+    if (res.code === 0) {
       sessions.value = sessions.value.filter((s) => s.id !== sessionId)
       return true
     }
@@ -110,8 +110,8 @@ export const useInterviewStore = defineStore('interview', () => {
     enhancementLoading.value = true
     try {
       const res = await getEnhancementApi(sessionId)
-      if (res.data.code === 0) {
-        currentEnhancement.value = res.data.data
+      if (res.code === 0) {
+        currentEnhancement.value = res.data
       }
     } finally {
       enhancementLoading.value = false
@@ -120,16 +120,16 @@ export const useInterviewStore = defineStore('interview', () => {
 
   async function retryReportEnhancement(sessionId: number) {
     const res = await retryEnhancementApi(sessionId)
-    if (res.data.code === 0) {
-      currentEnhancement.value = res.data.data
+    if (res.code === 0) {
+      currentEnhancement.value = res.data
     }
     return res
   }
 
   async function compareReports(baseSessionId: number, targetSessionId: number) {
     const res = await compareReportsApi(baseSessionId, targetSessionId)
-    if (res.data.code === 0) {
-      currentComparison.value = res.data.data
+    if (res.code === 0) {
+      currentComparison.value = res.data
     }
     return res
   }

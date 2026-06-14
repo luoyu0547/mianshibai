@@ -2,15 +2,12 @@
 <template>
   <MainLayout>
     <div class="job-detail-page">
-      <div v-if="jobStore.loading" class="job-detail-page__loading">
-        <el-icon class="is-loading" :size="32"><LoadingIcon /></el-icon>
-        <span>加载中...</span>
-      </div>
+      <NbCard v-if="jobStore.loading">
+        <NbLoadingBlock title="加载职位详情..." :rows="6" />
+      </NbCard>
 
       <template v-else-if="job">
-        <div class="job-detail-page__header">
-          <el-button text @click="router.back()">&larr; 返回</el-button>
-        </div>
+        <NbButton variant="ghost" @click="router.back()">&larr; 返回</NbButton>
 
         <div class="job-detail-page__hero">
           <div class="job-detail-page__hero-left">
@@ -28,62 +25,62 @@
               <span>{{ job.city }}</span>
               <span class="job-detail-page__meta-divider">|</span>
               <span class="job-detail-page__salary">{{ job.salaryRange }}</span>
-              <span v-if="job.experienceRequirement" class="job-detail-page__meta-divider">|</span>
-              <span v-if="job.experienceRequirement">{{ job.experienceRequirement }}</span>
-              <span v-if="job.educationRequirement" class="job-detail-page__meta-divider">|</span>
-              <span v-if="job.educationRequirement">{{ job.educationRequirement }}</span>
+              <template v-if="job.experienceRequirement">
+                <span class="job-detail-page__meta-divider">|</span>
+                <span>{{ job.experienceRequirement }}</span>
+              </template>
+              <template v-if="job.educationRequirement">
+                <span class="job-detail-page__meta-divider">|</span>
+                <span>{{ job.educationRequirement }}</span>
+              </template>
             </div>
           </div>
           <div class="job-detail-page__hero-actions">
             <NbButton
-              :type="job.favorited ? 'secondary' : 'primary'"
+              :variant="job.favorited ? 'secondary' : 'primary'"
               @click="jobStore.toggleFavorite(job.id)"
             >
               {{ job.favorited ? '已收藏' : '收藏' }}
             </NbButton>
-            <el-button @click="router.push('/interview/new')">开始面试</el-button>
+            <NbButton variant="ghost" @click="router.push('/interview/new')">开始面试</NbButton>
           </div>
         </div>
 
-        <el-tag
+        <NbStatusBadge
           v-if="match && match.recommendation"
-          :type="recommendationTagType(match.recommendation)"
+          :label="`${recDescriptor.label} — 总分 ${match.totalScore}`"
+          :variant="recDescriptor.variant"
           class="job-detail-page__rec-badge"
-          size="large"
-        >
-          {{ match.recommendation }} — 总分 {{ match.totalScore }}
-        </el-tag>
+        />
 
         <div v-if="job.techStack" class="job-detail-page__section">
           <NbCard>
-            <h3 class="job-detail-page__section-title">技术栈</h3>
+            <NbSectionTitle title="技术栈" />
             <div class="job-detail-page__tags">
-              <el-tag
-                v-for="tech in parseTechStack(job.techStack)"
+              <NbStatusBadge
+                v-for="tech in splitTags(job.techStack)"
                 :key="tech"
-                effect="plain"
-                class="job-detail-page__tech-tag"
-              >
-                {{ tech }}
-              </el-tag>
+                :label="tech"
+                variant="info"
+              />
             </div>
           </NbCard>
         </div>
 
         <div class="job-detail-page__section">
           <NbCard>
-            <h3 class="job-detail-page__section-title">职位描述</h3>
-            <div class="job-detail-page__content" v-html="formatNewlines(job.jobDescription)"></div>
+            <NbSectionTitle title="职位描述" />
+            <div class="nb-prewrap job-detail-page__content">{{ displayText(job.jobDescription) }}</div>
             <template v-if="job.jobRequirement">
-              <h3 class="job-detail-page__section-title" style="margin-top: 24px;">任职要求</h3>
-              <div class="job-detail-page__content" v-html="formatNewlines(job.jobRequirement)"></div>
+              <NbSectionTitle title="任职要求" class="job-detail-page__sub-title" />
+              <div class="nb-prewrap job-detail-page__content">{{ displayText(job.jobRequirement) }}</div>
             </template>
           </NbCard>
         </div>
 
         <div v-if="job.analysis" class="job-detail-page__section">
-          <NbCard>
-            <h3 class="job-detail-page__section-title">AI 分析</h3>
+          <NbCard variant="ai">
+            <NbSectionTitle title="AI 分析" description="基于职位需求深度解读" />
             <el-descriptions :column="1" border>
               <el-descriptions-item v-if="job.analysis.requirementSummary" label="需求摘要">
                 {{ job.analysis.requirementSummary }}
@@ -108,8 +105,8 @@
         </div>
 
         <div class="job-detail-page__section">
-          <NbCard>
-            <h3 class="job-detail-page__section-title">简历匹配</h3>
+          <NbCard :variant="match ? matchCardVariant : 'default'">
+            <NbSectionTitle title="简历匹配" description="选择简历与该职位进行智能匹配" />
             <div class="job-detail-page__match-row">
               <el-select v-model="selectedResumeId" placeholder="选择简历" style="width: 240px;">
                 <el-option
@@ -120,7 +117,7 @@
                 />
               </el-select>
               <NbButton
-                type="primary"
+                variant="primary"
                 :loading="jobStore.loading"
                 :disabled="!selectedResumeId"
                 @click="handleMatch"
@@ -170,10 +167,16 @@
         </div>
       </template>
 
-      <div v-else class="job-detail-page__empty">
-        <p>未找到该职位信息</p>
-        <el-button type="primary" text @click="router.push('/job/import')">去导入</el-button>
-      </div>
+      <NbCard v-else>
+        <NbEmptyState
+          title="未找到该职位信息"
+          description="该职位可能已被删除"
+        >
+          <template #action>
+            <NbButton variant="primary" @click="router.push('/job/import')">去导入</NbButton>
+          </template>
+        </NbEmptyState>
+      </NbCard>
     </div>
   </MainLayout>
 </template>
@@ -182,12 +185,17 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Loading as LoadingIcon } from '@element-plus/icons-vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import NbCard from '@/components/NbCard.vue'
 import NbButton from '@/components/NbButton.vue'
+import NbStatusBadge from '@/components/NbStatusBadge.vue'
+import NbSectionTitle from '@/components/NbSectionTitle.vue'
+import NbLoadingBlock from '@/components/NbLoadingBlock.vue'
+import NbEmptyState from '@/components/NbEmptyState.vue'
 import { useJobStore } from '@/stores/job'
 import { useResumeStore } from '@/stores/resume'
+import { displayText, splitTags } from '@/utils/text'
+import { getStatusDescriptor, jobRecommendationMap } from '@/utils/statusMaps'
 
 const route = useRoute()
 const router = useRouter()
@@ -198,6 +206,18 @@ const selectedResumeId = ref<number | undefined>(undefined)
 
 const job = computed(() => jobStore.currentJob)
 const match = computed(() => jobStore.currentMatch)
+
+const recDescriptor = computed(() =>
+  getStatusDescriptor(jobRecommendationMap, match.value?.recommendation),
+)
+
+const matchCardVariant = computed(() => {
+  if (!match.value?.recommendation) return 'default'
+  return recDescriptor.value.variant === 'danger' ? 'danger'
+    : recDescriptor.value.variant === 'warning' ? 'warning'
+    : recDescriptor.value.variant === 'success' ? 'success'
+    : 'default'
+})
 
 onMounted(() => {
   const id = Number(route.params.id)
@@ -218,21 +238,6 @@ async function handleMatch() {
     ElMessage.success('匹配完成')
   }
 }
-
-function parseTechStack(techStack: string): string[] {
-  return techStack.split(/[,，、;；\n]/).map((s) => s.trim()).filter(Boolean)
-}
-
-function formatNewlines(text: string): string {
-  return text.replace(/\n/g, '<br/>')
-}
-
-function recommendationTagType(rec: string) {
-  if (rec.includes('强烈推荐') || rec.includes('高度匹配')) return 'success'
-  if (rec.includes('推荐') || rec.includes('匹配')) return ''
-  if (rec.includes('谨慎') || rec.includes('一般')) return 'warning'
-  return 'danger'
-}
 </script>
 
 <style scoped>
@@ -240,20 +245,6 @@ function recommendationTagType(rec: string) {
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
-
-.job-detail-page__loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 64px 0;
-  color: var(--nb-muted);
-}
-
-.job-detail-page__header {
-  display: flex;
-  align-items: center;
 }
 
 .job-detail-page__hero {
@@ -305,20 +296,16 @@ function recommendationTagType(rec: string) {
 }
 
 .job-detail-page__rec-badge {
-  border: var(--nb-border);
-  box-shadow: 2px 2px 0 var(--nb-border);
-  font-weight: 600;
+  font-size: 14px;
+  padding: 4px 12px;
 }
 
 .job-detail-page__section {
   margin-top: 4px;
 }
 
-.job-detail-page__section-title {
-  font-family: var(--font-heading);
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 16px 0;
+.job-detail-page__sub-title {
+  margin-top: 24px;
 }
 
 .job-detail-page__tags {
@@ -327,15 +314,9 @@ function recommendationTagType(rec: string) {
   gap: 8px;
 }
 
-.job-detail-page__tech-tag {
-  border: var(--nb-border);
-  box-shadow: 2px 2px 0 var(--nb-border);
-}
-
 .job-detail-page__content {
   color: var(--nb-text);
   line-height: 1.8;
-  white-space: pre-wrap;
 }
 
 .job-detail-page__match-row {
@@ -383,14 +364,5 @@ function recommendationTagType(rec: string) {
 
 .job-detail-page__match-detail p {
   margin: 0;
-}
-
-.job-detail-page__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 64px 0;
-  color: var(--nb-muted);
 }
 </style>

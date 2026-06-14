@@ -1,13 +1,11 @@
 <template>
   <MainLayout>
     <div class="interview-new-page">
-      <div class="interview-new-page__header">
-        <el-button text @click="router.back()">
-          <el-icon><ArrowLeft /></el-icon>
-          返回
-        </el-button>
-        <h1 class="interview-new-page__title">开始新面试</h1>
-      </div>
+      <NbPageHeader
+        eyebrow="面试模拟"
+        title="开始新面试"
+        description="配置面试参数，AI 面试官将根据你的简历生成针对性问题"
+      />
 
       <NbCard class="interview-new-page__form-card">
         <el-form label-position="top" class="interview-new-page__form">
@@ -69,13 +67,48 @@
             </el-select>
           </el-form-item>
 
+          <div class="interview-new-page__checklist">
+            <div class="interview-new-page__checklist-item">
+              <span
+                class="interview-new-page__check"
+                :class="{ 'interview-new-page__check--done': form.resumeId !== null }"
+              ></span>
+              <span>选择简历</span>
+            </div>
+            <div class="interview-new-page__checklist-item">
+              <span
+                class="interview-new-page__check"
+                :class="{ 'interview-new-page__check--done': form.targetPosition.trim().length > 0 }"
+              ></span>
+              <span>填写目标岗位</span>
+            </div>
+            <div class="interview-new-page__checklist-item">
+              <span
+                class="interview-new-page__check interview-new-page__check--done"
+              ></span>
+              <span>选择面试类型</span>
+            </div>
+            <div class="interview-new-page__checklist-item">
+              <span
+                class="interview-new-page__check interview-new-page__check--done"
+              ></span>
+              <span>选择难度</span>
+            </div>
+            <div class="interview-new-page__checklist-item">
+              <span
+                class="interview-new-page__check"
+                :class="{ 'interview-new-page__check--done': form.durationMinutes !== null }"
+              ></span>
+              <span>设置面试时长</span>
+            </div>
+          </div>
+
           <div class="interview-new-page__info-box">
-            <el-icon :size="18"><InfoFilled /></el-icon>
             <span>本次面试包含 <strong>5</strong> 道主问题，每题最多 <strong>1</strong> 次追问，预计时长 <strong>{{ form.durationMinutes || 30 }}</strong> 分钟</span>
           </div>
 
           <NbButton
-            type="primary"
+            variant="primary"
             block
             :loading="submitting"
             :disabled="!canSubmit"
@@ -93,10 +126,10 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, InfoFilled } from '@element-plus/icons-vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import NbCard from '@/components/NbCard.vue'
 import NbButton from '@/components/NbButton.vue'
+import NbPageHeader from '@/components/NbPageHeader.vue'
 import { useInterviewStore } from '@/stores/interview'
 import { useResumeStore } from '@/stores/resume'
 
@@ -144,8 +177,8 @@ async function handleSubmit() {
       difficulty: form.difficulty || undefined,
       durationMinutes: form.durationMinutes || undefined,
     })
-    if (res.data.code === 0) {
-      const id = res.data.data.id!
+    if (res.code === 0) {
+      const id = res.data.id!
       router.push(`/interview/${id}/room`)
     }
   } finally {
@@ -163,19 +196,6 @@ async function handleSubmit() {
   margin: 0 auto;
 }
 
-.interview-new-page__header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.interview-new-page__title {
-  font-family: var(--font-heading);
-  font-size: 28px;
-  font-weight: 600;
-  margin: 0;
-}
-
 .interview-new-page__form-card {
   padding: 32px;
 }
@@ -184,6 +204,51 @@ async function handleSubmit() {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.interview-new-page__checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: var(--nb-bg);
+  border: var(--nb-border);
+  border-radius: var(--nb-radius);
+}
+
+.interview-new-page__checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--nb-text);
+}
+
+.interview-new-page__check {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--nb-muted);
+  border-radius: 50%;
+  flex-shrink: 0;
+  position: relative;
+  transition: var(--nb-transition);
+}
+
+.interview-new-page__check--done {
+  border-color: var(--nb-success);
+  background: var(--nb-success);
+}
+
+.interview-new-page__check--done::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -60%) rotate(45deg);
 }
 
 .interview-new-page__info-box {

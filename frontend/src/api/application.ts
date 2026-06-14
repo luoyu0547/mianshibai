@@ -22,7 +22,7 @@ export function createApplication(data: ApplicationCreateRequest) {
 }
 
 export function listApplications(params?: ApplicationListQueryRequest) {
-  return request.get<BaseResponse<JobApplicationVO[]>>('/api/application/list', { params })
+  return request.get<BaseResponse<JobApplicationVO[]>>('/api/application', { params })
 }
 
 export function getApplicationStats() {
@@ -54,7 +54,7 @@ export function createGlobalTodo(data: ApplicationTodoCreateRequest) {
 }
 
 export function listApplicationTodos(params?: ApplicationTodoQueryRequest) {
-  return request.get<BaseResponse<ApplicationTodoVO[]>>('/api/application/todo/list', { params })
+  return request.get<BaseResponse<ApplicationTodoVO[]>>('/api/application/todo', { params })
 }
 
 export function updateApplicationTodo(id: number, data: ApplicationTodoUpdateRequest) {

@@ -1,7 +1,7 @@
 <!-- src/components/resume/sections/WorkExperienceEditor.vue -->
 <template>
   <div class="work-editor">
-    <div v-for="(item, index) in items" :key="index" class="work-item">
+    <NbCard v-for="(item, index) in items" :key="index" variant="muted" compact class="work-item">
       <div class="work-item__header">
         <span class="work-item__title">工作经历 {{ index + 1 }}</span>
         <el-button type="danger" text size="small" @click="removeItem(index)">删除</el-button>
@@ -74,13 +74,15 @@
           </div>
         </el-form-item>
       </el-form>
-    </div>
-    <el-button class="add-btn" @click="addItem">+ 添加工作经历</el-button>
+    </NbCard>
+    <NbButton variant="ghost" block class="add-btn" @click="addItem">+ 添加工作经历</NbButton>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
+import NbCard from '@/components/NbCard.vue'
+import NbButton from '@/components/NbButton.vue'
 
 const props = defineProps<{
   items: Record<string, unknown>[]
@@ -148,13 +150,10 @@ function handleTagConfirm(itemIndex: number) {
 </script>
 
 <style scoped>
-.work-item {
-  background: var(--nb-card);
-  border: var(--nb-border);
-  box-shadow: var(--nb-shadow);
-  border-radius: var(--nb-radius-lg);
-  padding: 20px;
-  margin-bottom: 16px;
+.work-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .work-item__header {
@@ -166,13 +165,8 @@ function handleTagConfirm(itemIndex: number) {
 
 .work-item__title {
   font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 16px;
-}
-
-.add-btn {
-  width: 100%;
-  border-style: dashed;
+  font-weight: 700;
+  font-size: 15px;
 }
 
 .tag-list {
@@ -184,7 +178,7 @@ function handleTagConfirm(itemIndex: number) {
 
 .highlight-tag {
   border: var(--nb-border);
-  box-shadow: 2px 2px 0 var(--nb-border);
+  box-shadow: var(--nb-shadow-xs);
 }
 
 .tag-input {

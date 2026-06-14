@@ -2,25 +2,27 @@
 <template>
   <MainLayout>
     <div class="app-list-page">
-      <div class="app-list-page__header">
-        <h1 class="app-list-page__title">投递管理</h1>
-        <div class="app-list-page__actions">
+      <NbPageHeader
+        eyebrow="求职管理"
+        title="投递管理"
+        description="跟踪每一次投递的进度与待办"
+      >
+        <template #actions>
           <NbButton @click="router.push('/applications/todos')">待办中心</NbButton>
-          <NbButton type="primary" @click="router.push('/applications/new')">+ 新建投递</NbButton>
-        </div>
-      </div>
+          <NbButton variant="primary" @click="router.push('/applications/new')">+ 新建投递</NbButton>
+        </template>
+      </NbPageHeader>
 
       <div v-if="applicationStore.stats" class="app-list-page__stats">
-        <NbCard
+        <NbStatCard
           v-for="item in statCards"
           :key="item.key"
+          :label="item.label"
+          :value="item.value"
+          :variant="item.statVariant"
           class="app-list-page__stat-card"
-          hoverable
           @click="handleStatClick(item.key)"
-        >
-          <div class="app-list-page__stat-value">{{ item.value }}</div>
-          <div class="app-list-page__stat-label">{{ item.label }}</div>
-        </NbCard>
+        />
       </div>
 
       <div class="app-list-page__filter">
@@ -46,19 +48,23 @@
             :value="opt.value"
           />
         </el-select>
-        <NbButton type="primary" @click="loadData">搜索</NbButton>
+        <NbButton variant="primary" @click="loadData">搜索</NbButton>
       </div>
 
-      <div v-if="applicationStore.loading" class="app-list-page__loading">
-        <el-icon class="is-loading" :size="32"><LoadingIcon /></el-icon>
-        <span>加载中...</span>
-      </div>
+      <NbCard v-if="applicationStore.loading">
+        <NbLoadingBlock title="加载投递记录..." :rows="4" />
+      </NbCard>
 
-      <div v-else-if="applicationStore.applications.length === 0" class="app-list-page__empty">
-        <div class="app-list-page__empty-icon">📭</div>
-        <p class="app-list-page__empty-text">还没有投递记录</p>
-        <NbButton type="primary" @click="router.push('/applications/new')">新建投递</NbButton>
-      </div>
+      <NbCard v-else-if="applicationStore.applications.length === 0">
+        <NbEmptyState
+          title="还没有投递记录"
+          description="新建一条投递记录，开始跟踪进度"
+        >
+          <template #action>
+            <NbButton variant="primary" @click="router.push('/applications/new')">新建投递</NbButton>
+          </template>
+        </NbEmptyState>
+      </NbCard>
 
       <div v-else class="app-list-page__grid">
         <NbCard
@@ -70,13 +76,10 @@
         >
           <div class="app-card__header">
             <h3 class="app-card__title">{{ app.jobTitle }}</h3>
-            <el-tag
-              :type="statusTagType(app.status)"
-              size="small"
-              class="app-card__status"
-            >
-              {{ app.statusLabel }}
-            </el-tag>
+            <NbStatusBadge
+              :label="getStatusDescriptor(applicationStatusMap, app.status).label"
+              :variant="getStatusDescriptor(applicationStatusMap, app.status).variant"
+            />
           </div>
           <div class="app-card__meta">
             <span>{{ app.companyName }}</span>
@@ -118,13 +121,19 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Loading as LoadingIcon } from '@element-plus/icons-vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import NbCard from '@/components/NbCard.vue'
 import NbButton from '@/components/NbButton.vue'
+import NbPageHeader from '@/components/NbPageHeader.vue'
+import NbStatCard from '@/components/NbStatCard.vue'
+import NbStatusBadge from '@/components/NbStatusBadge.vue'
+import NbLoadingBlock from '@/components/NbLoadingBlock.vue'
+import NbEmptyState from '@/components/NbEmptyState.vue'
 import { useApplicationStore } from '@/stores/application'
 import { APPLICATION_STATUS_OPTIONS } from '@/types/application'
 import type { ApplicationStatus } from '@/types/application'
+import { applicationStatusMap, getStatusDescriptor } from '@/utils/statusMaps'
+import { formatDate } from '@/utils/date'
 
 const router = useRouter()
 const applicationStore = useApplicationStore()
@@ -135,12 +144,12 @@ const statusFilter = ref<ApplicationStatus | ''>('')
 const statCards = computed(() => {
   const s = applicationStore.stats!
   return [
-    { key: 'total', label: '全部', value: s.total },
-    { key: 'pending_submit', label: '待投递', value: s.pendingSubmit },
-    { key: 'submitted', label: '已投递', value: s.submitted },
-    { key: 'interviewing', label: '面试中', value: s.interviewing },
-    { key: 'offer', label: 'Offer', value: s.offer },
-    { key: 'closed', label: '失败/放弃', value: s.closed },
+    { key: 'total', label: '全部', value: s.total, statVariant: 'default' as const },
+    { key: 'pending_submit', label: '待投递', value: s.pendingSubmit, statVariant: 'warning' as const },
+    { key: 'submitted', label: '已投递', value: s.submitted, statVariant: 'accent' as const },
+    { key: 'interviewing', label: '面试中', value: s.interviewing, statVariant: 'primary' as const },
+    { key: 'offer', label: 'Offer', value: s.offer, statVariant: 'success' as const },
+    { key: 'closed', label: '失败/放弃', value: s.closed, statVariant: 'danger' as const },
   ]
 })
 
@@ -176,24 +185,6 @@ async function handleStatusChange(id: number, status: ApplicationStatus) {
     ElMessage.error('状态更新失败')
   }
 }
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('zh-CN')
-}
-
-function statusTagType(status: ApplicationStatus) {
-  if (status === 'offer') return 'success'
-  if (status === 'rejected' || status === 'withdrawn') return 'danger'
-  if (status === 'pending_submit') return 'info'
-  if (
-    status === 'first_interview' ||
-    status === 'second_interview' ||
-    status === 'final_interview' ||
-    status === 'written_test' ||
-    status === 'hr_contact'
-  ) return 'warning'
-  return ''
-}
 </script>
 
 <style scoped>
@@ -203,24 +194,6 @@ function statusTagType(status: ApplicationStatus) {
   gap: 24px;
 }
 
-.app-list-page__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.app-list-page__title {
-  font-family: var(--font-heading);
-  font-size: 28px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.app-list-page__actions {
-  display: flex;
-  gap: 12px;
-}
-
 .app-list-page__stats {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
@@ -228,54 +201,14 @@ function statusTagType(status: ApplicationStatus) {
 }
 
 .app-list-page__stat-card {
-  text-align: center;
   cursor: pointer;
-}
-
-.app-list-page__stat-value {
-  font-family: var(--font-heading);
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--nb-primary);
-}
-
-.app-list-page__stat-label {
-  font-size: 13px;
-  color: var(--nb-muted);
-  margin-top: 4px;
 }
 
 .app-list-page__filter {
   display: flex;
   gap: 12px;
   align-items: center;
-}
-
-.app-list-page__loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 64px 0;
-  color: var(--nb-muted);
-}
-
-.app-list-page__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 64px 0;
-}
-
-.app-list-page__empty-icon {
-  font-size: 64px;
-}
-
-.app-list-page__empty-text {
-  font-size: 16px;
-  color: var(--nb-muted);
-  margin: 0;
+  flex-wrap: wrap;
 }
 
 .app-list-page__grid {
@@ -304,12 +237,6 @@ function statusTagType(status: ApplicationStatus) {
   margin: 0;
   flex: 1;
   margin-right: 8px;
-}
-
-.app-card__status {
-  border: var(--nb-border);
-  box-shadow: 2px 2px 0 var(--nb-border);
-  flex-shrink: 0;
 }
 
 .app-card__meta {

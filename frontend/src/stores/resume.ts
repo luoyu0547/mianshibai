@@ -24,8 +24,8 @@ export const useResumeStore = defineStore('resume', () => {
     loading.value = true
     try {
       const res = await listResumesApi()
-      if (res.data.code === 0) {
-        resumeList.value = res.data.data
+      if (res.code === 0) {
+        resumeList.value = res.data
       }
     } finally {
       loading.value = false
@@ -36,8 +36,8 @@ export const useResumeStore = defineStore('resume', () => {
     loading.value = true
     try {
       const res = await getResumeDetailApi(id)
-      if (res.data.code === 0) {
-        currentResume.value = res.data.data
+      if (res.code === 0) {
+        currentResume.value = res.data
       }
     } finally {
       loading.value = false
@@ -51,7 +51,7 @@ export const useResumeStore = defineStore('resume', () => {
 
   async function deleteResume(id: number) {
     const res = await deleteResumeApi(id)
-    if (res.data.code === 0) {
+    if (res.code === 0) {
       resumeList.value = resumeList.value.filter((r) => r.id !== id)
       return true
     }
@@ -62,8 +62,8 @@ export const useResumeStore = defineStore('resume', () => {
     loading.value = true
     try {
       const res = await aiGenerateResumeApi(data)
-      if (res.data.code === 0) {
-        currentResume.value = res.data.data
+      if (res.code === 0) {
+        currentResume.value = res.data
       }
       return res
     } finally {

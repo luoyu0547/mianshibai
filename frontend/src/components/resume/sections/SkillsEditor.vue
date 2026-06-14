@@ -1,7 +1,7 @@
 <!-- src/components/resume/sections/SkillsEditor.vue -->
 <template>
   <div class="skills-editor">
-    <div v-for="(cat, index) in categories" :key="index" class="skill-category">
+    <NbCard v-for="(cat, index) in categories" :key="index" variant="muted" compact class="skill-category">
       <div class="skill-category__header">
         <el-input
           v-model="cat.name"
@@ -33,13 +33,15 @@
           + 添加技能
         </el-button>
       </div>
-    </div>
-    <el-button class="add-btn" @click="addCategory">+ 添加分类</el-button>
+    </NbCard>
+    <NbButton variant="ghost" block class="add-btn" @click="addCategory">+ 添加分类</NbButton>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, nextTick } from 'vue'
+import NbCard from '@/components/NbCard.vue'
+import NbButton from '@/components/NbButton.vue'
 
 interface SkillCategory {
   name: string
@@ -115,13 +117,10 @@ function handleSkillConfirm(catIndex: number) {
 </script>
 
 <style scoped>
-.skill-category {
-  background: var(--nb-card);
-  border: var(--nb-border);
-  box-shadow: var(--nb-shadow);
-  border-radius: var(--nb-radius-lg);
-  padding: 16px;
-  margin-bottom: 12px;
+.skills-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .skill-category__header {
@@ -144,15 +143,10 @@ function handleSkillConfirm(catIndex: number) {
 
 .skill-tag {
   border: var(--nb-border);
-  box-shadow: 2px 2px 0 var(--nb-border);
+  box-shadow: var(--nb-shadow-xs);
 }
 
 .skill-input {
   width: 120px;
-}
-
-.add-btn {
-  width: 100%;
-  border-style: dashed;
 }
 </style>

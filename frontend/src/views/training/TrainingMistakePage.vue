@@ -1,9 +1,11 @@
 <template>
   <MainLayout>
     <div class="tm-page">
-      <div class="tm-page__header">
-        <h2 class="tm-page__title">错题本</h2>
-      </div>
+      <NbPageHeader
+        eyebrow="训练中心"
+        title="错题本"
+        description="集中查看 AI 批改标记的薄弱题目，针对性查漏补缺"
+      />
 
       <NbCard class="tm-page__filter-card">
         <div class="tm-page__filter-row">
@@ -43,126 +45,111 @@
             <el-option label="80 分以下" :value="80" />
           </el-select>
           <NbButton type="primary" @click="handleFilter">筛选</NbButton>
-          <NbButton type="secondary" @click="handleReset">重置</NbButton>
+          <NbButton variant="secondary" @click="handleReset">重置</NbButton>
         </div>
       </NbCard>
 
       <div class="tm-page__summary-row">
-        <NbCard class="tm-page__summary-card">
-          <div class="tm-page__summary-value">{{ trainingStore.mistakes.length }}</div>
-          <div class="tm-page__summary-label">全部错题</div>
-        </NbCard>
-        <NbCard class="tm-page__summary-card">
-          <div class="tm-page__summary-value tm-page__summary-value--danger">{{ weakCount }}</div>
-          <div class="tm-page__summary-label">薄弱</div>
-        </NbCard>
-        <NbCard class="tm-page__summary-card">
-          <div class="tm-page__summary-value tm-page__summary-value--warning">{{ basicCount }}</div>
-          <div class="tm-page__summary-label">基础</div>
-        </NbCard>
-        <NbCard class="tm-page__summary-card">
-          <div class="tm-page__summary-value tm-page__summary-value--success">{{ goodCount }}</div>
-          <div class="tm-page__summary-label">良好</div>
-        </NbCard>
+        <NbStatCard
+          label="全部错题"
+          :value="trainingStore.mistakes.length"
+        />
+        <NbStatCard
+          label="薄弱"
+          :value="weakCount"
+          variant="danger"
+        />
+        <NbStatCard
+          label="基础"
+          :value="basicCount"
+          variant="warning"
+        />
+        <NbStatCard
+          label="良好"
+          :value="goodCount"
+          variant="success"
+        />
       </div>
 
-      <template v-if="trainingStore.mistakes.length > 0">
-        <div v-for="mistake in trainingStore.mistakes" :key="mistake.questionId" class="tm-page__mistake-item">
-          <NbCard class="tm-page__mistake-card">
-            <div class="tm-page__mistake-header">
-              <router-link
-                :to="`/training/question/${mistake.questionId}`"
-                class="tm-page__mistake-title"
-              >
-                {{ mistake.title }}
-              </router-link>
-              <div class="tm-page__mistake-tags">
-                <el-tag effect="dark" class="tm-page__tag">{{ mistake.topic }}</el-tag>
-                <el-tag
-                  :type="difficultyTagType(mistake.difficulty)"
-                  effect="dark"
-                  class="tm-page__tag"
-                >
-                  {{ difficultyLabel(mistake.difficulty) }}
-                </el-tag>
-                <template v-if="mistake.skillTags?.length">
-                  <el-tag
-                    v-for="tag in mistake.skillTags"
-                    :key="tag"
-                    size="small"
-                    effect="plain"
-                    class="tm-page__tag tm-page__skill-tag"
-                  >
-                    {{ tag }}
-                  </el-tag>
-                </template>
-                <el-tag
-                  effect="dark"
-                  :color="masteryColor(mistake.masteryLevel)"
-                  class="tm-page__tag"
-                  style="border: none; color: #fff;"
-                >
-                  {{ masteryLabel(mistake.masteryLevel) }}
-                </el-tag>
-                <el-tag
-                  :color="masteryColor(mistake.masteryLevel)"
-                  effect="dark"
-                  class="tm-page__tag"
-                  style="border: none; color: #fff;"
-                >
-                  {{ mistake.latestScore }} 分
-                </el-tag>
-                <el-tag :type="statusTagType(mistake.status)" effect="dark" class="tm-page__tag">
-                  {{ QUESTION_STATUS_LABELS[mistake.status] }}
-                </el-tag>
-              </div>
-            </div>
+      <NbCard v-if="trainingStore.loading">
+        <NbLoadingBlock title="加载错题..." :rows="4" />
+      </NbCard>
 
-            <div v-if="mistake.mistakes?.length" class="tm-page__section">
-              <h4 class="tm-page__section-heading tm-page__section-heading--red">错误</h4>
-              <ul class="tm-page__section-list">
-                <li v-for="(item, i) in mistake.mistakes" :key="i">{{ item }}</li>
-              </ul>
+      <template v-else-if="trainingStore.mistakes.length > 0">
+        <NbCard
+          v-for="mistake in trainingStore.mistakes"
+          :key="mistake.questionId"
+          :variant="mistake.masteryLevel === 'weak' ? 'danger' : mistake.masteryLevel === 'good' ? 'success' : 'warning'"
+        >
+          <div class="tm-page__mistake-header">
+            <router-link
+              :to="`/training/question/${mistake.questionId}`"
+              class="tm-page__mistake-title"
+            >
+              {{ mistake.title }}
+            </router-link>
+            <div class="tm-page__mistake-tags">
+              <NbStatusBadge :label="mistake.topic" variant="info" />
+              <NbStatusBadge
+                :label="getStatusDescriptor(trainingDifficultyMap, mistake.difficulty).label"
+                :variant="getStatusDescriptor(trainingDifficultyMap, mistake.difficulty).variant"
+              />
+              <NbStatusBadge
+                v-for="tag in mistake.skillTags"
+                :key="tag"
+                :label="tag"
+                variant="default"
+              />
+              <NbStatusBadge
+                :label="getStatusDescriptor(trainingMasteryMap, mistake.masteryLevel).label"
+                :variant="getStatusDescriptor(trainingMasteryMap, mistake.masteryLevel).variant"
+              />
+              <span class="tm-page__score-chip">{{ mistake.latestScore }} 分</span>
+              <NbStatusBadge
+                :label="getStatusDescriptor(trainingQuestionStatusMap, mistake.status).label"
+                :variant="getStatusDescriptor(trainingQuestionStatusMap, mistake.status).variant"
+              />
             </div>
+          </div>
 
-            <div v-if="mistake.missingPoints?.length" class="tm-page__section">
-              <h4 class="tm-page__section-heading tm-page__section-heading--orange">遗漏要点</h4>
-              <ul class="tm-page__section-list">
-                <li v-for="(item, i) in mistake.missingPoints" :key="i">{{ item }}</li>
-              </ul>
-            </div>
+          <div v-if="mistake.mistakes?.length" class="tm-page__section">
+            <h4 class="tm-page__section-heading tm-page__section-heading--red">错误</h4>
+            <ul class="tm-page__section-list">
+              <li v-for="(item, i) in mistake.mistakes" :key="i">{{ item }}</li>
+            </ul>
+          </div>
 
-            <div v-if="mistake.suggestions?.length" class="tm-page__section">
-              <h4 class="tm-page__section-heading tm-page__section-heading--blue">改进建议</h4>
-              <ul class="tm-page__section-list">
-                <li v-for="(item, i) in mistake.suggestions" :key="i">{{ item }}</li>
-              </ul>
-            </div>
+          <div v-if="mistake.missingPoints?.length" class="tm-page__section">
+            <h4 class="tm-page__section-heading tm-page__section-heading--orange">遗漏要点</h4>
+            <ul class="tm-page__section-list">
+              <li v-for="(item, i) in mistake.missingPoints" :key="i">{{ item }}</li>
+            </ul>
+          </div>
 
-            <div v-if="mistake.recommendedAnswer" class="tm-page__section">
-              <h4 class="tm-page__section-heading">推荐答案</h4>
-              <p class="tm-page__rec-answer">{{ mistake.recommendedAnswer.slice(0, 200) }}{{ mistake.recommendedAnswer.length > 200 ? '...' : '' }}</p>
-            </div>
+          <div v-if="mistake.suggestions?.length" class="tm-page__section">
+            <h4 class="tm-page__section-heading tm-page__section-heading--blue">改进建议</h4>
+            <ul class="tm-page__section-list">
+              <li v-for="(item, i) in mistake.suggestions" :key="i">{{ item }}</li>
+            </ul>
+          </div>
 
-            <div class="tm-page__mistake-footer">
-              <NbButton type="success" @click="handleMaster(mistake.questionId)">标记已掌握</NbButton>
-            </div>
-          </NbCard>
-        </div>
-      </template>
+          <div v-if="mistake.recommendedAnswer" class="tm-page__section">
+            <h4 class="tm-page__section-heading">推荐答案</h4>
+            <p class="tm-page__rec-answer nb-prewrap">{{ mistake.recommendedAnswer.slice(0, 200) }}{{ mistake.recommendedAnswer.length > 200 ? '...' : '' }}</p>
+          </div>
 
-      <template v-else-if="!trainingStore.loading">
-        <NbCard>
-          <div class="tm-page__empty">
-            <p>暂无错题，继续完成八股训练后这里会自动出现需要复习的题目。</p>
+          <div class="tm-page__mistake-footer">
+            <NbButton variant="success" @click="handleMaster(mistake.questionId)">标记已掌握</NbButton>
           </div>
         </NbCard>
       </template>
 
-      <div v-if="trainingStore.loading" class="tm-page__loading">
-        <el-icon class="is-loading" :size="32"><LoadingIcon /></el-icon>
-        <span>加载中...</span>
-      </div>
+      <NbCard v-else>
+        <NbEmptyState
+          title="暂无错题"
+          description="继续完成八股训练后这里会自动出现需要复习的题目"
+        />
+      </NbCard>
     </div>
   </MainLayout>
 </template>
@@ -170,17 +157,23 @@
 <script setup lang="ts">
 import { reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Loading as LoadingIcon } from '@element-plus/icons-vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import NbCard from '@/components/NbCard.vue'
 import NbButton from '@/components/NbButton.vue'
+import NbPageHeader from '@/components/NbPageHeader.vue'
+import NbStatCard from '@/components/NbStatCard.vue'
+import NbStatusBadge from '@/components/NbStatusBadge.vue'
+import NbLoadingBlock from '@/components/NbLoadingBlock.vue'
+import NbEmptyState from '@/components/NbEmptyState.vue'
 import { useTrainingStore } from '@/stores/training'
+import { MASTERY_LEVEL_OPTIONS } from '@/types/training'
 import {
-  MASTERY_LEVEL_OPTIONS,
-  TRAINING_DIFFICULTY_OPTIONS,
-  QUESTION_STATUS_LABELS,
-} from '@/types/training'
-import type { TrainingDifficulty, TrainingQuestionStatus, MasteryLevel } from '@/types/training'
+  trainingMasteryMap,
+  trainingDifficultyMap,
+  trainingQuestionStatusMap,
+  getStatusDescriptor,
+} from '@/utils/statusMaps'
+import type { MasteryLevel, TrainingMistakeQueryRequest } from '@/types/training'
 
 const trainingStore = useTrainingStore()
 
@@ -207,7 +200,7 @@ function handleFilter() {
   if (filters.masteryLevel) params.masteryLevel = filters.masteryLevel
   if (filters.includeMastered) params.includeMastered = true
   if (filters.scoreMax !== undefined) params.scoreMax = filters.scoreMax
-  trainingStore.fetchMistakes(params as any)
+  trainingStore.fetchMistakes(params as TrainingMistakeQueryRequest)
 }
 
 function handleReset() {
@@ -227,52 +220,13 @@ async function handleMaster(id: number) {
     ElMessage.error('操作失败')
   }
 }
-
-function masteryColor(level: MasteryLevel) {
-  return MASTERY_LEVEL_OPTIONS.find(o => o.value === level)?.color || '#999'
-}
-
-function masteryLabel(level: MasteryLevel) {
-  return MASTERY_LEVEL_OPTIONS.find(o => o.value === level)?.label || level
-}
-
-function difficultyTagType(d: TrainingDifficulty) {
-  if (d === 'easy') return 'success'
-  if (d === 'medium') return 'warning'
-  return 'danger'
-}
-
-function difficultyLabel(d: TrainingDifficulty) {
-  return TRAINING_DIFFICULTY_OPTIONS.find(o => o.value === d)?.label ?? d
-}
-
-function statusTagType(s: TrainingQuestionStatus) {
-  if (s === 'mastered') return 'success'
-  if (s === 'reviewed') return ''
-  if (s === 'answered') return 'warning'
-  if (s === 'skipped') return 'info'
-  return 'danger'
-}
 </script>
 
 <style scoped>
 .tm-page {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-}
-
-.tm-page__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.tm-page__title {
-  font-family: var(--font-heading);
-  font-size: 24px;
-  font-weight: 600;
-  margin: 0;
+  gap: 24px;
 }
 
 .tm-page__filter-card {
@@ -312,33 +266,6 @@ function statusTagType(s: TrainingQuestionStatus) {
   gap: 16px;
 }
 
-.tm-page__summary-card {
-  text-align: center;
-  padding: 20px 16px;
-}
-
-.tm-page__summary-value {
-  font-family: var(--font-heading);
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--nb-primary);
-  margin-bottom: 4px;
-}
-
-.tm-page__summary-value--danger { color: #e74c3c; }
-.tm-page__summary-value--warning { color: #f39c12; }
-.tm-page__summary-value--success { color: #2ecc71; }
-
-.tm-page__summary-label {
-  font-size: 13px;
-  color: var(--nb-muted);
-}
-
-.tm-page__mistake-item {
-  display: flex;
-  flex-direction: column;
-}
-
 .tm-page__mistake-header {
   margin-bottom: 16px;
 }
@@ -364,14 +291,17 @@ function statusTagType(s: TrainingQuestionStatus) {
   flex-wrap: wrap;
 }
 
-.tm-page__tag {
-  border: var(--nb-border)  !important;
-  box-shadow: 2px 2px 0 var(--nb-border);
-}
-
-.tm-page__skill-tag {
-  border: var(--nb-border)  !important;
-  box-shadow: 2px 2px 0 var(--nb-border);
+.tm-page__score-chip {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border: var(--nb-border);
+  border-radius: var(--nb-radius-sm);
+  background: rgba(108, 92, 231, 0.12);
+  color: var(--nb-primary);
 }
 
 .tm-page__section {
@@ -385,9 +315,9 @@ function statusTagType(s: TrainingQuestionStatus) {
   margin: 0 0 8px 0;
 }
 
-.tm-page__section-heading--red { color: #e74c3c; }
-.tm-page__section-heading--orange { color: #f39c12; }
-.tm-page__section-heading--blue { color: #3498db; }
+.tm-page__section-heading--red { color: var(--nb-danger); }
+.tm-page__section-heading--orange { color: var(--nb-warning); }
+.tm-page__section-heading--blue { color: var(--nb-secondary); }
 
 .tm-page__section-list {
   list-style: none;
@@ -406,20 +336,19 @@ function statusTagType(s: TrainingQuestionStatus) {
 }
 
 .tm-page__section-list li::before {
-  content: '•';
+  content: '\2022';
   position: absolute;
   left: 0;
   color: var(--nb-muted);
 }
 
 .tm-page__rec-answer {
-  background: var(--nb-bg);
+  background: var(--nb-muted-surface);
   border: var(--nb-border);
   border-radius: var(--nb-radius);
   padding: 12px;
   line-height: 1.6;
   font-size: 14px;
-  white-space: pre-wrap;
   color: var(--nb-muted);
   margin: 0;
 }
@@ -429,22 +358,6 @@ function statusTagType(s: TrainingQuestionStatus) {
   justify-content: flex-end;
   padding-top: 8px;
   border-top: var(--nb-border);
-}
-
-.tm-page__loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 64px 0;
-  color: var(--nb-muted);
-}
-
-.tm-page__empty {
-  text-align: center;
-  padding: 40px 0;
-  color: var(--nb-muted);
-  font-size: 15px;
 }
 
 @media (max-width: 768px) {

@@ -11,8 +11,8 @@ export const useDashboardStore = defineStore('dashboard', () => {
     loading.value = true
     try {
       const res = await getDashboardApi()
-      if (res.data.code === 0) {
-        dashboard.value = res.data.data
+      if (res.code === 0) {
+        dashboard.value = res.data
       }
     } finally {
       loading.value = false

@@ -2,59 +2,67 @@
 <template>
   <MainLayout>
     <div class="resume-list-page">
-      <div class="resume-list-page__header">
-        <h1 class="resume-list-page__title">我的简历</h1>
-        <el-dropdown trigger="click" @command="handleCreateCommand">
-          <NbButton type="primary">+ 新建简历</NbButton>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="blank">新建空白简历</el-dropdown-item>
-              <el-dropdown-item command="ai">AI 生成简历</el-dropdown-item>
-            </el-dropdown-menu>
+      <NbPageHeader
+        eyebrow="简历工作台"
+        title="我的简历"
+        description="管理你的求职简历，AI 助你打造完美作品集"
+      >
+        <template #actions>
+          <el-dropdown trigger="click" @command="handleCreateCommand">
+            <NbButton variant="primary">+ 新建简历</NbButton>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="blank">新建空白简历</el-dropdown-item>
+                <el-dropdown-item command="ai">AI 生成简历</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </template>
+      </NbPageHeader>
+
+      <NbCard v-if="resumeStore.loading">
+        <NbLoadingBlock title="加载简历列表..." :rows="4" />
+      </NbCard>
+
+      <NbCard v-else-if="resumeStore.resumeList.length === 0">
+        <NbEmptyState
+          title="还没有简历"
+          description="立即创建一份简历，开启你的求职之旅"
+        >
+          <template #action>
+            <NbButton variant="primary" @click="openCreateDialog('blank')">立即创建</NbButton>
           </template>
-        </el-dropdown>
-      </div>
+        </NbEmptyState>
+      </NbCard>
 
-      <div v-if="resumeStore.loading" class="resume-list-page__loading">
-        <el-icon class="is-loading" :size="32"><LoadingIcon /></el-icon>
-        <span>加载中...</span>
-      </div>
-
-      <div v-else-if="resumeStore.resumeList.length === 0" class="resume-list-page__empty">
-        <div class="resume-list-page__empty-icon">📄</div>
-        <p class="resume-list-page__empty-text">还没有简历，立即创建一份吧！</p>
-        <NbButton type="primary" @click="openCreateDialog('blank')">立即创建</NbButton>
-      </div>
-
-      <div v-else class="resume-list-page__grid">
+      <div v-else class="rlp-grid">
         <NbCard
           v-for="resume in resumeStore.resumeList"
           :key="resume.id"
           hoverable
-          class="resume-card"
+          class="rlp-card"
+          @click="router.push(`/resume/${resume.id}/edit`)"
         >
-          <div class="resume-card__header">
-            <h3 class="resume-card__title">{{ resume.title }}</h3>
-            <el-tag class="resume-card__badge" :type="templateTagType(resume.templateType)" size="small">
-              {{ templateLabel(resume.templateType) }}
-            </el-tag>
+          <div class="rlp-card__head">
+            <div class="rlp-card__top">
+              <h3 class="rlp-card__title">{{ resume.title }}</h3>
+              <NbStatusBadge
+                :label="templateLabel(resume.templateType)"
+                variant="muted"
+              />
+            </div>
+            <div class="rlp-card__meta">
+              <NbStatusBadge
+                :label="resume.status === 'draft' ? '草稿' : '已完成'"
+                :variant="resume.status === 'draft' ? 'warning' : 'success'"
+              />
+              <span class="rlp-card__time">更新于 {{ formatTime(resume.updateTime) }}</span>
+            </div>
           </div>
-          <div class="resume-card__meta">
-            <span class="resume-card__status" :class="{ 'resume-card__status--draft': resume.status === 'draft' }">
-              {{ resume.status === 'draft' ? '草稿' : '已完成' }}
-            </span>
-            <span class="resume-card__time">{{ formatTime(resume.updateTime) }}</span>
-          </div>
-          <div class="resume-card__actions">
-            <el-button type="primary" text @click="router.push(`/resume/${resume.id}/edit`)">
-              编辑
-            </el-button>
-            <el-button text @click="router.push(`/resume/${resume.id}/preview`)">
-              预览
-            </el-button>
-            <el-button type="danger" text @click="handleDelete(resume.id, resume.title)">
-              删除
-            </el-button>
+          <div class="rlp-card__actions" @click.stop>
+            <NbButton variant="primary" @click="router.push(`/resume/${resume.id}/edit`)">编辑</NbButton>
+            <NbButton variant="ghost" @click="router.push(`/resume/${resume.id}/preview`)">预览</NbButton>
+            <NbButton variant="ghost" @click="handleDelete(resume.id, resume.title)">删除</NbButton>
           </div>
         </NbCard>
       </div>
@@ -77,8 +85,8 @@
           </template>
         </el-form>
         <template #footer>
-          <el-button @click="createDialogVisible = false">取消</el-button>
-          <NbButton type="primary" :loading="isCreating" @click="handleCreate">创建</NbButton>
+          <NbButton variant="ghost" @click="createDialogVisible = false">取消</NbButton>
+          <NbButton variant="primary" :loading="isCreating" @click="handleCreate">创建</NbButton>
         </template>
       </el-dialog>
     </div>
@@ -89,10 +97,13 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Loading as LoadingIcon } from '@element-plus/icons-vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import NbCard from '@/components/NbCard.vue'
 import NbButton from '@/components/NbButton.vue'
+import NbPageHeader from '@/components/NbPageHeader.vue'
+import NbEmptyState from '@/components/NbEmptyState.vue'
+import NbLoadingBlock from '@/components/NbLoadingBlock.vue'
+import NbStatusBadge from '@/components/NbStatusBadge.vue'
 import { useResumeStore } from '@/stores/resume'
 import { aiGenerateResume as aiGenerateResumeApi } from '@/api/resume'
 
@@ -141,8 +152,8 @@ async function handleCreate() {
   try {
     if (createMode.value === 'blank') {
       const res = await resumeStore.createResume({ title: createForm.title.trim() })
-      if (res.data.code === 0) {
-        const id = res.data.data.id!
+      if (res.code === 0) {
+        const id = res.data.id!
         createDialogVisible.value = false
         router.push(`/resume/${id}/edit`)
       }
@@ -152,8 +163,8 @@ async function handleCreate() {
         techDirection: createForm.techDirection || undefined,
         workYears: createForm.workYears || undefined,
       })
-      if (res.data.code === 0) {
-        const id = res.data.data.id!
+      if (res.code === 0) {
+        const id = res.data.id!
         createDialogVisible.value = false
         router.push(`/resume/${id}/edit`)
       }
@@ -181,26 +192,23 @@ async function handleDelete(id: number, title: string) {
 
 function templateLabel(type: string) {
   const map: Record<string, string> = {
-    minimal_tech: '简约技术风',
-    modern_two_col: '现代双栏',
-    classic_formal: '经典正式',
+    minimal_tech: '极简专业风',
+    modern_two_col: '现代双栏风',
+    classic_formal: '典雅正式风',
   }
   return map[type] || type
-}
-
-function templateTagType(type: string) {
-  const map: Record<string, string> = {
-    minimal_tech: '',
-    modern_two_col: 'success',
-    classic_formal: 'warning',
-  }
-  return (map[type] || '') as '' | 'success' | 'warning'
 }
 
 function formatTime(timeStr: string) {
   if (!timeStr) return ''
   const d = new Date(timeStr)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  const now = new Date()
+  const diff = now.getTime() - d.getTime()
+  if (diff < 60000) return '刚刚'
+  if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`
+  if (diff < 604800000) return `${Math.floor(diff / 86400000)} 天前`
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 </script>
 
@@ -211,101 +219,59 @@ function formatTime(timeStr: string) {
   gap: 24px;
 }
 
-.resume-list-page__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.resume-list-page__title {
-  font-family: var(--font-heading);
-  font-size: 28px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.resume-list-page__loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 64px 0;
-  color: var(--nb-muted);
-}
-
-.resume-list-page__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 64px 0;
-}
-
-.resume-list-page__empty-icon {
-  font-size: 64px;
-}
-
-.resume-list-page__empty-text {
-  font-size: 16px;
-  color: var(--nb-muted);
-  margin: 0;
-}
-
-.resume-list-page__grid {
+.rlp-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
+  gap: 18px;
 }
 
-.resume-card__header {
+.rlp-card {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
+  flex-direction: column;
 }
 
-.resume-card__title {
+.rlp-card__head {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.rlp-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rlp-card__title {
   font-family: var(--font-heading);
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
   margin: 0;
   flex: 1;
-  margin-right: 8px;
+  min-width: 0;
+  word-break: break-word;
+  color: var(--nb-ink);
 }
 
-.resume-card__badge {
-  border: var(--nb-border);
-  box-shadow: 2px 2px 0 var(--nb-border);
-  flex-shrink: 0;
-}
-
-.resume-card__meta {
+.rlp-card__meta {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  font-size: 13px;
-  color: var(--nb-muted);
+  gap: 10px;
 }
 
-.resume-card__status {
-  padding: 2px 8px;
-  border-radius: var(--nb-radius);
-  background: var(--nb-success);
-  color: #fff;
+.rlp-card__time {
   font-size: 12px;
-  font-weight: 600;
+  color: var(--nb-muted-light);
 }
 
-.resume-card__status--draft {
-  background: var(--nb-warning);
-  color: var(--nb-text);
-}
-
-.resume-card__actions {
+.rlp-card__actions {
   display: flex;
   gap: 8px;
-  border-top: 2px solid var(--nb-bg);
-  padding-top: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--nb-border-color-light);
+  flex-wrap: wrap;
 }
 </style>

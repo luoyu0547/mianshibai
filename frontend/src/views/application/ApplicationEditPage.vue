@@ -2,10 +2,15 @@
 <template>
   <MainLayout>
     <div class="app-edit-page">
-      <div class="app-edit-page__header">
-        <el-button text @click="router.back()">&larr; 返回</el-button>
-        <h1 class="app-edit-page__title">新建投递</h1>
-      </div>
+      <NbPageHeader
+        eyebrow="求职管理"
+        title="新建投递"
+        description="记录一次新的求职投递"
+      >
+        <template #actions>
+          <NbButton variant="ghost" @click="router.back()">&larr; 返回</NbButton>
+        </template>
+      </NbPageHeader>
 
       <NbCard>
         <el-form
@@ -90,8 +95,8 @@
           </el-form-item>
 
           <div class="app-edit-page__btns">
-            <NbButton type="secondary" @click="router.push('/applications')">取消</NbButton>
-            <NbButton type="primary" :loading="applicationStore.loading" @click="handleSubmit">
+            <NbButton variant="ghost" @click="router.push('/applications')">取消</NbButton>
+            <NbButton variant="primary" :loading="applicationStore.loading" @click="handleSubmit">
               创建投递
             </NbButton>
           </div>
@@ -109,6 +114,7 @@ import type { FormInstance, FormRules } from 'element-plus'
 import MainLayout from '@/layouts/MainLayout.vue'
 import NbCard from '@/components/NbCard.vue'
 import NbButton from '@/components/NbButton.vue'
+import NbPageHeader from '@/components/NbPageHeader.vue'
 import { useApplicationStore } from '@/stores/application'
 import { APPLICATION_STATUS_OPTIONS } from '@/types/application'
 import type { ApplicationStatus } from '@/types/application'
@@ -168,19 +174,6 @@ async function handleSubmit() {
   display: flex;
   flex-direction: column;
   gap: 24px;
-}
-
-.app-edit-page__header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.app-edit-page__title {
-  font-family: var(--font-heading);
-  font-size: 28px;
-  font-weight: 600;
-  margin: 0;
 }
 
 .app-edit-page__form {

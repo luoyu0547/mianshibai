@@ -2,15 +2,12 @@
 <template>
   <MainLayout>
     <div class="app-detail-page">
-      <div v-if="applicationStore.loading" class="app-detail-page__loading">
-        <el-icon class="is-loading" :size="32"><LoadingIcon /></el-icon>
-        <span>加载中...</span>
-      </div>
+      <NbCard v-if="applicationStore.loading">
+        <NbLoadingBlock title="加载投递详情..." :rows="6" />
+      </NbCard>
 
       <template v-else-if="app">
-        <div class="app-detail-page__header">
-          <el-button text @click="router.back()">&larr; 返回</el-button>
-        </div>
+        <NbButton variant="ghost" @click="router.back()">&larr; 返回</NbButton>
 
         <div class="app-detail-page__hero">
           <div class="app-detail-page__hero-left">
@@ -26,6 +23,10 @@
             </div>
           </div>
           <div class="app-detail-page__hero-actions">
+            <NbStatusBadge
+              :label="getStatusDescriptor(applicationStatusMap, app.status).label"
+              :variant="getStatusDescriptor(applicationStatusMap, app.status).variant"
+            />
             <el-select
               :model-value="app.status"
               style="width: 140px;"
@@ -42,7 +43,7 @@
         </div>
 
         <NbCard>
-          <h3 class="app-detail-page__section-title">基本信息</h3>
+          <NbSectionTitle title="基本信息" />
           <el-descriptions :column="2" border>
             <el-descriptions-item label="来源">{{ app.source || '-' }}</el-descriptions-item>
             <el-descriptions-item label="状态">{{ app.statusLabel }}</el-descriptions-item>
@@ -57,18 +58,16 @@
         </NbCard>
 
         <div class="app-detail-page__links">
-          <el-button v-if="app.jobId" text type="primary" @click="router.push(`/job/${app.jobId}`)">
+          <NbButton v-if="app.jobId" variant="ghost" @click="router.push(`/job/${app.jobId}`)">
             查看关联职位
-          </el-button>
-          <el-button v-if="app.resumeId" text type="primary" @click="router.push(`/resume/${app.resumeId}/preview`)">
+          </NbButton>
+          <NbButton v-if="app.resumeId" variant="ghost" @click="router.push(`/resume/${app.resumeId}/preview`)">
             查看关联简历
-          </el-button>
+          </NbButton>
         </div>
 
         <NbCard>
-          <div class="app-detail-page__todo-header">
-            <h3 class="app-detail-page__section-title" style="margin: 0;">待办事项</h3>
-          </div>
+          <NbSectionTitle title="待办事项" />
 
           <div class="app-detail-page__todo-form">
             <el-input v-model="newTodo.title" placeholder="待办标题" style="flex: 1;" />
@@ -87,7 +86,7 @@
               value-format="YYYY-MM-DD"
               style="width: 160px;"
             />
-            <NbButton type="primary" @click="handleCreateTodo">添加</NbButton>
+            <NbButton variant="primary" @click="handleCreateTodo">添加</NbButton>
           </div>
 
           <div v-if="app.todos && app.todos.length > 0" class="app-detail-page__todo-list">
@@ -98,33 +97,29 @@
             >
               <div class="app-detail-page__todo-content">
                 <span class="app-detail-page__todo-title">{{ todo.title }}</span>
-                <el-tag
-                  :type="priorityTagType(todo.priority)"
-                  size="small"
-                  class="app-detail-page__priority-tag"
-                >
-                  {{ todo.priorityLabel }}
-                </el-tag>
+                <NbStatusBadge
+                  :label="getStatusDescriptor(todoPriorityMap, todo.priority).label"
+                  :variant="getStatusDescriptor(todoPriorityMap, todo.priority).variant"
+                />
                 <span v-if="todo.dueAt" class="app-detail-page__todo-due">
                   截止: {{ formatDate(todo.dueAt) }}
                 </span>
               </div>
               <div class="app-detail-page__todo-actions">
-                <el-button
+                <NbButton
                   v-if="!todo.completed"
-                  type="success"
-                  size="small"
+                  variant="success"
                   @click="handleCompleteTodo(todo.id)"
                 >
                   完成
-                </el-button>
-                <el-button
+                </NbButton>
+                <NbButton
                   v-else
-                  size="small"
+                  variant="ghost"
                   @click="handleReopenTodo(todo.id)"
                 >
                   重开
-                </el-button>
+                </NbButton>
               </div>
             </div>
           </div>
@@ -134,25 +129,33 @@
         </NbCard>
       </template>
 
-      <div v-else class="app-detail-page__empty">
-        <p>未找到该投递记录</p>
-        <el-button type="primary" text @click="router.push('/applications')">返回列表</el-button>
-      </div>
+      <NbCard v-else>
+        <NbEmptyState title="未找到该投递记录">
+          <template #action>
+            <NbButton variant="primary" @click="router.push('/applications')">返回列表</NbButton>
+          </template>
+        </NbEmptyState>
+      </NbCard>
     </div>
   </MainLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from 'vue'
+import { computed, onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Loading as LoadingIcon } from '@element-plus/icons-vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import NbCard from '@/components/NbCard.vue'
 import NbButton from '@/components/NbButton.vue'
+import NbStatusBadge from '@/components/NbStatusBadge.vue'
+import NbSectionTitle from '@/components/NbSectionTitle.vue'
+import NbLoadingBlock from '@/components/NbLoadingBlock.vue'
+import NbEmptyState from '@/components/NbEmptyState.vue'
 import { useApplicationStore } from '@/stores/application'
 import { APPLICATION_STATUS_OPTIONS, TODO_PRIORITY_OPTIONS } from '@/types/application'
 import type { ApplicationStatus, TodoPriority } from '@/types/application'
+import { applicationStatusMap, todoPriorityMap, getStatusDescriptor } from '@/utils/statusMaps'
+import { formatDate } from '@/utils/date'
 
 const route = useRoute()
 const router = useRouter()
@@ -217,17 +220,6 @@ async function handleReopenTodo(todoId: number) {
     applicationStore.fetchApplication(Number(route.params.id))
   }
 }
-
-function formatDate(dateStr: string | null | undefined) {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString('zh-CN')
-}
-
-function priorityTagType(priority: TodoPriority) {
-  if (priority === 'high') return 'danger'
-  if (priority === 'medium') return 'warning'
-  return 'info'
-}
 </script>
 
 <style scoped>
@@ -235,20 +227,6 @@ function priorityTagType(priority: TodoPriority) {
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
-
-.app-detail-page__loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 64px 0;
-  color: var(--nb-muted);
-}
-
-.app-detail-page__header {
-  display: flex;
-  align-items: center;
 }
 
 .app-detail-page__hero {
@@ -291,13 +269,7 @@ function priorityTagType(priority: TodoPriority) {
   flex-shrink: 0;
   display: flex;
   gap: 12px;
-}
-
-.app-detail-page__section-title {
-  font-family: var(--font-heading);
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 16px 0;
+  align-items: center;
 }
 
 .app-detail-page__notes {
@@ -309,13 +281,6 @@ function priorityTagType(priority: TodoPriority) {
 .app-detail-page__links {
   display: flex;
   gap: 12px;
-}
-
-.app-detail-page__todo-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
 }
 
 .app-detail-page__todo-form {
@@ -362,11 +327,6 @@ function priorityTagType(priority: TodoPriority) {
   font-weight: 500;
 }
 
-.app-detail-page__priority-tag {
-  border: var(--nb-border);
-  box-shadow: 2px 2px 0 var(--nb-border);
-}
-
 .app-detail-page__todo-due {
   font-size: 13px;
   color: var(--nb-muted);
@@ -380,14 +340,5 @@ function priorityTagType(priority: TodoPriority) {
   text-align: center;
   color: var(--nb-muted);
   padding: 24px 0;
-}
-
-.app-detail-page__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 64px 0;
-  color: var(--nb-muted);
 }
 </style>

@@ -29,8 +29,8 @@ export const useJobStore = defineStore('job', () => {
     loading.value = true
     try {
       const res = await importJobUrlApi(data)
-      if (res.data.code === 0) {
-        return res.data.data
+      if (res.code === 0) {
+        return res.data
       }
       return null
     } finally {
@@ -42,9 +42,9 @@ export const useJobStore = defineStore('job', () => {
     loading.value = true
     try {
       const res = await getJobDetailApi(jobId)
-      if (res.data.code === 0) {
-        currentJob.value = res.data.data
-        currentMatch.value = res.data.data.matchResult
+      if (res.code === 0) {
+        currentJob.value = res.data
+        currentMatch.value = res.data.matchResult
       }
     } finally {
       loading.value = false
@@ -55,8 +55,8 @@ export const useJobStore = defineStore('job', () => {
     loading.value = true
     try {
       const res = await getCompanyDetailApi(companyId)
-      if (res.data.code === 0) {
-        currentCompany.value = res.data.data
+      if (res.code === 0) {
+        currentCompany.value = res.data
       }
     } finally {
       loading.value = false
@@ -67,9 +67,9 @@ export const useJobStore = defineStore('job', () => {
     loading.value = true
     try {
       const res = await matchJobApi(jobId, data)
-      if (res.data.code === 0) {
-        currentMatch.value = res.data.data
-        return res.data.data
+      if (res.code === 0) {
+        currentMatch.value = res.data
+        return res.data
       }
       return null
     } finally {
@@ -82,12 +82,12 @@ export const useJobStore = defineStore('job', () => {
     try {
       if (currentJob.value.favorited) {
         const res = await unfavoriteJobApi(jobId)
-        if (res.data.code === 0) {
+        if (res.code === 0) {
           currentJob.value.favorited = false
         }
       } else {
         const res = await favoriteJobApi(jobId)
-        if (res.data.code === 0) {
+        if (res.code === 0) {
           currentJob.value.favorited = true
         }
       }
@@ -100,8 +100,8 @@ export const useJobStore = defineStore('job', () => {
     loading.value = true
     try {
       const res = await listFavoriteJobsApi()
-      if (res.data.code === 0) {
-        favoriteList.value = res.data.data
+      if (res.code === 0) {
+        favoriteList.value = res.data
       }
     } finally {
       loading.value = false

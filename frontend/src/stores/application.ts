@@ -40,8 +40,8 @@ export const useApplicationStore = defineStore('application', () => {
     loading.value = true
     try {
       const res = await listApplicationsApi(query)
-      if (res.data.code === 0) {
-        applications.value = res.data.data
+      if (res.code === 0) {
+        applications.value = res.data
       }
     } finally {
       loading.value = false
@@ -52,8 +52,8 @@ export const useApplicationStore = defineStore('application', () => {
     loading.value = true
     try {
       const res = await getApplicationStatsApi()
-      if (res.data.code === 0) {
-        stats.value = res.data.data
+      if (res.code === 0) {
+        stats.value = res.data
       }
     } finally {
       loading.value = false
@@ -64,8 +64,8 @@ export const useApplicationStore = defineStore('application', () => {
     loading.value = true
     try {
       const res = await getApplicationApi(id)
-      if (res.data.code === 0) {
-        currentApplication.value = res.data.data
+      if (res.code === 0) {
+        currentApplication.value = res.data
       }
     } finally {
       loading.value = false
@@ -76,8 +76,8 @@ export const useApplicationStore = defineStore('application', () => {
     loading.value = true
     try {
       const res = await createApplicationApi(data)
-      if (res.data.code === 0) {
-        return res.data.data
+      if (res.code === 0) {
+        return res.data
       }
       return null
     } finally {
@@ -89,9 +89,9 @@ export const useApplicationStore = defineStore('application', () => {
     loading.value = true
     try {
       const res = await updateApplicationApi(id, data)
-      if (res.data.code === 0) {
-        currentApplication.value = res.data.data
-        return res.data.data
+      if (res.code === 0) {
+        currentApplication.value = res.data
+        return res.data
       }
       return null
     } finally {
@@ -103,9 +103,9 @@ export const useApplicationStore = defineStore('application', () => {
     loading.value = true
     try {
       const res = await updateApplicationStatusApi(id, { status })
-      if (res.data.code === 0) {
-        currentApplication.value = res.data.data
-        return res.data.data
+      if (res.code === 0) {
+        currentApplication.value = res.data
+        return res.data
       }
       return null
     } finally {
@@ -117,7 +117,7 @@ export const useApplicationStore = defineStore('application', () => {
     loading.value = true
     try {
       const res = await deleteApplicationApi(id)
-      return res.data.code === 0
+      return res.code === 0
     } finally {
       loading.value = false
     }
@@ -125,16 +125,16 @@ export const useApplicationStore = defineStore('application', () => {
 
   async function createApplicationTodo(applicationId: number, data: ApplicationTodoCreateRequest) {
     const res = await createApplicationTodoApi(applicationId, data)
-    if (res.data.code === 0) {
-      return res.data.data
+    if (res.code === 0) {
+      return res.data
     }
     return null
   }
 
   async function createGlobalTodo(data: ApplicationTodoCreateRequest) {
     const res = await createGlobalTodoApi(data)
-    if (res.data.code === 0) {
-      return res.data.data
+    if (res.code === 0) {
+      return res.data
     }
     return null
   }
@@ -143,8 +143,8 @@ export const useApplicationStore = defineStore('application', () => {
     loading.value = true
     try {
       const res = await listApplicationTodosApi(query)
-      if (res.data.code === 0) {
-        todos.value = res.data.data
+      if (res.code === 0) {
+        todos.value = res.data
       }
     } finally {
       loading.value = false
@@ -153,25 +153,25 @@ export const useApplicationStore = defineStore('application', () => {
 
   async function updateTodo(id: number, data: ApplicationTodoUpdateRequest) {
     const res = await updateApplicationTodoApi(id, data)
-    if (res.data.code === 0) {
-      return res.data.data
+    if (res.code === 0) {
+      return res.data
     }
     return null
   }
 
   async function completeTodo(id: number) {
     const res = await completeApplicationTodoApi(id)
-    return res.data.code === 0
+    return res.code === 0
   }
 
   async function reopenTodo(id: number) {
     const res = await reopenApplicationTodoApi(id)
-    return res.data.code === 0
+    return res.code === 0
   }
 
   async function deleteTodo(id: number) {
     const res = await deleteApplicationTodoApi(id)
-    return res.data.code === 0
+    return res.code === 0
   }
 
   return {

@@ -5,84 +5,174 @@
       class="interview-room__timer"
       :class="{ 'interview-room__timer--warning': remainingSeconds < 120 }"
     >
-      {{ remainingSeconds < 120 ? '⚠️ ' : '' }}{{ formatTime(remainingSeconds) }}
+      <span class="interview-room__timer-icon"></span>
+      <span class="interview-room__timer-text">{{ formatTime(remainingSeconds) }}</span>
     </div>
 
     <div class="interview-room__top-bar">
       <div class="interview-room__progress">
-        第 {{ currentQuestionNo }} / {{ totalQuestions }} 题
+        <span class="interview-room__progress-num">{{ currentQuestionNo }}</span>
+        <span class="interview-room__progress-sep">/</span>
+        <span class="interview-room__progress-total">{{ totalQuestions }}</span>
       </div>
-      <el-button text type="danger" @click="handleCancel">结束面试</el-button>
+      <NbButton variant="danger" @click="handleCancel">结束面试</NbButton>
     </div>
 
     <div class="interview-room__main">
       <div class="interview-room__left">
-        <NbCard class="interview-room__question-card">
-          <div v-if="state === 'idle'" class="interview-room__idle">
-            <div class="interview-room__idle-icon">🎙️</div>
+        <NbCard
+          v-if="state === 'idle'"
+          class="interview-room__question-card"
+        >
+          <div class="interview-room__idle">
+            <div class="interview-room__idle-icon"></div>
             <p>准备好开始面试了吗？</p>
-            <NbButton type="primary" @click="startInterview">开始面试</NbButton>
+            <NbButton variant="primary" @click="startInterview">开始面试</NbButton>
+          </div>
+        </NbCard>
+
+        <NbCard
+          v-else-if="state === 'error'"
+          variant="danger"
+          class="interview-room__question-card"
+        >
+          <div class="interview-room__error-state">
+            <div class="interview-room__error-icon"></div>
+            <p class="interview-room__error-message">{{ errorMessage || '发生错误' }}</p>
+            <NbButton variant="primary" @click="retryLastAction">重试</NbButton>
+          </div>
+        </NbCard>
+
+        <NbCard
+          v-else-if="state === 'recording'"
+          variant="warning"
+          class="interview-room__question-card"
+        >
+          <div class="interview-room__recording-banner">
+            <span class="interview-room__rec-dot"></span>
+            <span class="interview-room__rec-label">正在录音</span>
           </div>
 
-          <template v-else>
-            <div class="interview-room__question-header">
+          <div class="interview-room__question-header">
+            <NbStatusBadge
+              :label="`第 ${currentQuestionNo} 题`"
+              variant="primary"
+            />
+            <NbStatusBadge
+              v-if="currentQuestion?.turnType === 'follow_up'"
+              label="追问"
+              variant="ai"
+            />
+          </div>
+
+          <div class="interview-room__question-text">
+            {{ currentQuestion?.questionText || '' }}
+          </div>
+
+          <div class="interview-room__transcript">
+            <div class="interview-room__transcript-label">实时语音识别</div>
+            <div class="interview-room__transcript-content">
+              <span v-if="finalText" class="interview-room__transcript-final">{{ finalText }}</span>
+              <span v-if="partialText" class="interview-room__transcript-partial">{{ partialText }}</span>
+              <span v-if="!partialText && !finalText" class="interview-room__transcript-placeholder">
+                正在聆听...
+              </span>
+            </div>
+          </div>
+
+          <div class="interview-room__controls">
+            <NbButton
+              variant="accent"
+              @click="stopRecording"
+            >
+              结束回答
+            </NbButton>
+          </div>
+        </NbCard>
+
+        <NbCard
+          v-else
+          variant="ai"
+          class="interview-room__question-card"
+        >
+          <div class="interview-room__question-header">
+            <NbStatusBadge
+              :label="`第 ${currentQuestionNo} 题`"
+              variant="primary"
+            />
+            <NbStatusBadge
+              v-if="currentQuestion?.turnType === 'follow_up'"
+              label="追问"
+              variant="ai"
+            />
+            <div class="interview-room__status-indicator">
               <span
-                class="interview-room__status-dot"
-                :class="`interview-room__status-dot--${statusColor}`"
-              ></span>
-              <span class="interview-room__status-text">{{ statusText }}</span>
-            </div>
-
-            <div class="interview-room__question-text">
-              {{ currentQuestion?.questionText || '' }}
-            </div>
-
-            <div class="interview-room__transcript">
-              <div class="interview-room__transcript-label">实时语音识别</div>
-              <div class="interview-room__transcript-content">
-                <span v-if="partialText" class="interview-room__transcript-partial">{{ partialText }}</span>
-                <span v-if="finalText" class="interview-room__transcript-final">{{ finalText }}</span>
-                <span v-if="!partialText && !finalText" class="interview-room__transcript-placeholder">
-                  {{ state === 'recording' ? '正在聆听...' : '等待回答' }}
-                </span>
-              </div>
-            </div>
-
-            <div class="interview-room__controls">
-              <NbButton
-                v-if="state === 'readyToAnswer'"
-                type="primary"
-                :disabled="remainingSeconds !== null && remainingSeconds <= 0"
-                @click="startRecording"
+                class="interview-room__status-pill"
+                :class="`interview-room__status-pill--${statusColor}`"
               >
-                开始回答
-              </NbButton>
-              <NbButton
-                v-if="state === 'recording'"
-                type="accent"
-                @click="stopRecording"
-              >
-                结束回答
-              </NbButton>
-              <NbButton
-                v-if="state === 'error'"
-                type="primary"
-                @click="retryLastAction"
-              >
-                重试
-              </NbButton>
-              <div v-if="isSpinnerState" class="interview-room__spinner">
-                <el-icon class="is-loading" :size="24"><LoadingIcon /></el-icon>
-                <span>{{ spinnerText }}</span>
-              </div>
+                <span
+                  v-if="isSpinnerState"
+                  class="interview-room__status-spinner"
+                ></span>
+                {{ statusText }}
+              </span>
             </div>
-          </template>
+          </div>
+
+          <div class="interview-room__question-text">
+            <template v-if="currentQuestion?.questionText">
+              {{ currentQuestion.questionText }}
+            </template>
+            <template v-else-if="state === 'playingQuestion'">
+              AI 正在提问，请稍候...
+            </template>
+            <template v-else>
+              正在准备题目...
+            </template>
+          </div>
+
+          <div class="interview-room__transcript">
+            <div class="interview-room__transcript-label">实时语音识别</div>
+            <div class="interview-room__transcript-content">
+              <span v-if="finalText" class="interview-room__transcript-final">{{ finalText }}</span>
+              <span v-if="partialText" class="interview-room__transcript-partial">{{ partialText }}</span>
+              <span v-if="!partialText && !finalText" class="interview-room__transcript-placeholder">
+                {{ state === 'readyToAnswer' ? '等待回答' : '等待回答' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="interview-room__controls">
+            <NbButton
+              v-if="state === 'readyToAnswer'"
+              variant="primary"
+              :disabled="remainingSeconds !== null && remainingSeconds <= 0"
+              @click="startRecording"
+            >
+              开始回答
+            </NbButton>
+            <div v-if="isSpinnerState" class="interview-room__spinner">
+              <span class="interview-room__status-spinner"></span>
+              <span>{{ spinnerText }}</span>
+            </div>
+          </div>
+        </NbCard>
+
+        <NbCard
+          v-if="state === 'completed'"
+          variant="success"
+          class="interview-room__completed-card"
+        >
+          <div class="interview-room__completed">
+            <div class="interview-room__completed-icon"></div>
+            <p>面试结束！正在生成报告...</p>
+          </div>
         </NbCard>
       </div>
 
       <div class="interview-room__right">
         <NbCard class="interview-room__sidebar">
-          <h3 class="interview-room__sidebar-title">简历摘要</h3>
+          <h3 class="interview-room__sidebar-title">面试信息</h3>
           <div v-if="sessionInfo" class="interview-room__sidebar-content">
             <div class="interview-room__sidebar-item">
               <span class="interview-room__sidebar-label">目标岗位</span>
@@ -103,9 +193,9 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Loading as LoadingIcon } from '@element-plus/icons-vue'
 import NbCard from '@/components/NbCard.vue'
 import NbButton from '@/components/NbButton.vue'
+import NbStatusBadge from '@/components/NbStatusBadge.vue'
 import { useInterviewStore } from '@/stores/interview'
 import { useUserStore } from '@/stores/user'
 import { AsrClient } from '@/utils/audio/asrClient'
@@ -250,14 +340,14 @@ async function startInterview() {
   state.value = 'loadingQuestion'
   try {
     const res = await interviewStore.startSession(sessionId.value)
-    if (res.data.code === 0 && res.data.data) {
-      const question = res.data.data
+    if (res.code === 0 && res.data) {
+      const question = res.data
       currentQuestion.value = question
       currentQuestionNo.value = question.questionNo
       await playQuestionAudio(question)
     } else {
       state.value = 'error'
-      errorMessage.value = res.data.message || '加载题目失败'
+      errorMessage.value = res.message || '加载题目失败'
     }
   } catch {
     state.value = 'error'
@@ -266,7 +356,7 @@ async function startInterview() {
 }
 
 function playQuestionAudio(question: InterviewQuestionVO): Promise<void> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     state.value = 'playingQuestion'
     try {
       if (currentAudio) {
@@ -403,8 +493,8 @@ async function submitAnswer() {
       answerDurationSeconds: durationSeconds,
     })
 
-    if (res.data.code === 0 && res.data.data) {
-      const result = res.data.data
+    if (res.code === 0 && res.data) {
+      const result = res.data
       if (result.nextAction === 'REPORT_READY') {
         state.value = 'completed'
         ElMessage.success('面试结束！正在生成报告...')
@@ -423,7 +513,7 @@ async function submitAnswer() {
       }
     } else {
       state.value = 'error'
-      errorMessage.value = res.data.message || '提交失败'
+      errorMessage.value = res.message || '提交失败'
     }
   } catch {
     state.value = 'error'
@@ -501,24 +591,65 @@ function cleanupAudio() {
   position: fixed;
   top: 16px;
   right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 8px 16px;
-  border-radius: 8px;
-  background: #f0f9eb;
-  border: 2px solid #67c23a;
-  font-weight: bold;
+  border-radius: var(--nb-radius);
+  background: var(--nb-surface);
+  border: var(--nb-border);
+  box-shadow: var(--nb-shadow);
+  font-family: var(--font-heading);
+  font-weight: 700;
   font-size: 18px;
   z-index: 9999;
+  color: var(--nb-ink);
 }
 
 .interview-room__timer--warning {
-  background: #fef0f0;
-  border-color: #f56c6c;
+  border-color: var(--nb-danger);
+  background: rgba(232, 67, 147, 0.08);
+}
+
+.interview-room__timer--warning .interview-room__timer-icon {
+  background: var(--nb-danger);
+  animation: nb-pulse 1s ease-in-out infinite;
+}
+
+.interview-room__timer-icon {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--nb-success);
+  flex-shrink: 0;
+}
+
+.interview-room__timer-text {
+  font-variant-numeric: tabular-nums;
 }
 
 .interview-room__progress {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
   font-family: var(--font-heading);
+}
+
+.interview-room__progress-num {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--nb-primary);
+}
+
+.interview-room__progress-sep {
+  font-size: 18px;
+  color: var(--nb-muted);
+}
+
+.interview-room__progress-total {
   font-size: 18px;
   font-weight: 600;
+  color: var(--nb-muted);
 }
 
 .interview-room__main {
@@ -531,6 +662,9 @@ function cleanupAudio() {
 .interview-room__left {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .interview-room__right {
@@ -547,7 +681,23 @@ function cleanupAudio() {
 }
 
 .interview-room__idle-icon {
-  font-size: 64px;
+  width: 64px;
+  height: 64px;
+  border: 3px solid var(--nb-primary);
+  border-radius: 50%;
+  position: relative;
+}
+
+.interview-room__idle-icon::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--nb-primary);
 }
 
 .interview-room__idle p {
@@ -565,26 +715,67 @@ function cleanupAudio() {
   align-items: center;
   gap: 8px;
   margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 
-.interview-room__status-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: var(--nb-border);
+.interview-room__status-indicator {
+  margin-left: auto;
 }
 
-.interview-room__status-dot--muted { background: var(--nb-muted); }
-.interview-room__status-dot--primary { background: var(--nb-primary); }
-.interview-room__status-dot--success { background: var(--nb-success); }
-.interview-room__status-dot--warning { background: var(--nb-warning); }
-.interview-room__status-dot--danger { background: var(--nb-accent); }
-
-.interview-room__status-text {
+.interview-room__status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--nb-radius-sm);
   font-family: var(--font-heading);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
+  border: 1px solid;
+}
+
+.interview-room__status-pill--muted {
+  background: var(--nb-muted-surface);
   color: var(--nb-muted);
+  border-color: var(--nb-muted);
+}
+
+.interview-room__status-pill--primary {
+  background: rgba(108, 92, 231, 0.12);
+  color: var(--nb-primary);
+  border-color: var(--nb-primary);
+}
+
+.interview-room__status-pill--success {
+  background: rgba(0, 184, 148, 0.12);
+  color: var(--nb-success);
+  border-color: var(--nb-success);
+}
+
+.interview-room__status-pill--warning {
+  background: rgba(253, 203, 110, 0.22);
+  color: var(--nb-ink);
+  border-color: var(--nb-warning);
+}
+
+.interview-room__status-pill--danger {
+  background: rgba(232, 67, 147, 0.12);
+  color: var(--nb-danger);
+  border-color: var(--nb-danger);
+}
+
+.interview-room__status-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: nb-spin 0.8s linear infinite;
+}
+
+@keyframes nb-spin {
+  to { transform: rotate(360deg); }
 }
 
 .interview-room__question-text {
@@ -596,6 +787,44 @@ function cleanupAudio() {
   border: var(--nb-border);
   border-radius: var(--nb-radius);
   min-height: 80px;
+}
+
+.interview-room__recording-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  margin-bottom: 20px;
+  background: rgba(253, 203, 110, 0.15);
+  border: 2px solid var(--nb-warning);
+  border-radius: var(--nb-radius);
+}
+
+.interview-room__rec-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--nb-danger);
+  animation: nb-pulse 1.2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes nb-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.3);
+  }
+}
+
+.interview-room__rec-label {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--nb-danger);
 }
 
 .interview-room__transcript {
@@ -622,12 +851,12 @@ function cleanupAudio() {
   line-height: 1.6;
 }
 
-.interview-room__transcript-partial {
-  color: var(--nb-muted);
-}
-
 .interview-room__transcript-final {
   color: var(--nb-text);
+}
+
+.interview-room__transcript-partial {
+  color: var(--nb-muted);
 }
 
 .interview-room__transcript-placeholder {
@@ -647,6 +876,79 @@ function cleanupAudio() {
   gap: 8px;
   color: var(--nb-muted);
   font-size: 14px;
+}
+
+.interview-room__error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 48px 0;
+}
+
+.interview-room__error-icon {
+  width: 56px;
+  height: 56px;
+  border: 3px solid var(--nb-danger);
+  border-radius: 50%;
+  position: relative;
+}
+
+.interview-room__error-icon::after {
+  content: '!';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--nb-danger);
+}
+
+.interview-room__error-message {
+  font-size: 16px;
+  color: var(--nb-danger);
+  margin: 0;
+  text-align: center;
+}
+
+.interview-room__completed-card {
+  text-align: center;
+}
+
+.interview-room__completed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 32px 0;
+}
+
+.interview-room__completed-icon {
+  width: 56px;
+  height: 56px;
+  border: 3px solid var(--nb-success);
+  border-radius: 50%;
+  position: relative;
+}
+
+.interview-room__completed-icon::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 22px;
+  height: 12px;
+  border: solid var(--nb-success);
+  border-width: 0 0 4px 4px;
+  transform: translate(-50%, -70%) rotate(-45deg);
+}
+
+.interview-room__completed p {
+  font-size: 18px;
+  color: var(--nb-muted);
+  margin: 0;
 }
 
 .interview-room__sidebar-title {

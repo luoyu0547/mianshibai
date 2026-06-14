@@ -12,11 +12,17 @@ export const useUserStore = defineStore('user', () => {
   // Getters
   const isLoggedIn = computed(() => !!token.value && !!userInfo.value)
 
+  const hasProfile = computed(() => {
+    const u = userInfo.value
+    if (!u) return false
+    return !!u.userName && !!u.targetPosition && !!u.techDirection && !!u.city
+  })
+
   // Actions
   async function login(data: LoginRequest) {
     const res = await loginApi(data)
-    if (res.data.code === 0) {
-      const { token: newToken, user } = res.data.data
+    if (res.code === 0) {
+      const { token: newToken, user } = res.data
       token.value = newToken
       userInfo.value = user
       localStorage.setItem('mianshiba_token', newToken)
@@ -27,8 +33,8 @@ export const useUserStore = defineStore('user', () => {
 
   async function fetchCurrentUser() {
     const res = await getCurrentUser()
-    if (res.data.code === 0) {
-      userInfo.value = res.data.data
+    if (res.code === 0) {
+      userInfo.value = res.data
       return true
     }
     return false
@@ -36,8 +42,8 @@ export const useUserStore = defineStore('user', () => {
 
   async function updateProfile(data: UpdateProfileRequest) {
     const res = await updateProfileApi(data)
-    if (res.data.code === 0) {
-      userInfo.value = res.data.data
+    if (res.code === 0) {
+      userInfo.value = res.data
       return true
     }
     return false
@@ -53,6 +59,7 @@ export const useUserStore = defineStore('user', () => {
     token,
     userInfo,
     isLoggedIn,
+    hasProfile,
     login,
     fetchCurrentUser,
     updateProfile,
