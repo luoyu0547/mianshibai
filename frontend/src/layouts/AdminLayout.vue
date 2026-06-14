@@ -5,6 +5,7 @@
       <nav class="admin-layout__nav">
         <router-link to="/admin" class="admin-layout__link" @click="closeSidebar">平台总览</router-link>
         <router-link to="/admin/users" class="admin-layout__link" @click="closeSidebar">用户管理</router-link>
+        <router-link to="/admin/job-crawl" class="admin-layout__link" @click="closeSidebar">职位采集</router-link>
         <router-link to="/" class="admin-layout__link admin-layout__link--ghost">返回用户端</router-link>
       </nav>
     </aside>

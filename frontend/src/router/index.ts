@@ -203,6 +203,24 @@ const router = createRouter({
       component: () => import('@/views/admin/AdminUserDetailPage.vue'),
       meta: { requiresAuth: true, requiresAdmin: true },
     },
+    {
+      path: '/admin/job-crawl',
+      name: 'AdminJobCrawl',
+      component: () => import('@/views/admin/AdminJobCrawlListPage.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+      path: '/admin/job-crawl/new',
+      name: 'AdminJobCrawlNew',
+      component: () => import('@/views/admin/AdminJobCrawlEditPage.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+      path: '/admin/job-crawl/:id',
+      name: 'AdminJobCrawlDetail',
+      component: () => import('@/views/admin/AdminJobCrawlDetailPage.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
   ],
 })
 
