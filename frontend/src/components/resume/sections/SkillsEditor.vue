@@ -20,18 +20,16 @@
         >
           {{ skill }}
         </el-tag>
+      </div>
+      <div class="skill-category__add-row">
         <el-input
-          v-if="skillInputVisible[index]"
-          :ref="(el: unknown) => setSkillInputRef(el as HTMLInputElement | null, index)"
           v-model="skillInputValue[index]"
+          placeholder="输入技能名称"
           size="small"
-          class="skill-input"
+          class="skill-category__add-input"
           @keyup.enter="handleSkillConfirm(index)"
-          @blur="handleSkillConfirm(index)"
         />
-        <el-button v-else size="small" @click="showSkillInput(index)">
-          + 添加技能
-        </el-button>
+        <el-button size="small" @click="handleSkillConfirm(index)">添加</el-button>
       </div>
     </NbCard>
     <NbButton variant="ghost" block class="add-btn" @click="addCategory">+ 添加分类</NbButton>
@@ -39,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, nextTick } from 'vue'
+import { computed, ref } from 'vue'
 import NbCard from '@/components/NbCard.vue'
 import NbButton from '@/components/NbButton.vue'
 
@@ -63,17 +61,10 @@ const categories = computed({
   },
 })
 
-const skillInputVisible = ref<Record<number, boolean>>({})
 const skillInputValue = ref<Record<number, string>>({})
-const skillInputRefs = ref<Record<number, HTMLInputElement | null>>({})
-
-function setSkillInputRef(el: HTMLInputElement | null, index: number) {
-  skillInputRefs.value[index] = el
-}
 
 function addCategory() {
-  const newCats = [...categories.value, { name: '', items: [] as string[] }]
-  categories.value = newCats
+  categories.value = [...categories.value, { name: '', items: [] }]
 }
 
 function removeCategory(index: number) {
@@ -86,32 +77,19 @@ function removeSkill(catIndex: number, skillIndex: number) {
   const newCats = [...categories.value]
   const cat = newCats[catIndex]
   if (!cat) return
-  const items = [...cat.items]
-  items.splice(skillIndex, 1)
-  newCats[catIndex] = { name: cat.name, items }
+  newCats[catIndex] = { name: cat.name, items: cat.items.filter((_, i) => i !== skillIndex) }
   categories.value = newCats
 }
 
-function showSkillInput(index: number) {
-  skillInputVisible.value[index] = true
-  skillInputValue.value[index] = ''
-  nextTick(() => {
-    skillInputRefs.value[index]?.focus()
-  })
-}
-
 function handleSkillConfirm(catIndex: number) {
-  const val = skillInputValue.value[catIndex]?.trim()
-  if (val) {
-    const newCats = [...categories.value]
-    const cat = newCats[catIndex]
-    if (cat) {
-      const items = [...cat.items, val]
-      newCats[catIndex] = { name: cat.name, items }
-      categories.value = newCats
-    }
+  const val = (skillInputValue.value[catIndex] || '').trim()
+  if (!val) return
+  const newCats = [...categories.value]
+  const cat = newCats[catIndex]
+  if (cat) {
+    newCats[catIndex] = { name: cat.name, items: [...cat.items, val] }
+    categories.value = newCats
   }
-  skillInputVisible.value[catIndex] = false
   skillInputValue.value[catIndex] = ''
 }
 </script>
@@ -127,7 +105,7 @@ function handleSkillConfirm(catIndex: number) {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .skill-category__name {
@@ -138,7 +116,7 @@ function handleSkillConfirm(catIndex: number) {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  align-items: center;
+  margin-bottom: 10px;
 }
 
 .skill-tag {
@@ -146,7 +124,13 @@ function handleSkillConfirm(catIndex: number) {
   box-shadow: var(--nb-shadow-xs);
 }
 
-.skill-input {
-  width: 120px;
+.skill-category__add-row {
+  display: flex;
+  gap: 8px;
+}
+
+.skill-category__add-input {
+  flex: 1;
+  max-width: 260px;
 }
 </style>

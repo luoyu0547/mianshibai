@@ -26,9 +26,16 @@
             filterable
             allow-create
             default-first-option
-            placeholder="输入后回车添加"
+            placeholder="选择或输入技术栈"
             style="width: 100%;"
-          />
+          >
+            <el-option
+              v-for="t in techPresets"
+              :key="t"
+              :label="t"
+              :value="t"
+            />
+          </el-select>
         </el-form-item>
         <el-row :gutter="16">
           <el-col :span="12">
@@ -107,6 +114,15 @@ const emit = defineEmits<{
 const tagInputVisible = ref<Record<number, boolean>>({})
 const tagInputValue = ref<Record<number, string>>({})
 const tagInputRefs = ref<Record<number, HTMLInputElement | null>>({})
+
+const techPresets = [
+  'Java', 'Spring Boot', 'MyBatis', 'MySQL', 'Redis',
+  'Go', 'Python', 'FastAPI', 'Django',
+  'TypeScript', 'Vue 3', 'React', 'Node.js',
+  'Docker', 'Kubernetes', 'Linux', 'Git',
+  'Kafka', 'RabbitMQ', 'Elasticsearch', 'MongoDB',
+  'Nginx', 'Jenkins', 'CI/CD', '微服务',
+]
 
 function setTagInputRef(el: HTMLInputElement | null, index: number) {
   tagInputRefs.value[index] = el
