@@ -177,7 +177,6 @@
             <template v-else>
               <NbButton
                 variant="primary"
-                :disabled="remainingSeconds !== null && remainingSeconds <= 0"
                 @click="submitAnswer"
               >
                 提交回答
