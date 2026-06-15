@@ -2,6 +2,12 @@ package com.mianshiba.ai.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.playwright.BrowserContext;
+import com.microsoft.playwright.BrowserType;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.Playwright;
+import com.microsoft.playwright.options.WaitUntilState;
+import com.mianshiba.ai.config.JobSourcingProperties;
 import com.mianshiba.ai.exception.BusinessException;
 import com.mianshiba.ai.exception.ErrorCode;
 import com.mianshiba.ai.model.dto.jobsourcing.ExtractedJobCard;
@@ -10,13 +16,19 @@ import com.mianshiba.ai.model.dto.jobsourcing.JobDiscoveryRequest;
 import com.mianshiba.ai.model.dto.jobsourcing.JobListEntry;
 import com.mianshiba.ai.service.BrowserSessionService;
 import com.mianshiba.ai.service.JobPlatformAdapter;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,7 +39,6 @@ import java.util.regex.Pattern;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class BossJobPlatformAdapter implements JobPlatformAdapter {
 
     /**
@@ -36,9 +47,24 @@ public class BossJobPlatformAdapter implements JobPlatformAdapter {
     private final BrowserSessionService browserSessionService;
 
     /**
+     * 职位采集配置
+     */
+    private final JobSourcingProperties properties;
+
+    /**
      * JSON 序列化工具
      */
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public BossJobPlatformAdapter(BrowserSessionService browserSessionService) {
+        this(browserSessionService, new JobSourcingProperties());
+    }
+
+    @Autowired
+    public BossJobPlatformAdapter(BrowserSessionService browserSessionService, JobSourcingProperties properties) {
+        this.browserSessionService = browserSessionService;
+        this.properties = properties;
+    }
 
     /**
      * 授权墙关键词
@@ -98,6 +124,23 @@ public class BossJobPlatformAdapter implements JobPlatformAdapter {
      */
     private static final Pattern HTML_TAG_PATTERN = Pattern.compile("<[^>]+>");
 
+    /**
+     * 搜索结果卡片块正则
+     */
+    private static final Pattern SEARCH_CARD_PATTERN = Pattern.compile("(?is)<div[^>]*class=\"[^\"]*job-card-wrapper[^\"]*\"[^>]*>(.*?)(?=<div[^>]*class=\"[^\"]*job-card-wrapper|</body>|</html>)");
+
+    /**
+     * href 属性正则
+     */
+    private static final Pattern HREF_PATTERN = Pattern.compile("(?is)<a[^>]*href=\"([^\"]+)\"[^>]*>");
+
+    /**
+     * 搜索卡片字段正则
+     */
+    private static final Pattern SEARCH_TITLE_PATTERN = Pattern.compile("(?is)<span[^>]*class=\"[^\"]*job-name[^\"]*\"[^>]*>(.*?)</span>");
+    private static final Pattern SEARCH_CITY_PATTERN = Pattern.compile("(?is)<span[^>]*class=\"[^\"]*job-area[^\"]*\"[^>]*>(.*?)</span>");
+    private static final Pattern SEARCH_COMPANY_PATTERN = Pattern.compile("(?is)<div[^>]*class=\"[^\"]*company-name[^\"]*\"[^>]*>(.*?)</div>");
+
     @Override
     public String platform() {
         return "boss";
@@ -116,16 +159,183 @@ public class BossJobPlatformAdapter implements JobPlatformAdapter {
 
     @Override
     public List<JobListEntry> discover(JobDiscoveryRequest request) {
-        // 1. 列表页发现暂未实现，返回空列表
-        log.info("Boss discover not implemented yet, request={}", request);
-        return List.of();
+        try {
+            // 1. 逐页加载 Boss 搜索结果页
+            Map<String, JobListEntry> entries = new LinkedHashMap<>();
+            int maxPages = Math.max(1, request.maxPages());
+            int targetCount = Math.max(1, request.targetCount());
+            for (int page = 1; page <= maxPages && entries.size() < targetCount; page++) {
+                String url = buildSearchUrl(request, page);
+                String html = loadPageHtml(url);
+                if (isAuthWall(html)) {
+                    throw new BusinessException(ErrorCode.JOB_CRAWL_ERROR, "Boss 授权失效");
+                }
+                for (JobListEntry entry : parseSearchEntries(html)) {
+                    entries.putIfAbsent(entry.sourceUrl(), entry);
+                    if (entries.size() >= targetCount) {
+                        break;
+                    }
+                }
+            }
+            if (entries.isEmpty()) {
+                throw new BusinessException(ErrorCode.JOB_CRAWL_ERROR, "Boss 未发现职位，可能未授权或页面结构变化");
+            }
+            return new ArrayList<>(entries.values());
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Boss discover failed, request={}", request, e);
+            throw new BusinessException(ErrorCode.JOB_CRAWL_ERROR);
+        }
     }
 
     @Override
     public FetchedJobPage fetchDetail(String url) {
-        // 1. 真实详情页抓取暂未实现，抛出抓取异常
-        log.warn("Boss fetchDetail not implemented yet, url={}", url);
-        throw new BusinessException(ErrorCode.JOB_CRAWL_ERROR);
+        try {
+            // 1. 通过授权 profile 加载职位详情页
+            String html = loadPageHtml(url);
+            if (isAuthWall(html)) {
+                throw new BusinessException(ErrorCode.JOB_CRAWL_ERROR, "Boss 授权失效");
+            }
+
+            // 2. 组装可供后续兜底抽取的页面对象
+            return new FetchedJobPage(url, url, extractTitle(html), stripHtml(html), html, platform(), true);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Boss fetchDetail failed, url={}", url, e);
+            throw new BusinessException(ErrorCode.JOB_CRAWL_ERROR);
+        }
+    }
+
+    /**
+     * 加载页面 HTML
+     *
+     * @param url 目标 URL
+     * @return 页面 HTML
+     */
+    protected String loadPageHtml(String url) throws IOException {
+        // 1. 使用平台专属 profile 启动持久化上下文，复用管理员登录态
+        Path profilePath = Path.of(browserSessionService.getProfilePath(platform()));
+        try (Playwright playwright = Playwright.create();
+             BrowserContext context = playwright.chromium().launchPersistentContext(profilePath,
+                     new BrowserType.LaunchPersistentContextOptions()
+                             .setExecutablePath(chromeExecutablePath())
+                             .setArgs(List.of("--disable-blink-features=AutomationControlled"))
+                             .setHeadless(properties.isBrowserHeadless())
+                             .setTimeout(properties.getBrowserTimeoutMillis()))) {
+            Page page = context.pages().isEmpty() ? context.newPage() : context.pages().get(0);
+            page.setDefaultTimeout(properties.getBrowserTimeoutMillis());
+            page.navigate(url, new Page.NavigateOptions()
+                    .setTimeout(properties.getBrowserTimeoutMillis())
+                    .setWaitUntil(WaitUntilState.DOMCONTENTLOADED));
+            waitForPageQuietly(page);
+            return page.content();
+        }
+    }
+
+    private String buildSearchUrl(JobDiscoveryRequest request, int page) {
+        String keyword = encode(request.keywords());
+        String cityCode = bossCityCode(request.cities());
+        return "https://www.zhipin.com/web/geek/job?query=" + keyword + "&city=" + cityCode + "&page=" + page;
+    }
+
+    private List<JobListEntry> parseSearchEntries(String html) {
+        List<JobListEntry> entries = new ArrayList<>();
+        Matcher matcher = SEARCH_CARD_PATTERN.matcher(html);
+        while (matcher.find()) {
+            String cardHtml = matcher.group(1);
+            String href = extractFirst(HREF_PATTERN, cardHtml);
+            String title = extractFirst(SEARCH_TITLE_PATTERN, cardHtml);
+            if (href == null || title == null) {
+                continue;
+            }
+            entries.add(new JobListEntry(
+                    platform(),
+                    normalizeUrl(href),
+                    title,
+                    extractFirst(SEARCH_COMPANY_PATTERN, cardHtml),
+                    extractFirst(SEARCH_CITY_PATTERN, cardHtml),
+                    extractFirst(SALARY_PATTERN, cardHtml)
+            ));
+        }
+        return entries;
+    }
+
+    private String normalizeUrl(String href) {
+        if (href.startsWith("http://") || href.startsWith("https://")) {
+            return href;
+        }
+        if (href.startsWith("/")) {
+            return "https://www.zhipin.com" + href;
+        }
+        return "https://www.zhipin.com/" + href;
+    }
+
+    private String bossCityCode(String cities) {
+        if (cities == null || cities.isBlank()) {
+            return "100010000";
+        }
+        if (cities.contains("北京")) {
+            return "101010100";
+        }
+        if (cities.contains("上海")) {
+            return "101020100";
+        }
+        if (cities.contains("广州")) {
+            return "101280100";
+        }
+        if (cities.contains("深圳")) {
+            return "101280600";
+        }
+        if (cities.contains("杭州")) {
+            return "101210100";
+        }
+        if (cities.contains("成都")) {
+            return "101270100";
+        }
+        return "100010000";
+    }
+
+    private Path chromeExecutablePath() {
+        String envPath = System.getenv("BOSS_AUTH_CHROME_PATH");
+        if (envPath != null && !envPath.isBlank()) {
+            return Path.of(envPath);
+        }
+        Path chrome = Path.of("C:/Program Files/Google/Chrome/Application/chrome.exe");
+        if (java.nio.file.Files.exists(chrome)) {
+            return chrome;
+        }
+        Path edge = Path.of("C:/Program Files/Microsoft/Edge/Application/msedge.exe");
+        if (java.nio.file.Files.exists(edge)) {
+            return edge;
+        }
+        return null;
+    }
+
+    private String encode(String value) {
+        return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8);
+    }
+
+    private void waitForPageQuietly(Page page) {
+        try {
+            page.waitForLoadState(com.microsoft.playwright.options.LoadState.NETWORKIDLE,
+                    new Page.WaitForLoadStateOptions().setTimeout(Math.min(properties.getBrowserTimeoutMillis(), 10000)));
+        } catch (RuntimeException e) {
+            log.debug("Boss 页面网络空闲等待超时，继续使用当前 DOM", e);
+        }
+    }
+
+    private String extractTitle(String html) {
+        String title = extractFirst(Pattern.compile("(?is)<title[^>]*>(.*?)</title>"), html);
+        return title == null ? "" : title;
+    }
+
+    private String firstNonBlank(String first, String second) {
+        if (first != null && !first.isBlank()) {
+            return first;
+        }
+        return second;
     }
 
     @Override
@@ -136,13 +346,13 @@ public class BossJobPlatformAdapter implements JobPlatformAdapter {
         }
 
         // 2. 优先使用正文文本，否则回退到 HTML
-        String text = page.content() != null && !page.content().isBlank() ? page.content() : page.html();
+        String text = page.html() != null && !page.html().isBlank() ? page.html() : page.content();
         if (text == null || text.isBlank()) {
             throw new BusinessException(ErrorCode.JOB_CRAWL_ERROR, "Boss 页面内容为空");
         }
 
         // 3. 抽取基础字段
-        String title = extractFirst(TITLE_PATTERN, text);
+        String title = firstNonBlank(extractFirst(TITLE_PATTERN, text), page.title());
         String companyName = extractFirst(COMPANY_PATTERN, text);
         String city = extractFirst(CITY_PATTERN, text);
         String salaryRange = extractFirst(SALARY_PATTERN, text);
@@ -180,7 +390,14 @@ public class BossJobPlatformAdapter implements JobPlatformAdapter {
         if (html == null || html.isBlank()) {
             return false;
         }
-        // 1. 检查是否包含授权墙关键词
+        // 1. 页面已包含可识别职位列表或详情字段时，隐藏登录弹窗文案不能作为授权墙依据
+        if (SEARCH_CARD_PATTERN.matcher(html).find()
+                || SEARCH_TITLE_PATTERN.matcher(html).find()
+                || TITLE_PATTERN.matcher(html).find()) {
+            return false;
+        }
+
+        // 2. 没有职位内容时，再检查是否包含授权墙关键词
         for (String keyword : AUTH_WALL_KEYWORDS) {
             if (html.contains(keyword)) {
                 return true;

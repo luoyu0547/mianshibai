@@ -1,2 +1,5 @@
 .vscode/
 .worktrees/
+backend/browser-profiles/
+backend/backend/
+backend/uploads/

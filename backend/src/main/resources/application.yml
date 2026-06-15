@@ -79,7 +79,7 @@ app:
     max-pages-per-source: ${JOB_SOURCING_MAX_PAGES_PER_SOURCE:5}
     max-third-party-calls: ${JOB_SOURCING_MAX_THIRD_PARTY_CALLS:20}
     firecrawl-api-key: ${FIRECRAWL_API_KEY:}
-    browser-profile-root: ${JOB_SOURCING_BROWSER_PROFILE_ROOT:backend/browser-profiles}
+    browser-profile-root: ${JOB_SOURCING_BROWSER_PROFILE_ROOT:browser-profiles}
     browser-headless: ${JOB_SOURCING_BROWSER_HEADLESS:false}
     browser-timeout-millis: ${JOB_SOURCING_BROWSER_TIMEOUT_MILLIS:30000}
   speech:

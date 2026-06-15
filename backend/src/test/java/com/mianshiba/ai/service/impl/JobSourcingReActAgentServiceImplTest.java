@@ -119,6 +119,28 @@ class JobSourcingReActAgentServiceImplTest {
     }
 
     @Test
+    void runTask_shouldMarkRunFailedWhenPlatformUnsupported() {
+        // 1. 构造旧版本遗留的平台任务
+        JobCrawlTask task = new JobCrawlTask();
+        task.setId(1L);
+        task.setSourceType("agent_search");
+        when(taskMapper.selectById(1L)).thenReturn(task);
+
+        // 2. 模拟平台注册表不支持该旧平台值
+        when(adapterRegistry.getAdapter("agent_search"))
+                .thenThrow(new IllegalArgumentException("Unsupported job platform: agent_search"));
+
+        // 3. 执行任务
+        JobCrawlRun run = agentService.runTask(1L);
+
+        // 4. 验证运行记录被标记为失败，避免 scheduler 线程反复打印未捕获异常堆栈
+        assertThat(run.getStatus()).isEqualTo("failed");
+        assertThat(run.getErrorMessage()).contains("Unsupported job platform: agent_search");
+        verify(itemMapper, never()).insert(any(JobCrawlItem.class));
+        verify(runMapper).updateById(argThat((JobCrawlRun updatedRun) -> "failed".equals(updatedRun.getStatus())));
+    }
+
+    @Test
     void runTask_shouldThrowWhenTaskNotFound() {
         when(taskMapper.selectById(anyLong())).thenReturn(null);
 

@@ -10,6 +10,8 @@ public interface BrowserSessionService {
 
     AuthCheckResult checkAuth(String platform);
 
+    String getProfilePath(String platform);
+
     record AuthStartResult(String platform, String profilePath) {
     }
 

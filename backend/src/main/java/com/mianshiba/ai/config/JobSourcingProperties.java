@@ -15,7 +15,7 @@ public class JobSourcingProperties {
     /**
      * Playwright 浏览器 profile 根目录
      */
-    private String browserProfileRoot = "backend/browser-profiles";
+    private String browserProfileRoot = "browser-profiles";
 
     /**
      * 是否以无头模式启动浏览器

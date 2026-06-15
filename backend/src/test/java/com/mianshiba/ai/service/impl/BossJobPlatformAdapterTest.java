@@ -6,6 +6,7 @@ import com.mianshiba.ai.exception.BusinessException;
 import com.mianshiba.ai.exception.ErrorCode;
 import com.mianshiba.ai.model.dto.jobsourcing.ExtractedJobCard;
 import com.mianshiba.ai.model.dto.jobsourcing.FetchedJobPage;
+import com.mianshiba.ai.model.dto.jobsourcing.JobDiscoveryRequest;
 import com.mianshiba.ai.service.BrowserSessionService;
 import org.junit.jupiter.api.Test;
 
@@ -26,6 +27,94 @@ class BossJobPlatformAdapterTest {
     private final BrowserSessionService browserSessionService = mock(BrowserSessionService.class);
     private final BossJobPlatformAdapter adapter = new BossJobPlatformAdapter(browserSessionService);
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    /**
+     * 搜索页应抽取职位列表条目
+     */
+    @Test
+    void discover_shouldExtractEntriesFromSearchHtml() throws IOException {
+        // 1. 准备返回 fixture 搜索页的适配器
+        BossJobPlatformAdapter fixtureAdapter = new BossJobPlatformAdapter(browserSessionService) {
+            @Override
+            protected String loadPageHtml(String url) throws IOException {
+                return readFixture("job-sourcing/boss-search.html");
+            }
+        };
+
+        // 2. 执行职位发现
+        var entries = fixtureAdapter.discover(new JobDiscoveryRequest("boss", "Java", "深圳", "3-5年", 1, 10));
+
+        // 3. 验证抽取到有效职位列表
+        assertThat(entries).hasSize(2);
+        assertThat(entries.get(0).sourceUrl()).isEqualTo("https://www.zhipin.com/job_detail/boss123.html");
+        assertThat(entries.get(0).title()).isEqualTo("Java 后端开发工程师");
+        assertThat(entries.get(0).companyName()).isEqualTo("示例科技");
+        assertThat(entries.get(0).city()).isEqualTo("深圳");
+        assertThat(entries.get(0).salaryRange()).isEqualTo("20-35K");
+    }
+
+    /**
+     * 搜索页没有职位卡片时不能返回空列表伪成功
+     */
+    @Test
+    void discover_shouldThrowWhenSearchPageHasNoJobCards() {
+        // 1. 准备返回无职位卡片页面的适配器
+        BossJobPlatformAdapter fixtureAdapter = new BossJobPlatformAdapter(browserSessionService) {
+            @Override
+            protected String loadPageHtml(String url) {
+                return "<html><body>请登录后查看职位，或完成安全验证</body></html>";
+            }
+        };
+
+        // 2. 验证不会把授权/风控页面当作空结果成功返回
+        assertThatThrownBy(() -> fixtureAdapter.discover(new JobDiscoveryRequest("boss", "Java", "北京", "1-3年", 1, 10)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("code")
+                .isEqualTo(ErrorCode.JOB_CRAWL_ERROR.getCode());
+    }
+
+    /**
+     * 中性空页面也不能被当作职位发现成功
+     */
+    @Test
+    void discover_shouldThrowWhenSearchPageHasNoRecognizedCards() {
+        // 1. 准备没有授权关键词、也没有职位卡片的页面
+        BossJobPlatformAdapter fixtureAdapter = new BossJobPlatformAdapter(browserSessionService) {
+            @Override
+            protected String loadPageHtml(String url) {
+                return "<html><body><main>暂无可识别职位内容</main></body></html>";
+            }
+        };
+
+        // 2. 验证不会静默返回空列表
+        assertThatThrownBy(() -> fixtureAdapter.discover(new JobDiscoveryRequest("boss", "Java", "北京", "1-3年", 1, 10)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("code")
+                .isEqualTo(ErrorCode.JOB_CRAWL_ERROR.getCode());
+    }
+
+    /**
+     * 详情页抓取应返回页面正文和 HTML
+     */
+    @Test
+    void fetchDetail_shouldReturnFetchedPageFromRealLoader() throws IOException {
+        // 1. 准备返回 fixture 详情页的适配器
+        BossJobPlatformAdapter fixtureAdapter = new BossJobPlatformAdapter(browserSessionService) {
+            @Override
+            protected String loadPageHtml(String url) throws IOException {
+                return readFixture("job-sourcing/boss-detail.html");
+            }
+        };
+
+        // 2. 执行详情页抓取
+        FetchedJobPage page = fixtureAdapter.fetchDetail("https://www.zhipin.com/job_detail/example.html");
+
+        // 3. 验证返回内容可用于兜底抽取
+        assertThat(page.sourcePlatform()).isEqualTo("boss");
+        assertThat(page.requiresAuth()).isTrue();
+        assertThat(page.html()).contains("Java 后端开发工程师");
+        assertThat(page.content()).contains("示例科技");
+    }
 
     /**
      * 从 fixture HTML 抽取职位字段
@@ -93,6 +182,19 @@ class BossJobPlatformAdapterTest {
     }
 
     /**
+     * 已返回职位卡片的页面即使包含隐藏登录文案，也不应判定为授权墙
+     */
+    @Test
+    void isAuthWall_shouldReturnFalseWhenJobCardsExistWithHiddenLoginText() throws IOException {
+        // 1. 准备包含职位卡片和隐藏登录文案的搜索页
+        String html = readFixture("job-sourcing/boss-search.html")
+                + "<div style=\"display:none\">登录 验证码 安全验证</div>";
+
+        // 2. 验证不判定为授权墙
+        assertThat(adapter.isAuthWall(html)).isFalse();
+    }
+
+    /**
      * 当页面为授权墙时，兜底解析应抛出业务异常
      */
     @Test
@@ -113,5 +215,12 @@ class BossJobPlatformAdapterTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting("code")
                 .isEqualTo(ErrorCode.JOB_CRAWL_ERROR.getCode());
+    }
+
+    private String readFixture(String path) throws IOException {
+        try (var inputStream = getClass().getClassLoader().getResourceAsStream(path)) {
+            assertThat(inputStream).isNotNull();
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 }

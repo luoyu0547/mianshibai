@@ -1,7 +1,6 @@
 package com.mianshiba.ai.service.impl;
 
 import com.mianshiba.ai.config.JobSourcingProperties;
-import com.mianshiba.ai.mapper.PlatformAuthSessionMapper;
 import com.mianshiba.ai.model.dto.jobsourcing.ExtractedJobCard;
 import com.mianshiba.ai.model.dto.jobsourcing.FetchedJobPage;
 import com.mianshiba.ai.model.dto.jobsourcing.JobDiscoveryRequest;
@@ -15,36 +14,48 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 /**
  * Boss 直聘职位采集实时测试
  * 在设置 RUN_LIVE_BOSS_CRAWL=true 时运行，验证 Boss 直聘真实页面采集能力。
- * 当前 discover/fetchDetail 尚未实现真实抓取，测试会自然失败，用于明确后续实现目标。
+ * 运行前需先用管理端授权流程在默认 profile 目录完成 Boss 登录。
  */
 @EnabledIfEnvironmentVariable(named = "RUN_LIVE_BOSS_CRAWL", matches = "true")
 class BossJobSourcingLiveTest {
 
     /**
-     * 平台授权会话 Mapper，模拟数据库中无授权记录
-     */
-    private final PlatformAuthSessionMapper platformAuthSessionMapper = mock(PlatformAuthSessionMapper.class);
-
-    /**
      * 职位采集配置，使用默认值
      */
-    private final JobSourcingProperties properties = new JobSourcingProperties();
+    private final JobSourcingProperties properties = liveProperties();
 
     /**
-     * 浏览器会话服务，依赖模拟的 Mapper
+     * 浏览器会话服务，live 测试由环境变量显式启用，授权状态以本机 profile 为准
      */
-    private final BrowserSessionService browserSessionService = new PlaywrightBrowserSessionServiceImpl(
-            platformAuthSessionMapper, properties);
+    private final BrowserSessionService browserSessionService = new BrowserSessionService() {
+        @Override
+        public AuthStartResult startAuth(String platform) {
+            return new AuthStartResult(platform, properties.getBrowserProfileRoot() + "/" + platform);
+        }
+
+        @Override
+        public AuthCheckResult checkAuth(String platform) {
+            return new AuthCheckResult(platform, PlatformAuthStatus.AUTHORIZED.getValue(), "live profile required");
+        }
+
+        @Override
+        public String getProfilePath(String platform) {
+            String profilePath = System.getenv("BOSS_LIVE_PROFILE_PATH");
+            if (profilePath != null && !profilePath.isBlank()) {
+                return profilePath;
+            }
+            return "D:/code_schl/mianshiba/backend/browser-profiles/" + platform;
+        }
+    };
 
     /**
      * Boss 直聘平台适配器，直接构造以聚焦适配器行为
      */
-    private final JobPlatformAdapter adapter = new BossJobPlatformAdapter(browserSessionService);
+    private final JobPlatformAdapter adapter = new BossJobPlatformAdapter(browserSessionService, properties);
 
     /**
      * 在真实 Boss 直聘列表页上发现职位，验证至少返回一条有效职位条目。
@@ -94,8 +105,11 @@ class BossJobSourcingLiveTest {
                 .as("Boss 直聘未授权，请先完成授权流程")
                 .isEqualTo(PlatformAuthStatus.AUTHORIZED.getValue());
 
-        // 2. 使用真实的 Boss 直聘职位详情页 URL
-        String realUrl = "https://www.zhipin.com/job_detail/1234567890123456789.html";
+        // 2. 先发现真实职位，再取第一条详情 URL
+        JobDiscoveryRequest request = new JobDiscoveryRequest("boss", "Java", "北京", "1-3年", 1, 1);
+        List<JobListEntry> entries = adapter.discover(request);
+        assertThat(entries).as("Boss 直聘列表页应至少返回一个职位条目").isNotEmpty();
+        String realUrl = entries.get(0).sourceUrl();
 
         // 3. 抓取详情页
         FetchedJobPage page = adapter.fetchDetail(realUrl);
@@ -114,5 +128,11 @@ class BossJobSourcingLiveTest {
         assertThat(card.title()).as("职位标题不应为空").isNotBlank();
         assertThat(card.companyName()).as("公司名称不应为空").isNotBlank();
         assertThat(card.city()).as("工作城市不应为空").isNotBlank();
+    }
+
+    private JobSourcingProperties liveProperties() {
+        JobSourcingProperties liveProperties = new JobSourcingProperties();
+        liveProperties.setBrowserHeadless(false);
+        return liveProperties;
     }
 }

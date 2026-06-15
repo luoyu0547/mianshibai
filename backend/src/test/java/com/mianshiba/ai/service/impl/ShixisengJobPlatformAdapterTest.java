@@ -6,6 +6,7 @@ import com.mianshiba.ai.exception.BusinessException;
 import com.mianshiba.ai.exception.ErrorCode;
 import com.mianshiba.ai.model.dto.jobsourcing.ExtractedJobCard;
 import com.mianshiba.ai.model.dto.jobsourcing.FetchedJobPage;
+import com.mianshiba.ai.model.dto.jobsourcing.JobDiscoveryRequest;
 import com.mianshiba.ai.service.BrowserSessionService;
 import org.junit.jupiter.api.Test;
 
@@ -54,14 +55,51 @@ class ShixisengJobPlatformAdapterTest {
     }
 
     /**
-     * 真实详情页抓取应抛出业务异常
+     * 搜索页应抽取职位列表条目
      */
     @Test
-    void fetchDetail_shouldThrowBusinessException() {
-        assertThatThrownBy(() -> adapter.fetchDetail("https://www.shixiseng.com/intern/example"))
-                .isInstanceOf(BusinessException.class)
-                .extracting("code")
-                .isEqualTo(ErrorCode.JOB_CRAWL_ERROR.getCode());
+    void discover_shouldExtractEntriesFromSearchHtml() throws IOException {
+        // 1. 准备返回 fixture 搜索页的适配器
+        ShixisengJobPlatformAdapter fixtureAdapter = new ShixisengJobPlatformAdapter() {
+            @Override
+            protected String loadPageHtml(String url) throws IOException {
+                return readFixture("job-sourcing/shixiseng-search.html");
+            }
+        };
+
+        // 2. 执行职位发现
+        var entries = fixtureAdapter.discover(new JobDiscoveryRequest("shixiseng", "Java", "北京", "实习", 1, 10));
+
+        // 3. 验证抽取到有效职位列表
+        assertThat(entries).hasSize(2);
+        assertThat(entries.get(0).sourceUrl()).isEqualTo("https://www.shixiseng.com/intern/inn_123");
+        assertThat(entries.get(0).title()).isEqualTo("后端开发实习生");
+        assertThat(entries.get(0).companyName()).isEqualTo("样例网络");
+        assertThat(entries.get(0).city()).isEqualTo("北京");
+        assertThat(entries.get(0).salaryRange()).isEqualTo("200-300/天");
+    }
+
+    /**
+     * 详情页抓取应返回页面正文和 HTML
+     */
+    @Test
+    void fetchDetail_shouldReturnFetchedPageFromRealLoader() throws IOException {
+        // 1. 准备返回 fixture 详情页的适配器
+        ShixisengJobPlatformAdapter fixtureAdapter = new ShixisengJobPlatformAdapter() {
+            @Override
+            protected String loadPageHtml(String url) throws IOException {
+                return readFixture("job-sourcing/shixiseng-detail.html");
+            }
+        };
+
+        // 2. 执行详情页抓取
+        FetchedJobPage page = fixtureAdapter.fetchDetail("https://www.shixiseng.com/intern/example");
+
+        // 3. 验证返回内容可用于兜底抽取
+        assertThat(page.sourcePlatform()).isEqualTo("shixiseng");
+        assertThat(page.requiresAuth()).isFalse();
+        assertThat(page.html()).contains("后端开发实习生");
+        assertThat(page.content()).contains("样例网络");
     }
 
     /**
@@ -108,5 +146,12 @@ class ShixisengJobPlatformAdapterTest {
         List<String> techList = new ArrayList<>();
         techStack.forEach(node -> techList.add(node.asText()));
         assertThat(techList).contains("Java", "Spring Boot", "MySQL");
+    }
+
+    private String readFixture(String path) throws IOException {
+        try (var inputStream = getClass().getClassLoader().getResourceAsStream(path)) {
+            assertThat(inputStream).isNotNull();
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 }

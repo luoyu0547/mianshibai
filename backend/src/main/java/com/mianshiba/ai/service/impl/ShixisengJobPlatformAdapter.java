@@ -2,6 +2,13 @@ package com.mianshiba.ai.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.BrowserContext;
+import com.microsoft.playwright.BrowserType;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.Playwright;
+import com.microsoft.playwright.options.WaitUntilState;
+import com.mianshiba.ai.config.JobSourcingProperties;
 import com.mianshiba.ai.exception.BusinessException;
 import com.mianshiba.ai.exception.ErrorCode;
 import com.mianshiba.ai.model.dto.jobsourcing.ExtractedJobCard;
@@ -12,11 +19,17 @@ import com.mianshiba.ai.model.enums.PlatformAuthStatus;
 import com.mianshiba.ai.service.BrowserSessionService;
 import com.mianshiba.ai.service.JobPlatformAdapter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,6 +43,20 @@ import java.util.regex.Pattern;
 public class ShixisengJobPlatformAdapter implements JobPlatformAdapter {
 
     /**
+     * 职位采集配置
+     */
+    private final JobSourcingProperties properties;
+
+    public ShixisengJobPlatformAdapter() {
+        this(new JobSourcingProperties());
+    }
+
+    @Autowired
+    public ShixisengJobPlatformAdapter(JobSourcingProperties properties) {
+        this.properties = properties;
+    }
+
+    /**
      * JSON 序列化工具
      */
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -40,9 +67,19 @@ public class ShixisengJobPlatformAdapter implements JobPlatformAdapter {
     private static final Pattern TITLE_PATTERN = Pattern.compile("<h1[^>]*>(.*?)</h1>", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
     /**
+     * 真实详情页标题正则
+     */
+    private static final Pattern NEW_JOB_NAME_PATTERN = Pattern.compile("(?is)<div[^>]*class=\"[^\"]*new_job_name[^\"]*\"[^>]*>(.*?)</div>");
+
+    /**
      * 公司名称选择器正则
      */
     private static final Pattern COMPANY_PATTERN = Pattern.compile("<div[^>]*class=\"com-name\"[^>]*>(.*?)</div>", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+
+    /**
+     * 真实详情页公司名称正则
+     */
+    private static final Pattern COMPANY_ANCHOR_PATTERN = Pattern.compile("(?is)<a[^>]*class=\"[^\"]*com-name[^\"]*\"[^>]*>(.*?)</a>");
 
     /**
      * 职位描述选择器正则
@@ -75,6 +112,24 @@ public class ShixisengJobPlatformAdapter implements JobPlatformAdapter {
     private static final Pattern TAG_PATTERN = Pattern.compile("每周\\s*\\d+\\s*天|实习\\s*\\d+\\s*个月");
 
     /**
+     * 搜索结果卡片块正则
+     */
+    private static final Pattern SEARCH_CARD_PATTERN = Pattern.compile("(?is)<div[^>]*class=\"[^\"]*(?:intern-wrap|intern-item)[^\"]*\"[^>]*>(.*?)(?=<div[^>]*class=\"[^\"]*(?:intern-wrap|intern-item)|</body>|</html>)");
+
+    /**
+     * 搜索卡片字段正则
+     */
+    private static final Pattern HREF_PATTERN = Pattern.compile("(?is)<a[^>]*href=\"([^\"]+)\"[^>]*>");
+    private static final Pattern SEARCH_TITLE_PATTERN = Pattern.compile("(?is)<a[^>]*class=\"[^\"]*title[^\"]*\"[^>]*>(.*?)</a>");
+    private static final Pattern SEARCH_COMPANY_PATTERN = Pattern.compile("(?is)<a[^>]*class=\"[^\"]*company-name[^\"]*\"[^>]*>(.*?)</a>");
+    private static final Pattern SEARCH_COMPANY_ALT_PATTERN = Pattern.compile("(?is)<div[^>]*class=\"[^\"]*intern-detail__company[^\"]*\"[^>]*>.*?<a[^>]*title=\"([^\"]+)\"");
+    private static final Pattern SEARCH_SALARY_PATTERN = Pattern.compile("(?is)<span[^>]*class=\"[^\"]*(?:day|salary)[^\"]*\"[^>]*>(.*?)</span>");
+    private static final Pattern SEARCH_CITY_PATTERN = Pattern.compile("(?is)<span[^>]*class=\"[^\"]*city[^\"]*\"[^>]*>(.*?)</span>");
+    private static final Pattern DETAIL_CITY_PATTERN = Pattern.compile("(?is)<span[^>]*class=\"[^\"]*job_position[^\"]*\"[^>]*>(.*?)</span>");
+    private static final Pattern DETAIL_SALARY_PATTERN = Pattern.compile("(?is)<span[^>]*class=\"[^\"]*job_money[^\"]*\"[^>]*>(.*?)</span>");
+    private static final Pattern DETAIL_EDUCATION_PATTERN = Pattern.compile("(?is)<span[^>]*class=\"[^\"]*job_academic[^\"]*\"[^>]*>(.*?)</span>");
+
+    /**
      * 技术栈关键词（按长度降序，优先匹配多词）
      */
     private static final List<String> TECH_STACK_KEYWORDS = List.of(
@@ -105,36 +160,153 @@ public class ShixisengJobPlatformAdapter implements JobPlatformAdapter {
 
     @Override
     public List<JobListEntry> discover(JobDiscoveryRequest request) {
-        // 1. 列表页发现暂未实现，返回空列表
-        log.info("Shixiseng discover not implemented yet, request={}", request);
-        return List.of();
+        try {
+            // 1. 逐页加载实习僧搜索结果页
+            Map<String, JobListEntry> entries = new LinkedHashMap<>();
+            int maxPages = Math.max(1, request.maxPages());
+            int targetCount = Math.max(1, request.targetCount());
+            for (int page = 1; page <= maxPages && entries.size() < targetCount; page++) {
+                String url = buildSearchUrl(request, page);
+                String html = loadPageHtml(url);
+                for (JobListEntry entry : parseSearchEntries(html)) {
+                    entries.putIfAbsent(entry.sourceUrl(), entry);
+                    if (entries.size() >= targetCount) {
+                        break;
+                    }
+                }
+            }
+            return new ArrayList<>(entries.values());
+        } catch (Exception e) {
+            log.error("Shixiseng discover failed, request={}", request, e);
+            throw new BusinessException(ErrorCode.JOB_CRAWL_ERROR);
+        }
     }
 
     @Override
     public FetchedJobPage fetchDetail(String url) {
-        // 1. 真实详情页抓取暂未实现，抛出抓取异常
-        log.warn("Shixiseng fetchDetail not implemented yet, url={}", url);
-        throw new BusinessException(ErrorCode.JOB_CRAWL_ERROR);
+        try {
+            // 1. 加载公开职位详情页
+            String html = loadPageHtml(url);
+
+            // 2. 组装可供后续兜底抽取的页面对象
+            return new FetchedJobPage(url, url, extractTitle(html), stripHtml(html), html, platform(), false);
+        } catch (Exception e) {
+            log.error("Shixiseng fetchDetail failed, url={}", url, e);
+            throw new BusinessException(ErrorCode.JOB_CRAWL_ERROR);
+        }
+    }
+
+    /**
+     * 加载页面 HTML
+     *
+     * @param url 目标 URL
+     * @return 页面 HTML
+     */
+    protected String loadPageHtml(String url) throws IOException {
+        // 1. 使用无状态浏览器上下文抓取公开页面
+        try (Playwright playwright = Playwright.create();
+             Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions()
+                     .setHeadless(properties.isBrowserHeadless())
+                     .setTimeout(properties.getBrowserTimeoutMillis()));
+             BrowserContext context = browser.newContext()) {
+            Page page = context.newPage();
+            page.setDefaultTimeout(properties.getBrowserTimeoutMillis());
+            page.navigate(url, new Page.NavigateOptions()
+                    .setTimeout(properties.getBrowserTimeoutMillis())
+                    .setWaitUntil(WaitUntilState.DOMCONTENTLOADED));
+            waitForPageQuietly(page);
+            return page.content();
+        }
+    }
+
+    private String buildSearchUrl(JobDiscoveryRequest request, int page) {
+        String keyword = encode(request.keywords());
+        String city = encode(firstToken(request.cities()));
+        return "https://www.shixiseng.com/interns?keyword=" + keyword + "&city=" + city + "&page=" + page;
+    }
+
+    private List<JobListEntry> parseSearchEntries(String html) {
+        List<JobListEntry> entries = new ArrayList<>();
+        Matcher matcher = SEARCH_CARD_PATTERN.matcher(html);
+        while (matcher.find()) {
+            String cardHtml = matcher.group(1);
+            String href = extractFirst(HREF_PATTERN, cardHtml);
+            String title = extractFirst(SEARCH_TITLE_PATTERN, cardHtml);
+            if (href == null || title == null) {
+                continue;
+            }
+            entries.add(new JobListEntry(
+                    platform(),
+                    normalizeUrl(href),
+                    title,
+                    firstNonBlank(extractFirst(SEARCH_COMPANY_PATTERN, cardHtml), extractFirst(SEARCH_COMPANY_ALT_PATTERN, cardHtml)),
+                    extractFirst(SEARCH_CITY_PATTERN, cardHtml),
+                    extractFirst(SEARCH_SALARY_PATTERN, cardHtml)
+            ));
+        }
+        return entries;
+    }
+
+    private String normalizeUrl(String href) {
+        if (href.startsWith("http://") || href.startsWith("https://")) {
+            return href;
+        }
+        if (href.startsWith("/")) {
+            return "https://www.shixiseng.com" + href;
+        }
+        return "https://www.shixiseng.com/" + href;
+    }
+
+    private String firstToken(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        return value.split("[,，;；/\\s]+", 2)[0];
+    }
+
+    private String encode(String value) {
+        return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8);
+    }
+
+    private void waitForPageQuietly(Page page) {
+        try {
+            page.waitForLoadState(com.microsoft.playwright.options.LoadState.NETWORKIDLE,
+                    new Page.WaitForLoadStateOptions().setTimeout(Math.min(properties.getBrowserTimeoutMillis(), 10000)));
+        } catch (RuntimeException e) {
+            log.debug("实习僧页面网络空闲等待超时，继续使用当前 DOM", e);
+        }
+    }
+
+    private String extractTitle(String html) {
+        String title = extractFirst(Pattern.compile("(?is)<title[^>]*>(.*?)</title>"), html);
+        return title == null ? "" : title;
+    }
+
+    private String firstNonBlank(String first, String second) {
+        if (first != null && !first.isBlank()) {
+            return first;
+        }
+        return second;
     }
 
     @Override
     public ExtractedJobCard fallbackExtract(FetchedJobPage page) {
         // 1. 优先使用正文文本，否则回退到 HTML
-        String text = page.content() != null && !page.content().isBlank() ? page.content() : page.html();
+        String text = page.html() != null && !page.html().isBlank() ? page.html() : page.content();
         if (text == null || text.isBlank()) {
             throw new BusinessException(ErrorCode.JOB_CRAWL_ERROR, "实习僧页面内容为空");
         }
 
         // 2. 抽取基础字段
-        String title = extractFirst(TITLE_PATTERN, text);
-        String companyName = extractFirst(COMPANY_PATTERN, text);
+        String title = firstNonBlank(firstNonBlank(extractFirst(TITLE_PATTERN, text), extractFirst(NEW_JOB_NAME_PATTERN, text)), page.title());
+        String companyName = firstNonBlank(extractFirst(COMPANY_PATTERN, text), extractFirst(COMPANY_ANCHOR_PATTERN, text));
         String jobDescription = extractFirst(JOB_DESC_PATTERN, text);
 
         // 3. 解析所有 span 标签，分类提取城市、薪资、学历、标签
         List<String> spans = extractAll(SPAN_PATTERN, text);
-        String city = null;
-        String salaryRange = null;
-        String educationRequirement = null;
+        String city = extractFirst(DETAIL_CITY_PATTERN, text);
+        String salaryRange = extractFirst(DETAIL_SALARY_PATTERN, text);
+        String educationRequirement = extractFirst(DETAIL_EDUCATION_PATTERN, text);
         List<String> tags = new ArrayList<>();
         for (String span : spans) {
             if (salaryRange == null && SALARY_PATTERN.matcher(span).matches()) {

@@ -1,5 +1,6 @@
 package com.mianshiba.ai.service.impl;
 
+import com.mianshiba.ai.config.JobSourcingProperties;
 import com.mianshiba.ai.model.dto.jobsourcing.ExtractedJobCard;
 import com.mianshiba.ai.model.dto.jobsourcing.FetchedJobPage;
 import com.mianshiba.ai.model.dto.jobsourcing.JobDiscoveryRequest;
@@ -17,15 +18,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * 实习僧职位采集实时测试
  * 在设置 RUN_LIVE_SHIXISENG_CRAWL=true 时运行，验证实习僧真实页面采集能力。
- * 当前 discover/fetchDetail 尚未实现真实抓取，测试会自然失败，用于明确后续实现目标。
+ * 公开平台 live 测试会真实访问实习僧页面。
  */
 @EnabledIfEnvironmentVariable(named = "RUN_LIVE_SHIXISENG_CRAWL", matches = "true")
 class ShixisengJobSourcingLiveTest {
 
     /**
+     * 职位采集配置
+     */
+    private final JobSourcingProperties properties = liveProperties();
+
+    /**
      * 实习僧平台适配器，公开访问无需额外授权
      */
-    private final JobPlatformAdapter adapter = new ShixisengJobPlatformAdapter();
+    private final JobPlatformAdapter adapter = new ShixisengJobPlatformAdapter(properties);
 
     /**
      * 在真实实习僧列表页上发现实习岗位，验证至少返回一条有效实习条目。
@@ -75,8 +81,11 @@ class ShixisengJobSourcingLiveTest {
                 .as("实习僧为公开平台，应返回已授权状态")
                 .isEqualTo(PlatformAuthStatus.AUTHORIZED.getValue());
 
-        // 2. 使用真实的实习僧详情页 URL
-        String realUrl = "https://www.shixiseng.com/intern/abc123";
+        // 2. 先发现真实实习，再取第一条详情 URL
+        JobDiscoveryRequest request = new JobDiscoveryRequest("shixiseng", "Java", "北京", null, 1, 1);
+        List<JobListEntry> entries = adapter.discover(request);
+        assertThat(entries).as("实习僧列表页应至少返回一个实习岗位条目").isNotEmpty();
+        String realUrl = entries.get(0).sourceUrl();
 
         // 3. 抓取详情页
         FetchedJobPage page = adapter.fetchDetail(realUrl);
@@ -95,5 +104,11 @@ class ShixisengJobSourcingLiveTest {
         assertThat(card.title()).as("实习标题不应为空").isNotBlank();
         assertThat(card.companyName()).as("公司名称不应为空").isNotBlank();
         assertThat(card.city()).as("工作城市不应为空").isNotBlank();
+    }
+
+    private JobSourcingProperties liveProperties() {
+        JobSourcingProperties liveProperties = new JobSourcingProperties();
+        liveProperties.setBrowserHeadless(true);
+        return liveProperties;
     }
 }

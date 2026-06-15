@@ -93,8 +93,17 @@ public class JobSourcingReActAgentServiceImpl implements JobSourcingReActAgentSe
         int maxPages = properties.getMaxPagesPerSource();
         int targetCount = properties.getTargetCount();
 
-        // 4. 获取平台适配器
-        JobPlatformAdapter adapter = adapterRegistry.getAdapter(platform);
+        // 4. 获取平台适配器；旧版本遗留任务可能保存了不再支持的平台值
+        JobPlatformAdapter adapter;
+        try {
+            adapter = adapterRegistry.getAdapter(platform);
+        } catch (IllegalArgumentException e) {
+            run.setStatus(JobSourcingRunStatus.FAILED.getValue());
+            run.setErrorMessage(e.getMessage());
+            run.setFinishedAt(LocalDateTime.now());
+            runMapper.updateById(run);
+            return run;
+        }
 
         // 5. 授权检查
         if (adapter.requiresAuth()) {
