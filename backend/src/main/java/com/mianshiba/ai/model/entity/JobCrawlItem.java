@@ -77,5 +77,15 @@ public class JobCrawlItem implements Serializable {
      */
     private String reviewStatus;
 
+    /**
+     * 人工复核备注
+     */
+    private String reviewNote;
+
+    /**
+     * 疑似重复的正式职位 id
+     */
+    private Long duplicateOfJobId;
+
     private LocalDateTime createTime;
 }

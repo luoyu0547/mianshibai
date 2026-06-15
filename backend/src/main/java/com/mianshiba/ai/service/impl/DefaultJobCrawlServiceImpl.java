@@ -13,12 +13,19 @@ import java.util.regex.Pattern;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class DefaultJobCrawlServiceImpl implements JobCrawlService {
 
     private static final Pattern TITLE_PATTERN = Pattern.compile("(?is)<title[^>]*>(.*?)</title>");
 
-    private final RestClient restClient = RestClient.create();
+    private final RestClient restClient;
+
+    public DefaultJobCrawlServiceImpl() {
+        this(RestClient.create());
+    }
+
+    public DefaultJobCrawlServiceImpl(RestClient restClient) {
+        this.restClient = restClient;
+    }
 
     @Override
     public CrawlResult crawl(String url) {
