@@ -80,3 +80,7 @@ app:
       access-key-secret: ${ALIYUN_AK_SECRET:}
       app-key: ${ALIYUN_NLS_APP_KEY:}
       region: ${ALIYUN_NLS_REGION:cn-shanghai}
+  job-sourcing:
+    browser-profile-root: ${JOB_SOURCING_BROWSER_PROFILE_ROOT:backend/browser-profiles}
+    browser-headless: ${JOB_SOURCING_BROWSER_HEADLESS:false}
+    browser-timeout-millis: ${JOB_SOURCING_BROWSER_TIMEOUT_MILLIS:30000}

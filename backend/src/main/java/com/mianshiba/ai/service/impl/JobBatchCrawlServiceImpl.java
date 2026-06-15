@@ -20,6 +20,7 @@ import com.mianshiba.ai.service.JobBatchCrawlService;
 import com.mianshiba.ai.service.JobCrawlService;
 import com.mianshiba.ai.service.JobDedupService;
 import com.mianshiba.ai.service.JobParseService;
+import com.mianshiba.ai.service.JobSourcingReActAgentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -45,6 +46,7 @@ public class JobBatchCrawlServiceImpl implements JobBatchCrawlService {
     private final JobParseService jobParseService;
     private final AiJobAnalysisService aiJobAnalysisService;
     private final JobDedupService jobDedupService;
+    private final JobSourcingReActAgentService jobSourcingReActAgentService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -52,6 +54,11 @@ public class JobBatchCrawlServiceImpl implements JobBatchCrawlService {
         JobCrawlTask task = taskMapper.selectById(taskId);
         if (task == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+
+        // 平台化职位采集任务委托给 ReAct Agent
+        if (!"manual_url_list".equals(task.getSourceType())) {
+            return jobSourcingReActAgentService.runTask(taskId);
         }
 
         JobCrawlRun run = new JobCrawlRun();

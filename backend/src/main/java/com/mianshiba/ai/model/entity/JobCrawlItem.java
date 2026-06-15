@@ -37,5 +37,45 @@ public class JobCrawlItem implements Serializable {
 
     private String rawCompanyName;
 
+    /**
+     * 来源平台标识
+     */
+    private String sourcePlatform;
+
+    /**
+     * 页面原始内容
+     */
+    private String rawContent;
+
+    /**
+     * 内容摘要
+     */
+    private String summary;
+
+    /**
+     * 质量评分
+     */
+    private Integer qualityScore;
+
+    /**
+     * 提取置信度
+     */
+    private Integer confidenceScore;
+
+    /**
+     * 提取后的结构化 JSON
+     */
+    private String extractedJson;
+
+    /**
+     * 标签 JSON
+     */
+    private String tagsJson;
+
+    /**
+     * 人工复核状态
+     */
+    private String reviewStatus;
+
     private LocalDateTime createTime;
 }

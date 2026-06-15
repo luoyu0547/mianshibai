@@ -9,6 +9,7 @@ import com.mianshiba.ai.model.vo.admin.jobcrawl.AdminJobCrawlItemVO;
 import com.mianshiba.ai.model.vo.admin.jobcrawl.AdminJobCrawlRunVO;
 import com.mianshiba.ai.model.vo.admin.jobcrawl.AdminJobCrawlTaskVO;
 import com.mianshiba.ai.service.AdminJobCrawlService;
+import com.mianshiba.ai.service.BrowserSessionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -103,5 +104,21 @@ public class AdminJobCrawlController {
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
             @PathVariable("runId") Long runId) {
         return ResultUtils.success(adminJobCrawlService.listRunItems(authorizationHeader, runId));
+    }
+
+    @PostMapping("/platforms/{platform}/auth/start")
+    @Operation(summary = "启动平台授权")
+    public BaseResponse<BrowserSessionService.AuthStartResult> startPlatformAuth(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
+            @PathVariable("platform") String platform) {
+        return ResultUtils.success(adminJobCrawlService.startPlatformAuth(authorizationHeader, platform));
+    }
+
+    @PostMapping("/platforms/{platform}/auth/check")
+    @Operation(summary = "检查平台授权状态")
+    public BaseResponse<BrowserSessionService.AuthCheckResult> checkPlatformAuth(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
+            @PathVariable("platform") String platform) {
+        return ResultUtils.success(adminJobCrawlService.checkPlatformAuth(authorizationHeader, platform));
     }
 }

@@ -19,6 +19,7 @@ import com.mianshiba.ai.model.vo.admin.jobcrawl.AdminJobCrawlItemVO;
 import com.mianshiba.ai.model.vo.admin.jobcrawl.AdminJobCrawlRunVO;
 import com.mianshiba.ai.model.vo.admin.jobcrawl.AdminJobCrawlTaskVO;
 import com.mianshiba.ai.service.AdminJobCrawlService;
+import com.mianshiba.ai.service.BrowserSessionService;
 import com.mianshiba.ai.service.JobBatchCrawlService;
 import com.mianshiba.ai.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +49,7 @@ public class AdminJobCrawlServiceImpl implements AdminJobCrawlService {
     private final JobCrawlRunMapper jobCrawlRunMapper;
     private final JobCrawlItemMapper jobCrawlItemMapper;
     private final JobBatchCrawlService jobBatchCrawlService;
+    private final BrowserSessionService browserSessionService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -212,6 +214,24 @@ public class AdminJobCrawlServiceImpl implements AdminJobCrawlService {
                 .orderByDesc(JobCrawlItem::getCreateTime);
 
         return jobCrawlItemMapper.selectList(wrapper).stream().map(this::toItemVO).toList();
+    }
+
+    @Override
+    public BrowserSessionService.AuthStartResult startPlatformAuth(String authorizationHeader, String platform) {
+        // 1. 校验管理员身份
+        resolveAdminId(authorizationHeader);
+
+        // 2. 委托浏览器会话服务启动授权
+        return browserSessionService.startAuth(platform);
+    }
+
+    @Override
+    public BrowserSessionService.AuthCheckResult checkPlatformAuth(String authorizationHeader, String platform) {
+        // 1. 校验管理员身份
+        resolveAdminId(authorizationHeader);
+
+        // 2. 委托浏览器会话服务检查授权状态
+        return browserSessionService.checkAuth(platform);
     }
 
     private Long resolveAdminId(String authorizationHeader) {

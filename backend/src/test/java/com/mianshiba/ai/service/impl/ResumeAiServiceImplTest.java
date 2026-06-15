@@ -136,7 +136,8 @@ class ResumeAiServiceImplTest {
         request.setSectionType("work");
         request.setSectionData(Map.of("company", "测试公司"));
 
-        Map<String, Object> result = service.optimizeSection(request, "Java开发工程师");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> result = (Map<String, Object>) service.optimizeSection(request, "Java开发工程师");
 
         assertThat(result).containsEntry("company", "优化后公司");
         assertThat(result).containsKey("highlights");
@@ -266,7 +267,8 @@ class ResumeAiServiceImplTest {
         request.setSectionType("work");
         request.setSectionData(Map.of("company", "测试公司"));
 
-        Map<String, Object> result = service.optimizeSection(request, "Java开发工程师");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> result = (Map<String, Object>) service.optimizeSection(request, "Java开发工程师");
 
         assertThat(result).containsEntry("company", "优化后公司");
     }
@@ -280,7 +282,8 @@ class ResumeAiServiceImplTest {
         request.setSectionType("work");
         request.setSectionData(Map.of("company", "测试公司"));
 
-        Map<String, Object> result = service.optimizeSection(request, "Java开发工程师");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> result = (Map<String, Object>) service.optimizeSection(request, "Java开发工程师");
 
         assertThat(result).containsEntry("company", "优化后公司");
     }

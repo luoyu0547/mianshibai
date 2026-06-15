@@ -558,7 +558,7 @@ CREATE TABLE IF NOT EXISTS job_crawl_task (
 CREATE TABLE IF NOT EXISTS job_crawl_run (
   id BIGINT NOT NULL AUTO_INCREMENT COMMENT '运行记录 id',
   task_id BIGINT NOT NULL COMMENT '采集任务 id',
-  status VARCHAR(32) NOT NULL DEFAULT 'running' COMMENT 'running/success/partial_success/failed',
+  status VARCHAR(32) NOT NULL DEFAULT 'running' COMMENT 'running/success/partial_success/failed/auth_required',
   started_at DATETIME DEFAULT NULL COMMENT '开始时间',
   finished_at DATETIME DEFAULT NULL COMMENT '结束时间',
   total_count INT NOT NULL DEFAULT 0 COMMENT '总条数',
@@ -589,6 +589,20 @@ CREATE TABLE IF NOT EXISTS job_crawl_item (
   KEY idx_task_id (task_id),
   KEY idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='职位采集结果明细表';
+
+CREATE TABLE IF NOT EXISTS platform_auth_session (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '授权会话 id',
+  platform VARCHAR(64) NOT NULL COMMENT '平台标识，如 boss/shixiseng',
+  status VARCHAR(32) NOT NULL DEFAULT 'not_authorized' COMMENT 'not_authorized/authorized/expired/auth_required/error',
+  profile_path VARCHAR(1024) NOT NULL DEFAULT '' COMMENT 'Playwright profile 路径',
+  last_verified_at DATETIME DEFAULT NULL COMMENT '上次校验时间',
+  expires_hint_at DATETIME DEFAULT NULL COMMENT '过期提示时间',
+  error_message VARCHAR(1024) NOT NULL DEFAULT '' COMMENT '授权失败信息',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_platform (platform)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='平台授权会话表';
 
 CREATE TABLE IF NOT EXISTS job_recommendation (
   id BIGINT NOT NULL AUTO_INCREMENT COMMENT '推荐 id',

@@ -19,4 +19,22 @@ public interface AdminJobCrawlService {
     AdminJobCrawlRunVO runTask(String authorizationHeader, Long id);
     List<AdminJobCrawlRunVO> listTaskRuns(String authorizationHeader, Long taskId);
     List<AdminJobCrawlItemVO> listRunItems(String authorizationHeader, Long runId);
+
+    /**
+     * 启动平台授权流程。
+     *
+     * @param authorizationHeader 请求头中的 Authorization
+     * @param platform            平台标识
+     * @return 授权启动结果
+     */
+    BrowserSessionService.AuthStartResult startPlatformAuth(String authorizationHeader, String platform);
+
+    /**
+     * 检查平台授权状态。
+     *
+     * @param authorizationHeader 请求头中的 Authorization
+     * @param platform            平台标识
+     * @return 授权检查结果
+     */
+    BrowserSessionService.AuthCheckResult checkPlatformAuth(String authorizationHeader, String platform);
 }
