@@ -132,15 +132,15 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
 
 <style scoped>
 .ats-resume {
-  font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
-  color: #111827;
-  line-height: 1.72;
+  font-family: var(--rs-font-family, "Microsoft YaHei", "PingFang SC", Arial, sans-serif);
+  color: var(--rs-text-color, #111827);
+  line-height: var(--rs-line-height, 1.72);
 }
 
 .ats-resume__header {
   position: relative;
   min-height: 98px;
-  margin-bottom: 24px;
+  margin-bottom: calc(24px * var(--rs-spacing-mult, 1));
   display: flex;
   justify-content: center;
   text-align: center;
@@ -148,16 +148,17 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
 
 .ats-resume__identity h1 {
   margin: 0 0 5px;
-  font-size: 26px;
+  font-size: calc(var(--rs-font-size, 14px) * 1.85);
   line-height: 1.2;
   font-weight: 800;
   letter-spacing: -0.04em;
+  color: var(--rs-text-color, #111827);
 }
 
 .ats-resume__position {
   margin: 0 0 8px;
-  color: #2563eb;
-  font-size: 13px;
+  color: var(--rs-accent, #2563eb);
+  font-size: calc(var(--rs-font-size, 14px) * 0.93);
   font-weight: 700;
 }
 
@@ -167,8 +168,8 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
   flex-wrap: wrap;
   gap: 4px 14px;
   max-width: 520px;
-  color: #4b5563;
-  font-size: 12px;
+  color: var(--rs-muted-color, #4b5563);
+  font-size: calc(var(--rs-font-size, 14px) * 0.86);
 }
 
 .ats-resume__contact span:not(:last-child)::after {
@@ -186,23 +187,23 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
 }
 
 .ats-section {
-  margin-bottom: 19px;
+  margin-bottom: calc(19px * var(--rs-spacing-mult, 1));
 }
 
 .ats-section h2 {
-  margin: 0 0 11px;
+  margin: 0 0 calc(11px * var(--rs-spacing-mult, 1));
   padding: 7px 12px 7px 16px;
-  border-left: 5px solid #3f6df6;
-  background: #edf3ff;
-  color: #2f63ef;
-  font-size: 18px;
+  border-left: 4px solid var(--rs-accent, #3f6df6);
+  background: color-mix(in srgb, var(--rs-accent, #3f6df6) 12%, transparent);
+  color: var(--rs-accent, #2f63ef);
+  font-size: calc(var(--rs-font-size, 14px) * 1.05);
   line-height: 1.25;
   font-weight: 800;
 }
 
 .ats-skill-row {
-  font-size: 13px;
-  margin-bottom: 6px;
+  font-size: calc(var(--rs-font-size, 14px) * 0.93);
+  margin-bottom: calc(6px * var(--rs-spacing-mult, 1));
 }
 
 .ats-skill-row strong {
@@ -210,11 +211,11 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
 }
 
 .ats-entry {
-  margin-bottom: 13px;
+  margin-bottom: calc(13px * var(--rs-spacing-mult, 1));
 }
 
 .ats-entry--compact {
-  margin-bottom: 8px;
+  margin-bottom: calc(8px * var(--rs-spacing-mult, 1));
 }
 
 .ats-entry__head {
@@ -222,7 +223,7 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
   justify-content: space-between;
   gap: 14px;
   align-items: baseline;
-  font-size: 14px;
+  font-size: var(--rs-font-size, 14px);
 }
 
 .ats-entry__head strong {
@@ -230,33 +231,33 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
 }
 
 .ats-entry__head span {
-  color: #6b7280;
+  color: var(--rs-muted-color, #6b7280);
   font-weight: 500;
 }
 
 .ats-entry__head time {
   flex-shrink: 0;
-  color: #6b7280;
-  font-size: 12px;
+  color: var(--rs-muted-color, #6b7280);
+  font-size: calc(var(--rs-font-size, 14px) * 0.86);
 }
 
 .ats-tech,
 .ats-entry__desc,
 .ats-summary {
-  margin: 4px 0 0;
-  color: #1f2937;
-  font-size: 13px;
+  margin: calc(4px * var(--rs-spacing-mult, 1)) 0 0;
+  color: var(--rs-text-color, #1f2937);
+  font-size: calc(var(--rs-font-size, 14px) * 0.93);
 }
 
 .ats-tech {
-  color: #4b5563;
+  color: var(--rs-muted-color, #4b5563);
 }
 
 .ats-list {
-  margin: 4px 0 0;
+  margin: calc(4px * var(--rs-spacing-mult, 1)) 0 0;
   padding-left: 20px;
-  color: #111827;
-  font-size: 13px;
+  color: var(--rs-text-color, #111827);
+  font-size: calc(var(--rs-font-size, 14px) * 0.93);
 }
 
 .ats-list li {
@@ -267,7 +268,7 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
   display: inline-block;
   vertical-align: -2px;
   margin-right: 4px;
-  fill: var(--nb-accent, #6C5CE7);
+  fill: var(--rs-accent, #6C5CE7);
   flex-shrink: 0;
 }
 </style>

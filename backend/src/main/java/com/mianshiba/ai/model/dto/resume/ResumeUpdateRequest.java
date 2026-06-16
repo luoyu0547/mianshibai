@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * 更新简历请求
@@ -21,4 +22,6 @@ public class ResumeUpdateRequest implements Serializable {
     private String templateType;
 
     private String status;
+
+    private Map<String, Object> styleSettings;
 }

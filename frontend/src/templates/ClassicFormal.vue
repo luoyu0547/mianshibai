@@ -151,23 +151,22 @@ const hasAnyGpa = computed(() => props.education.some((e) => e.gpa))
 
 <style scoped>
 .executive-classic {
-  font-family: 'Georgia', 'Noto Serif SC', 'SimSun', serif;
-  color: var(--nb-ink);
-  line-height: 1.8;
+  font-family: var(--rs-font-family, 'Georgia', 'Noto Serif SC', 'SimSun', serif);
+  color: var(--rs-text-color, var(--nb-ink));
+  line-height: var(--rs-line-height, 1.8);
 }
 
 /* 头部 */
 .ec-header {
   text-align: center;
-  margin-bottom: 22px;
+  margin-bottom: calc(22px * var(--rs-spacing-mult, 1));
 }
 
 .ec-name {
-  font-size: 30px;
+  font-size: calc(var(--rs-font-size, 14px) * 2.15);
   font-weight: 700;
   margin: 0 0 8px;
   letter-spacing: 2px;
-  font-family: var(--font-heading);
 }
 
 .ec-contact {
@@ -175,64 +174,65 @@ const hasAnyGpa = computed(() => props.education.some((e) => e.gpa))
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px 20px;
-  font-size: 12px;
-  font-family: var(--font-body);
-  color: var(--nb-muted);
+  font-size: calc(var(--rs-font-size, 14px) * 0.86);
+  color: var(--rs-muted-color, var(--nb-muted));
   margin-bottom: 14px;
 }
 
 .ec-divider {
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--nb-primary), transparent);
+  background: linear-gradient(90deg, transparent, var(--rs-accent, var(--nb-primary)), transparent);
   margin: 0 30px;
 }
 
 /* 内容块 */
 .ec-block {
-  margin-bottom: 18px;
+  margin-bottom: calc(18px * var(--rs-spacing-mult, 1));
 }
 
 .ec-block-title {
-  font-family: var(--font-heading);
-  font-size: 14px;
+  font-size: calc(var(--rs-font-size, 14px) * 1.0);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  border-left: 4px solid #3f6df6;
-  border-bottom: 1px solid #dbe3ef;
+  border-left: 4px solid var(--rs-accent, #3f6df6);
+  border-bottom: 1px solid var(--rs-border-color, #dbe3ef);
   padding: 4px 0 5px 10px;
-  color: #1f2937;
-  margin: 0 0 12px;
+  color: var(--rs-text-color, #1f2937);
+  margin: 0 0 calc(12px * var(--rs-spacing-mult, 1));
 }
 
 /* 表格 */
 .ec-table {
   width: 100%;
   border-collapse: collapse;
-  font-family: var(--font-body);
-  font-size: 12.5px;
+  font-size: calc(var(--rs-font-size, 14px) * 0.89);
 }
 
 .ec-table th {
   text-align: left;
   padding: 6px 10px;
-  border-bottom: 2px solid var(--nb-border-color);
+  border-bottom: 2px solid var(--rs-border-color, var(--nb-border-color));
   font-weight: 700;
-  font-size: 11.5px;
-  color: var(--nb-muted);
+  font-size: calc(var(--rs-font-size, 14px) * 0.82);
+  color: var(--rs-muted-color, var(--nb-muted));
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .ec-table td {
   padding: 7px 10px;
-  border-bottom: 1px solid var(--nb-border-color-light);
-  font-size: 12.5px;
+  border-bottom: 1px solid var(--rs-border-light, var(--nb-border-color-light));
+  font-size: calc(var(--rs-font-size, 14px) * 0.89);
 }
 
 /* 条目 */
 .ec-entry {
-  margin-bottom: 15px;
+  margin-bottom: calc(15px * var(--rs-spacing-mult, 1));
+}
+
+.ec-entry--education {
+  margin-top: -8px;
 }
 
 .ec-entry-head {
@@ -240,42 +240,37 @@ const hasAnyGpa = computed(() => props.education.some((e) => e.gpa))
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  font-size: 13.5px;
+  font-size: calc(var(--rs-font-size, 14px) * 0.96);
 }
 
 .ec-entry-head strong {
-  font-family: var(--font-heading);
   font-weight: 700;
 }
 
 .ec-entry-head em {
   font-style: normal;
-  font-family: var(--font-body);
-  color: var(--nb-muted);
-  font-size: 12.5px;
+  color: var(--rs-muted-color, var(--nb-muted));
+  font-size: calc(var(--rs-font-size, 14px) * 0.89);
 }
 
 .ec-date {
-  font-family: var(--font-body);
-  font-size: 12px;
-  color: var(--nb-muted-light);
+  font-size: calc(var(--rs-font-size, 14px) * 0.86);
+  color: var(--rs-muted-light, var(--nb-muted-light));
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .ec-desc {
-  font-family: var(--font-body);
-  font-size: 12.5px;
-  margin: 5px 0 0;
-  line-height: 1.8;
-  color: var(--nb-muted);
+  font-size: calc(var(--rs-font-size, 14px) * 0.89);
+  margin: calc(5px * var(--rs-spacing-mult, 1)) 0 0;
+  line-height: var(--rs-line-height, 1.8);
+  color: var(--rs-muted-color, var(--nb-muted));
 }
 
 .ec-stack {
-  margin: 4px 0 0;
-  font-family: var(--font-body);
-  font-size: 12px;
-  color: #475569;
+  margin: calc(4px * var(--rs-spacing-mult, 1)) 0 0;
+  font-size: calc(var(--rs-font-size, 14px) * 0.86);
+  color: var(--rs-muted-color, #475569);
 }
 
 .ec-summary {
@@ -283,30 +278,24 @@ const hasAnyGpa = computed(() => props.education.some((e) => e.gpa))
 }
 
 .ec-list {
-  margin: 4px 0 0;
+  margin: calc(4px * var(--rs-spacing-mult, 1)) 0 0;
   padding-left: 22px;
-  font-family: var(--font-body);
-  font-size: 12.5px;
-  color: var(--nb-muted);
-  line-height: 1.8;
+  font-size: calc(var(--rs-font-size, 14px) * 0.89);
+  color: var(--rs-muted-color, var(--nb-muted));
+  line-height: var(--rs-line-height, 1.8);
 }
 
 .ec-skill-line {
-  font-family: var(--font-body);
-  font-size: 12.5px;
+  font-size: calc(var(--rs-font-size, 14px) * 0.89);
   line-height: 1.9;
-  margin-bottom: 3px;
-}
-
-.ec-skill-line strong {
-  font-family: var(--font-heading);
+  margin-bottom: calc(3px * var(--rs-spacing-mult, 1));
 }
 
 .ats-icon {
   display: inline-block;
   vertical-align: -2px;
   margin-right: 4px;
-  fill: var(--nb-accent, #6C5CE7);
+  fill: var(--rs-accent, #6C5CE7);
   flex-shrink: 0;
 }
 </style>

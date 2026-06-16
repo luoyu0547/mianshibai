@@ -246,9 +246,10 @@ import { useResumeStore } from '@/stores/resume'
 import {
   addSection as addSectionApi,
   updateSection as updateSectionApi,
+  updateResume as updateResumeApi,
   saveVersion,
 } from '@/api/resume'
-import type { SectionVO, SectionType, ResumePatchProposal } from '@/types/resume'
+import type { SectionVO, SectionType, ResumePatchProposal, ResumeStyleSettings } from '@/types/resume'
 
 const route = useRoute()
 const router = useRouter()
@@ -299,10 +300,17 @@ const fontSizes = [12, 13, 14, 15, 16]
 const lineHeights = [1.4, 1.5, 1.6, 1.7, 1.8, 2.0]
 const spacingScale: Record<string, number> = { compact: 0.85, normal: 1, relaxed: 1.2 }
 const previewA4Style = computed(() => ({
-  fontSize: previewFontSize.value + 'px',
+  '--rs-font-size': previewFontSize.value + 'px',
+  fontFamily: 'var(--rs-font-family, inherit)',
   lineHeight: previewLineHeight.value,
-  '--nb-accent': previewAccentColor.value,
-  '--nb-spacing-mult': spacingScale[previewSpacing.value] ?? 1,
+  '--rs-line-height': previewLineHeight.value,
+  '--rs-accent': previewAccentColor.value,
+  '--rs-spacing-mult': spacingScale[previewSpacing.value] ?? 1,
+  '--rs-text-color': '#111827',
+  '--rs-muted-color': '#4b5563',
+  '--rs-muted-light': '#9ca3af',
+  '--rs-border-color': '#dbe3ef',
+  '--rs-border-light': '#f3f4f6',
 }))
 
 // unused — kept for reference, will clean up with ResumePatchConfirmDialog
@@ -439,6 +447,13 @@ onMounted(async () => {
       title.value = detail.title
       templateType.value = detail.templateType || 'minimal_tech'
       splitSections(detail.sections)
+      if (detail.styleSettings) {
+        const s = detail.styleSettings
+        if (s.fontSize) previewFontSize.value = s.fontSize
+        if (s.lineHeight) previewLineHeight.value = s.lineHeight
+        if (s.accentColor) previewAccentColor.value = s.accentColor
+        if (s.spacing) previewSpacing.value = s.spacing
+      }
     }
   }
 })
@@ -549,6 +564,17 @@ async function handleSave() {
         }
       }
     }
+
+    const styleSettings: ResumeStyleSettings = {
+      fontSize: previewFontSize.value,
+      lineHeight: previewLineHeight.value,
+      accentColor: previewAccentColor.value,
+      spacing: previewSpacing.value as ResumeStyleSettings['spacing'],
+    }
+    await updateResumeApi(resumeId.value, {
+      templateType: templateType.value,
+      styleSettings,
+    })
 
     ElMessage.success('保存成功')
     try {

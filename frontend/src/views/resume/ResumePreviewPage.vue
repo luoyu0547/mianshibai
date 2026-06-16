@@ -10,6 +10,18 @@
           </NbButton>
         </div>
         <div class="resume-preview-page__toolbar-right">
+          <el-select v-model="previewFontSize" size="small" class="pp-tool-select pp-tool-select--sm">
+            <el-option v-for="n in fontSizes" :key="n" :label="'字号 ' + n" :value="n" />
+          </el-select>
+          <el-select v-model="previewLineHeight" size="small" class="pp-tool-select pp-tool-select--sm">
+            <el-option v-for="lh in lineHeights" :key="lh" :label="'行距 ' + lh" :value="lh" />
+          </el-select>
+          <el-color-picker v-model="previewAccentColor" size="small" show-alpha />
+          <el-select v-model="previewSpacing" size="small" class="pp-tool-select pp-tool-select--sm">
+            <el-option label="紧凑" value="compact" />
+            <el-option label="标准" value="normal" />
+            <el-option label="宽松" value="relaxed" />
+          </el-select>
           <TemplateSelector v-model="templateType" />
           <NbButton variant="primary" :loading="exporting" @click="exportPdf">
             <el-icon><Download /></el-icon>
@@ -20,7 +32,7 @@
 
       <div class="resume-preview-page__content">
         <div class="resume-preview-page__a4-wrapper">
-          <div ref="previewContentRef" class="resume-preview-page__a4">
+          <div ref="previewContentRef" class="resume-preview-page__a4" :style="previewA4Style">
             <component
               :is="templateComponent"
               v-if="templateComponent"
@@ -30,6 +42,7 @@
               :project="projectItems"
               :skills="skillsData"
               :summary="summaryData"
+              :accent-color="previewAccentColor"
             />
             <div v-else class="resume-preview-page__placeholder">
               <p>简历预览区域</p>
@@ -74,6 +87,26 @@ const projectItems = ref<Record<string, unknown>[]>([])
 const skillsData = ref<Record<string, unknown>>({ categories: [] })
 const summaryData = ref<Record<string, unknown>>({})
 
+const previewFontSize = ref(14)
+const previewLineHeight = ref(1.7)
+const previewAccentColor = ref('#3F6DF6')
+const previewSpacing = ref('normal')
+const fontSizes = [12, 13, 14, 15, 16]
+const lineHeights = [1.4, 1.5, 1.6, 1.7, 1.8, 2.0]
+const spacingScale: Record<string, number> = { compact: 0.85, normal: 1, relaxed: 1.2 }
+const previewA4Style = computed(() => ({
+  '--rs-font-size': previewFontSize.value + 'px',
+  lineHeight: previewLineHeight.value,
+  '--rs-line-height': previewLineHeight.value,
+  '--rs-accent': previewAccentColor.value,
+  '--rs-spacing-mult': spacingScale[previewSpacing.value] ?? 1,
+  '--rs-text-color': '#111827',
+  '--rs-muted-color': '#4b5563',
+  '--rs-muted-light': '#9ca3af',
+  '--rs-border-color': '#dbe3ef',
+  '--rs-border-light': '#f3f4f6',
+}))
+
 const templateMap: Record<string, Component> = {
   minimal_tech: MinimalTech,
   modern_two_col: ModernTwoCol,
@@ -89,6 +122,13 @@ onMounted(async () => {
     if (detail) {
       templateType.value = detail.templateType || 'minimal_tech'
       splitSections(detail.sections)
+      if (detail.styleSettings) {
+        const s = detail.styleSettings
+        if (s.fontSize) previewFontSize.value = s.fontSize
+        if (s.lineHeight) previewLineHeight.value = s.lineHeight
+        if (s.accentColor) previewAccentColor.value = s.accentColor
+        if (s.spacing) previewSpacing.value = s.spacing
+      }
     }
   }
 })
@@ -169,11 +209,20 @@ async function exportPdf() {
   margin: -28px -24px 0;
 }
 
+.resume-preview-page__toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .resume-preview-page__toolbar-right {
   display: flex;
   align-items: center;
   gap: 8px;
 }
+
+.pp-tool-select { width: auto; }
+.pp-tool-select--sm { width: 96px; }
 
 .resume-preview-page__content {
   flex: 1;
@@ -194,8 +243,8 @@ async function exportPdf() {
   border: var(--nb-border);
   padding: 40px 32px;
   min-height: 297mm;
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.7;
 }
 
 .resume-preview-page__placeholder {

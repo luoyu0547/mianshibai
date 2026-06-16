@@ -106,6 +106,9 @@ public class ResumeServiceImpl implements ResumeService {
             }
             resume.setStatus(status);
         }
+        if (request.getStyleSettings() != null) {
+            resume.setStyleSettings(request.getStyleSettings());
+        }
         resumeMapper.updateById(resume);
         return toResumeVO(resume);
     }
@@ -236,6 +239,7 @@ public class ResumeServiceImpl implements ResumeService {
         vo.setVersion(resume.getVersion());
         vo.setCreateTime(resume.getCreateTime());
         vo.setUpdateTime(resume.getUpdateTime());
+        vo.setStyleSettings(resume.getStyleSettings());
         return vo;
     }
 
@@ -262,6 +266,7 @@ public class ResumeServiceImpl implements ResumeService {
         vo.setVersion(resume.getVersion());
         vo.setCreateTime(resume.getCreateTime());
         vo.setUpdateTime(resume.getUpdateTime());
+        vo.setStyleSettings(resume.getStyleSettings());
         vo.setSections(sections.stream().map(this::toSectionVO).collect(Collectors.toList()));
         return vo;
     }

@@ -61,6 +61,13 @@ export interface SummarySectionData {
 
 export type SectionType = 'basic' | 'education' | 'work' | 'project' | 'skills' | 'summary'
 
+export interface ResumeStyleSettings {
+  fontSize?: number
+  lineHeight?: number
+  accentColor?: string
+  spacing?: 'compact' | 'normal' | 'relaxed'
+}
+
 export interface SectionVO {
   id: number
   resumeId: number
@@ -79,6 +86,7 @@ export interface ResumeVO {
   status: string
   source: string
   version: number
+  styleSettings?: ResumeStyleSettings
   createTime: string
   updateTime: string
 }
@@ -90,6 +98,7 @@ export interface ResumeDetailVO {
   status: string
   source: string
   version: number
+  styleSettings?: ResumeStyleSettings
   createTime: string
   updateTime: string
   sections: SectionVO[]
@@ -104,6 +113,7 @@ export interface ResumeUpdateRequest {
   title?: string
   templateType?: string
   status?: string
+  styleSettings?: ResumeStyleSettings
 }
 
 export interface SectionCreateRequest {

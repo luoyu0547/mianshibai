@@ -137,36 +137,35 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
 <style scoped>
 .modern-split {
   display: flex;
-  font-family: var(--font-body);
-  color: var(--nb-ink);
+  font-family: var(--rs-font-family, var(--font-body));
+  color: var(--rs-text-color, var(--nb-ink));
   min-height: 100%;
 }
 
 /* 左侧栏 */
 .ms-sidebar {
   width: 34%;
-  background: #f0f5ff;
-  padding: 36px 24px;
+  background: color-mix(in srgb, var(--rs-accent, #3f6df6) 8%, #f8faff);
+  padding: calc(36px * var(--rs-spacing-mult, 1)) calc(24px * var(--rs-spacing-mult, 1));
   display: flex;
   flex-direction: column;
   align-items: center;
-  border-right: 1px solid var(--nb-border-color-light);
+  border-right: 1px solid var(--rs-border-color, var(--nb-border-color-light));
 }
 
 .ms-avatar {
   width: 82px;
   height: 98px;
   border-radius: 10px;
-  background: #dbe7ff;
+  background: var(--rs-accent, #3f6df6);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-heading);
   font-size: 26px;
   font-weight: 700;
-  margin-bottom: 12px;
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
+  margin-bottom: calc(12px * var(--rs-spacing-mult, 1));
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--rs-accent, #3f6df6) 30%, transparent);
   overflow: hidden;
 }
 
@@ -177,8 +176,7 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
 }
 
 .ms-name {
-  font-family: var(--font-heading);
-  font-size: 20px;
+  font-size: calc(var(--rs-font-size, 14px) * 1.43);
   font-weight: 700;
   margin: 0 0 4px;
   text-align: center;
@@ -186,10 +184,10 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
 }
 
 .ms-title {
-  font-size: 13px;
-  color: var(--nb-primary);
+  font-size: calc(var(--rs-font-size, 14px) * 0.93);
+  color: var(--rs-accent, var(--nb-primary));
   font-weight: 600;
-  margin: 0 0 18px;
+  margin: 0 0 calc(18px * var(--rs-spacing-mult, 1));
   text-align: center;
 }
 
@@ -198,45 +196,44 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
   flex-direction: column;
   gap: 5px;
   width: 100%;
-  margin-bottom: 22px;
+  margin-bottom: calc(22px * var(--rs-spacing-mult, 1));
   padding: 14px;
   background: rgba(255,255,255,0.5);
   border-radius: var(--nb-radius);
 }
 
 .ms-contact-row {
-  font-size: 11.5px;
-  color: var(--nb-muted);
+  font-size: calc(var(--rs-font-size, 14px) * 0.82);
+  color: var(--rs-muted-color, var(--nb-muted));
   word-break: break-all;
   line-height: 1.5;
 }
 
 .ms-side-block {
   width: 100%;
-  margin-bottom: 20px;
+  margin-bottom: calc(20px * var(--rs-spacing-mult, 1));
 }
 
 .ms-side-title {
-  font-family: var(--font-heading);
-  font-size: 11px;
+  font-size: calc(var(--rs-font-size, 14px) * 0.79);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  margin: 0 0 10px;
+  margin: 0 0 calc(10px * var(--rs-spacing-mult, 1));
   padding-bottom: 6px;
-  border-bottom: 2px solid #3f6df6;
-  color: #2f63ef;
+  border-bottom: 2px solid var(--rs-accent, #3f6df6);
+  color: var(--rs-accent, #2f63ef);
 }
 
 .ms-skill-group {
-  margin-bottom: 10px;
+  margin-bottom: calc(10px * var(--rs-spacing-mult, 1));
 }
 
 .ms-skill-label {
-  font-size: 11.5px;
+  font-size: calc(var(--rs-font-size, 14px) * 0.82);
   font-weight: 700;
   margin-bottom: 5px;
-  color: var(--nb-ink);
+  color: var(--rs-text-color, var(--nb-ink));
 }
 
 .ms-tags {
@@ -246,9 +243,9 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
 }
 
 .ms-tag {
-  font-size: 10.5px;
+  font-size: calc(var(--rs-font-size, 14px) * 0.75);
   padding: 3px 9px;
-  background: #3f6df6;
+  background: var(--rs-accent, #3f6df6);
   color: #fff;
   border-radius: 12px;
   font-weight: 500;
@@ -256,52 +253,49 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
 }
 
 .ms-edu {
-  margin-bottom: 10px;
+  margin-bottom: calc(10px * var(--rs-spacing-mult, 1));
 }
 
 .ms-edu-school {
-  font-size: 12.5px;
+  font-size: calc(var(--rs-font-size, 14px) * 0.89);
   font-weight: 700;
 }
 
 .ms-edu-major {
-  font-size: 11.5px;
-  color: var(--nb-muted);
+  font-size: calc(var(--rs-font-size, 14px) * 0.82);
+  color: var(--rs-muted-color, var(--nb-muted));
 }
 
 .ms-edu-date {
-  font-size: 10.5px;
-  color: var(--nb-muted-light);
+  font-size: calc(var(--rs-font-size, 14px) * 0.75);
+  color: var(--rs-muted-light, var(--nb-muted-light));
 }
 
 /* 主内容 */
 .ms-main {
   width: 66%;
-  padding: 36px 28px;
+  padding: calc(36px * var(--rs-spacing-mult, 1)) calc(28px * var(--rs-spacing-mult, 1));
 }
 
 .ms-block {
-  margin-bottom: 24px;
+  margin-bottom: calc(24px * var(--rs-spacing-mult, 1));
 }
 
 .ms-block-title {
-  font-family: var(--font-heading);
-  font-size: 15px;
+  font-size: calc(var(--rs-font-size, 14px) * 1.07);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: var(--nb-ink);
-  margin: 0 0 14px;
-  padding-bottom: 6px;
-  border-left: 5px solid #3f6df6;
-  border-bottom: none;
-  background: #edf3ff;
-  color: #2f63ef;
+  margin: 0 0 calc(14px * var(--rs-spacing-mult, 1));
+  border-left: 4px solid var(--rs-accent, #3f6df6);
+  background: color-mix(in srgb, var(--rs-accent, #3f6df6) 12%, transparent);
+  color: var(--rs-accent, #2f63ef);
   padding: 7px 12px 7px 14px;
+  border-bottom: none;
 }
 
 .ms-entry {
-  margin-bottom: 16px;
+  margin-bottom: calc(16px * var(--rs-spacing-mult, 1));
 }
 
 .ms-entry-head {
@@ -309,7 +303,7 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
   justify-content: space-between;
   align-items: baseline;
   gap: 12px;
-  font-size: 13.5px;
+  font-size: calc(var(--rs-font-size, 14px) * 0.96);
 }
 
 .ms-entry-org {
@@ -317,48 +311,48 @@ const skillCategories = computed(() => (props.skills?.categories as SkillCategor
 }
 
 .ms-entry-role {
-  color: var(--nb-muted);
-  font-size: 13px;
+  color: var(--rs-muted-color, var(--nb-muted));
+  font-size: calc(var(--rs-font-size, 14px) * 0.93);
 }
 
 .ms-entry-date {
-  font-size: 12px;
-  color: var(--nb-muted-light);
+  font-size: calc(var(--rs-font-size, 14px) * 0.86);
+  color: var(--rs-muted-light, var(--nb-muted-light));
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .ms-desc {
-  font-size: 13px;
-  color: var(--nb-muted);
-  margin: 5px 0 0;
-  line-height: 1.7;
+  font-size: calc(var(--rs-font-size, 14px) * 0.93);
+  color: var(--rs-muted-color, var(--nb-muted));
+  margin: calc(5px * var(--rs-spacing-mult, 1)) 0 0;
+  line-height: var(--rs-line-height, 1.7);
 }
 
 .ms-stack {
   display: inline-block;
-  margin-top: 5px;
+  margin-top: calc(5px * var(--rs-spacing-mult, 1));
   padding: 3px 8px;
   border-radius: 999px;
-  background: #f1f5f9;
-  color: #475569;
-  font-size: 11.5px;
+  background: color-mix(in srgb, var(--rs-accent, #3f6df6) 10%, #f8faff);
+  color: var(--rs-accent, #475569);
+  font-size: calc(var(--rs-font-size, 14px) * 0.82);
   font-weight: 600;
 }
 
 .ms-list {
-  margin: 5px 0 0;
+  margin: calc(5px * var(--rs-spacing-mult, 1)) 0 0;
   padding-left: 18px;
-  font-size: 13px;
-  color: var(--nb-muted);
-  line-height: 1.7;
+  font-size: calc(var(--rs-font-size, 14px) * 0.93);
+  color: var(--rs-muted-color, var(--nb-muted));
+  line-height: var(--rs-line-height, 1.7);
 }
 
 .ats-icon {
   display: inline-block;
   vertical-align: -2px;
   margin-right: 4px;
-  fill: var(--nb-accent, #6C5CE7);
+  fill: var(--rs-accent, #6C5CE7);
   flex-shrink: 0;
 }
 </style>

@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS resume (
   status VARCHAR(16) NOT NULL DEFAULT 'draft' COMMENT '状态：draft/published',
   source VARCHAR(16) NOT NULL DEFAULT 'scratch' COMMENT '来源：scratch/ai_chat',
   version INT NOT NULL DEFAULT 1 COMMENT '当前版本号',
+  style_settings JSON DEFAULT NULL COMMENT '样式设置 JSON：字号/行距/主题色/间距',
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',

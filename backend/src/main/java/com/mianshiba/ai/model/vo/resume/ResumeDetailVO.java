@@ -6,6 +6,7 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 简历详情 VO
@@ -31,6 +32,8 @@ public class ResumeDetailVO implements Serializable {
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;
+
+    private Map<String, Object> styleSettings;
 
     private List<SectionVO> sections;
 }
