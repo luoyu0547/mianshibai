@@ -23,7 +23,6 @@ public class JobApplication implements Serializable {
     @TableId(type = IdType.AUTO)
     private Long id;
     private Long userId;
-    private Long jobId;
     private Long resumeId;
     private String companyName;
     private String jobTitle;

@@ -24,8 +24,6 @@ public class InterviewCreateRequest implements Serializable {
     @Size(max = 128, message = "技术方向过长")
     private String techDirection;
 
-    private Long jobId;
-
     private String interviewType;
 
     private String difficulty;

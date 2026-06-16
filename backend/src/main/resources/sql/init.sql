@@ -84,7 +84,6 @@ CREATE TABLE IF NOT EXISTS interview_session (
   interview_type VARCHAR(32) NOT NULL DEFAULT 'technical' COMMENT '面试类型',
   target_position VARCHAR(128) NOT NULL DEFAULT '' COMMENT '目标岗位',
   tech_direction VARCHAR(128) NOT NULL DEFAULT '' COMMENT '技术方向',
-  job_id BIGINT DEFAULT NULL COMMENT '关联职位 id',
   total_questions INT NOT NULL DEFAULT 5 COMMENT '主问题数量',
   current_question_no INT NOT NULL DEFAULT 0 COMMENT '当前主问题序号',
   status VARCHAR(32) NOT NULL DEFAULT 'created' COMMENT 'created/in_progress/generating_report/completed/cancelled',
@@ -178,138 +177,9 @@ CREATE TABLE IF NOT EXISTS interview_turn_review (
   KEY idx_turn_id (turn_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 面试轮次复盘表';
 
-CREATE TABLE IF NOT EXISTS company (
-  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '公司 id',
-  name VARCHAR(128) NOT NULL COMMENT '公司名称',
-  normalized_name VARCHAR(128) NOT NULL DEFAULT '' COMMENT '归一化公司名，用于名单匹配',
-  website VARCHAR(512) NOT NULL DEFAULT '' COMMENT '公司官网',
-  industry VARCHAR(128) NOT NULL DEFAULT '' COMMENT '行业方向',
-  city VARCHAR(64) NOT NULL DEFAULT '' COMMENT '主要城市',
-  scale VARCHAR(64) NOT NULL DEFAULT '' COMMENT '公司规模',
-  description TEXT DEFAULT NULL COMMENT '公司简介',
-  main_business TEXT DEFAULT NULL COMMENT '主营业务',
-  tech_direction VARCHAR(256) NOT NULL DEFAULT '' COMMENT '技术方向',
-  is_specialized_new TINYINT NOT NULL DEFAULT 0 COMMENT '是否专精特新：0-否/未确认，1-是',
-  is_little_giant TINYINT NOT NULL DEFAULT 0 COMMENT '是否小巨人：0-否/未确认，1-是',
-  certification_confidence VARCHAR(32) NOT NULL DEFAULT 'unknown' COMMENT '资质可信度：confirmed/suspected/unknown',
-  source_url VARCHAR(512) NOT NULL DEFAULT '' COMMENT '公司信息来源 URL',
-  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
-  PRIMARY KEY (id),
-  KEY idx_name (name),
-  KEY idx_normalized_name (normalized_name),
-  KEY idx_industry (industry),
-  KEY idx_city (city)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='公司画像表';
-
-CREATE TABLE IF NOT EXISTS company_certification (
-  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '资质证据 id',
-  company_id BIGINT NOT NULL COMMENT '公司 id',
-  certification_type VARCHAR(64) NOT NULL COMMENT '资质类型：specialized_new/little_giant/high_tech/other',
-  status VARCHAR(32) NOT NULL DEFAULT 'suspected' COMMENT '状态：confirmed/suspected/rejected',
-  evidence_source VARCHAR(64) NOT NULL COMMENT '证据来源：official_list/website/news/ai_inferred',
-  evidence_url VARCHAR(512) NOT NULL DEFAULT '' COMMENT '证据 URL',
-  evidence_text TEXT DEFAULT NULL COMMENT '证据文本',
-  confidence_score INT NOT NULL DEFAULT 0 COMMENT '可信度 0-100',
-  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  PRIMARY KEY (id),
-  KEY idx_company_id (company_id),
-  KEY idx_certification_type (certification_type),
-  KEY idx_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='公司资质证据表';
-
-CREATE TABLE IF NOT EXISTS job (
-  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '职位 id',
-  company_id BIGINT DEFAULT NULL COMMENT '公司 id',
-  title VARCHAR(128) NOT NULL COMMENT '职位名称',
-  company_name VARCHAR(128) NOT NULL DEFAULT '' COMMENT '公司名称快照',
-  source_platform VARCHAR(64) NOT NULL DEFAULT '' COMMENT '来源平台，如 boss/lagou/company_website',
-  source_url VARCHAR(1024) NOT NULL COMMENT '职位来源 URL',
-  city VARCHAR(64) NOT NULL DEFAULT '' COMMENT '工作城市',
-  salary_range VARCHAR(64) NOT NULL DEFAULT '' COMMENT '薪资范围',
-  experience_requirement VARCHAR(64) NOT NULL DEFAULT '' COMMENT '经验要求',
-  education_requirement VARCHAR(64) NOT NULL DEFAULT '' COMMENT '学历要求',
-  job_description TEXT DEFAULT NULL COMMENT '岗位职责',
-  job_requirement TEXT DEFAULT NULL COMMENT '岗位要求',
-  tech_stack JSON DEFAULT NULL COMMENT '技术栈列表',
-  raw_content MEDIUMTEXT DEFAULT NULL COMMENT '抓取原始内容',
-  status VARCHAR(32) NOT NULL DEFAULT 'active' COMMENT '状态：active/expired/unknown',
-  application_status VARCHAR(32) NOT NULL DEFAULT 'favorite' COMMENT '投递状态：favorite/preparing/applied/interviewing/rejected/offer',
-  keywords_json JSON DEFAULT NULL COMMENT 'JD关键词分析',
-  predicted_questions_json JSON DEFAULT NULL COMMENT '预测面试题',
-  crawl_task_id BIGINT DEFAULT NULL COMMENT '来源采集任务 id',
-  crawl_run_id BIGINT DEFAULT NULL COMMENT '来源采集运行 id',
-  normalized_fingerprint VARCHAR(255) NOT NULL DEFAULT '' COMMENT '去重指纹',
-  last_seen_at DATETIME DEFAULT NULL COMMENT '最近采集到时间',
-  expire_checked_at DATETIME DEFAULT NULL COMMENT '最近过期检查时间',
-  quality_score INT NOT NULL DEFAULT 0 COMMENT '职位质量分',
-  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
-  PRIMARY KEY (id),
-  KEY idx_company_id (company_id),
-  KEY idx_title (title),
-  KEY idx_city (city),
-  KEY idx_source_platform (source_platform)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='职位表';
-
-CREATE TABLE IF NOT EXISTS job_analysis (
-  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '岗位分析 id',
-  job_id BIGINT NOT NULL COMMENT '职位 id',
-  requirement_summary TEXT NOT NULL COMMENT '岗位要求总结',
-  core_skills JSON NOT NULL COMMENT '核心技能列表',
-  hidden_requirements JSON NOT NULL COMMENT '隐含能力要求',
-  interview_focus JSON NOT NULL COMMENT '面试准备重点',
-  resume_suggestions JSON NOT NULL COMMENT '简历优化建议',
-  risk_points JSON NOT NULL COMMENT '风险点或不匹配点',
-  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  PRIMARY KEY (id),
-  UNIQUE KEY uk_job_id (job_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='岗位 AI 分析表';
-
-CREATE TABLE IF NOT EXISTS job_match (
-  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '匹配记录 id',
-  user_id BIGINT NOT NULL COMMENT '用户 id',
-  resume_id BIGINT DEFAULT NULL COMMENT '简历 id',
-  job_id BIGINT NOT NULL COMMENT '职位 id',
-  match_score INT NOT NULL DEFAULT 0 COMMENT '岗位匹配度 0-100',
-  growth_score INT NOT NULL DEFAULT 0 COMMENT '企业成长性 0-100',
-  tech_growth_score INT NOT NULL DEFAULT 0 COMMENT '技术成长价值 0-100',
-  salary_city_score INT NOT NULL DEFAULT 0 COMMENT '薪资城市匹配 0-100',
-  experience_fit_score INT NOT NULL DEFAULT 0 COMMENT '经验门槛适配 0-100',
-  total_score INT NOT NULL DEFAULT 0 COMMENT '综合推荐分 0-100',
-  recommendation VARCHAR(32) NOT NULL DEFAULT 'cautious' COMMENT '推荐结论：recommended/cautious/stretch/not_recommended',
-  reason TEXT NOT NULL COMMENT '推荐原因',
-  gaps JSON NOT NULL COMMENT '能力缺口',
-  keyword_coverage INT DEFAULT NULL COMMENT '关键词覆盖率 0-100',
-  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  PRIMARY KEY (id),
-  KEY idx_user_id (user_id),
-  KEY idx_resume_id (resume_id),
-  KEY idx_job_id (job_id),
-  KEY idx_total_score (total_score)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户职位匹配表';
-
-CREATE TABLE IF NOT EXISTS job_favorite (
-  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '收藏 id',
-  user_id BIGINT NOT NULL COMMENT '用户 id',
-  job_id BIGINT NOT NULL COMMENT '职位 id',
-  note VARCHAR(512) NOT NULL DEFAULT '' COMMENT '用户备注',
-  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  PRIMARY KEY (id),
-  UNIQUE KEY uk_user_job (user_id, job_id),
-  KEY idx_user_id (user_id),
-  KEY idx_job_id (job_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='职位收藏表';
-
 CREATE TABLE IF NOT EXISTS job_application (
   id BIGINT NOT NULL AUTO_INCREMENT COMMENT '投递记录 id',
   user_id BIGINT NOT NULL COMMENT '用户 id',
-  job_id BIGINT DEFAULT NULL COMMENT '关联职位 id',
   resume_id BIGINT DEFAULT NULL COMMENT '关联简历 id',
   company_name VARCHAR(128) NOT NULL DEFAULT '' COMMENT '公司名',
   job_title VARCHAR(128) NOT NULL DEFAULT '' COMMENT '岗位名',
@@ -322,14 +192,12 @@ CREATE TABLE IF NOT EXISTS job_application (
   contact_name VARCHAR(64) NOT NULL DEFAULT '' COMMENT '联系人',
   contact_info VARCHAR(128) NOT NULL DEFAULT '' COMMENT '联系方式',
   notes TEXT DEFAULT NULL COMMENT '备注',
-  recommendation_id BIGINT DEFAULT NULL COMMENT '来源推荐 id',
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
   PRIMARY KEY (id),
   KEY idx_application_user_status (user_id, status),
   KEY idx_application_user_next_event (user_id, next_event_at),
-  KEY idx_application_job_id (job_id),
   KEY idx_application_resume_id (resume_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='求职投递记录表';
 
@@ -529,100 +397,17 @@ CREATE TABLE IF NOT EXISTS coach_task (
   KEY idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 求职教练任务表';
 
-
-
-CREATE TABLE IF NOT EXISTS job_crawl_task (
-  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '采集任务 id',
-  name VARCHAR(128) NOT NULL COMMENT '任务名称',
-  source_type VARCHAR(64) NOT NULL COMMENT '来源类型：company_career_page/public_feed/manual_url_list/platform_entry_url',
-  source_url VARCHAR(1024) NOT NULL DEFAULT '' COMMENT '来源 URL',
-  config_json JSON DEFAULT NULL COMMENT '任务扩展配置',
-  keywords VARCHAR(512) NOT NULL DEFAULT '' COMMENT '关键词条件',
-  cities VARCHAR(512) NOT NULL DEFAULT '' COMMENT '城市条件',
-  experience_levels VARCHAR(512) NOT NULL DEFAULT '' COMMENT '经验条件',
-  schedule_type VARCHAR(32) NOT NULL DEFAULT 'manual' COMMENT '调度类型：manual/daily/weekly/cron',
-  cron_expression VARCHAR(128) NOT NULL DEFAULT '' COMMENT 'cron 表达式',
-  status VARCHAR(32) NOT NULL DEFAULT 'disabled' COMMENT 'enabled/disabled',
-  last_run_at DATETIME DEFAULT NULL COMMENT '上次运行时间',
-  next_run_at DATETIME DEFAULT NULL COMMENT '下次运行时间',
-  created_by BIGINT NOT NULL COMMENT '创建管理员 id',
-  remark VARCHAR(512) NOT NULL DEFAULT '' COMMENT '备注',
+CREATE TABLE IF NOT EXISTS application_round (
+  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '轮次 id',
+  application_id BIGINT NOT NULL COMMENT '关联投递记录 id',
+  round_name VARCHAR(64) NOT NULL COMMENT '轮次名称，如 技术一面、HR 面',
+  round_order INT NOT NULL DEFAULT 0 COMMENT '排序号',
+  scheduled_at DATETIME DEFAULT NULL COMMENT '面试时间',
+  result VARCHAR(16) NOT NULL DEFAULT 'pending' COMMENT '结果：pending/pass/fail',
+  notes TEXT DEFAULT NULL COMMENT '备注',
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   is_delete TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删，1-已删',
   PRIMARY KEY (id),
-  KEY idx_status_next_run (status, next_run_at),
-  KEY idx_created_by (created_by)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='职位采集任务表';
-
-CREATE TABLE IF NOT EXISTS job_crawl_run (
-  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '运行记录 id',
-  task_id BIGINT NOT NULL COMMENT '采集任务 id',
-  status VARCHAR(32) NOT NULL DEFAULT 'running' COMMENT 'running/success/partial_success/failed/auth_required',
-  started_at DATETIME DEFAULT NULL COMMENT '开始时间',
-  finished_at DATETIME DEFAULT NULL COMMENT '结束时间',
-  total_count INT NOT NULL DEFAULT 0 COMMENT '总条数',
-  success_count INT NOT NULL DEFAULT 0 COMMENT '成功条数',
-  duplicate_count INT NOT NULL DEFAULT 0 COMMENT '去重条数',
-  failed_count INT NOT NULL DEFAULT 0 COMMENT '失败条数',
-  error_message TEXT DEFAULT NULL COMMENT '任务级错误信息',
-  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  PRIMARY KEY (id),
-  KEY idx_task_id (task_id),
-  KEY idx_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='职位采集运行记录表';
-
-CREATE TABLE IF NOT EXISTS job_crawl_item (
-  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '采集结果 id',
-  run_id BIGINT NOT NULL COMMENT '运行记录 id',
-  task_id BIGINT NOT NULL COMMENT '采集任务 id',
-  source_url VARCHAR(1024) NOT NULL COMMENT '原始 URL',
-  normalized_url VARCHAR(1024) NOT NULL DEFAULT '' COMMENT '归一化 URL',
-  job_id BIGINT DEFAULT NULL COMMENT '入库职位 id',
-  status VARCHAR(32) NOT NULL DEFAULT 'pending' COMMENT 'pending/success/duplicate/failed',
-  error_message VARCHAR(1024) NOT NULL DEFAULT '' COMMENT '失败原因',
-  raw_title VARCHAR(256) NOT NULL DEFAULT '' COMMENT '原始标题',
-  raw_company_name VARCHAR(256) NOT NULL DEFAULT '' COMMENT '原始公司名',
-  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  PRIMARY KEY (id),
-  KEY idx_run_id (run_id),
-  KEY idx_task_id (task_id),
-  KEY idx_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='职位采集结果明细表';
-
-CREATE TABLE IF NOT EXISTS platform_auth_session (
-  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '授权会话 id',
-  platform VARCHAR(64) NOT NULL COMMENT '平台标识，如 boss/shixiseng',
-  status VARCHAR(32) NOT NULL DEFAULT 'not_authorized' COMMENT 'not_authorized/authorized/expired/auth_required/error',
-  profile_path VARCHAR(1024) NOT NULL DEFAULT '' COMMENT 'Playwright profile 路径',
-  last_verified_at DATETIME DEFAULT NULL COMMENT '上次校验时间',
-  expires_hint_at DATETIME DEFAULT NULL COMMENT '过期提示时间',
-  error_message VARCHAR(1024) NOT NULL DEFAULT '' COMMENT '授权失败信息',
-  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  PRIMARY KEY (id),
-  UNIQUE KEY uk_platform (platform)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='平台授权会话表';
-
-CREATE TABLE IF NOT EXISTS job_recommendation (
-  id BIGINT NOT NULL AUTO_INCREMENT COMMENT '推荐 id',
-  user_id BIGINT NOT NULL COMMENT '用户 id',
-  resume_id BIGINT DEFAULT NULL COMMENT '简历 id',
-  job_id BIGINT NOT NULL COMMENT '职位 id',
-  stage VARCHAR(32) NOT NULL DEFAULT 'rough' COMMENT 'rough/refined',
-  rough_score INT NOT NULL DEFAULT 0 COMMENT '粗排分',
-  match_id BIGINT DEFAULT NULL COMMENT 'job_match id',
-  recommendation VARCHAR(64) NOT NULL DEFAULT '' COMMENT '推荐结论',
-  reason TEXT NOT NULL COMMENT '推荐理由',
-  risk_points_json JSON DEFAULT NULL COMMENT '风险点 JSON',
-  action_suggestions_json JSON DEFAULT NULL COMMENT '建议动作 JSON',
-  source VARCHAR(64) NOT NULL DEFAULT '' COMMENT '推荐来源',
-  dismissed TINYINT NOT NULL DEFAULT 0 COMMENT '是否忽略',
-  applied TINYINT NOT NULL DEFAULT 0 COMMENT '是否已投递',
-  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  PRIMARY KEY (id),
-  KEY idx_user_id (user_id),
-  KEY idx_user_dismissed_applied (user_id, dismissed, applied),
-  KEY idx_job_id (job_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户职位推荐表';
+  KEY idx_round_application_id (application_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='投递面试轮次表';

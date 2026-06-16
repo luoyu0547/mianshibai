@@ -100,7 +100,6 @@ const navItems: NavItem[] = [
   { label: '首页', to: '/', group: 'core' },
   { label: '我的简历', to: '/resume', group: 'core' },
   { label: '模拟面试', to: '/interview', group: 'core' },
-  { label: '职位情报', to: '/job/recommendations', group: 'core' },
   { label: '投递管理', to: '/applications', group: 'growth' },
   { label: '训练中心', to: '/training', group: 'growth' },
   { label: '求职教练', to: '/coach', group: 'growth' },

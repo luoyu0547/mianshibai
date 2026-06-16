@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 @Data
 public class ApplicationUpdateRequest {
 
-    private Long jobId;
     private Long resumeId;
     private String companyName;
     private String jobTitle;

@@ -5,13 +5,15 @@ import com.mianshiba.ai.exception.BusinessException;
 import com.mianshiba.ai.exception.ErrorCode;
 import com.mianshiba.ai.mapper.ApplicationTodoMapper;
 import com.mianshiba.ai.mapper.JobApplicationMapper;
-import com.mianshiba.ai.mapper.JobMapper;
 import com.mianshiba.ai.mapper.ResumeMapper;
 import com.mianshiba.ai.model.dto.application.ApplicationCreateRequest;
+import com.mianshiba.ai.model.dto.application.ApplicationListQueryRequest;
 import com.mianshiba.ai.model.dto.application.ApplicationStatusUpdateRequest;
 import com.mianshiba.ai.model.dto.application.ApplicationTodoCreateRequest;
+import com.mianshiba.ai.model.dto.application.ApplicationUpdateRequest;
 import com.mianshiba.ai.model.entity.ApplicationTodo;
 import com.mianshiba.ai.model.entity.JobApplication;
+import com.mianshiba.ai.model.vo.application.JobApplicationVO;
 import com.mianshiba.ai.utils.JwtUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,8 +39,6 @@ class ApplicationServiceImplTest {
     private JobApplicationMapper applicationMapper;
     @Mock
     private ApplicationTodoMapper todoMapper;
-    @Mock
-    private JobMapper jobMapper;
     @Mock
     private ResumeMapper resumeMapper;
 
@@ -65,6 +66,32 @@ class ApplicationServiceImplTest {
         assertThat(captor.getValue().getUserId()).isEqualTo(1L);
         assertThat(captor.getValue().getCompanyName()).isEqualTo("TestCompany");
         assertThat(captor.getValue().getJobTitle()).isEqualTo("Dev");
+    }
+
+    @Test
+    void createApplication_doesNotDependOnJobRecord() {
+        mockResolveUserId();
+        when(applicationMapper.insert(any(JobApplication.class))).thenReturn(1);
+
+        ApplicationCreateRequest request = new ApplicationCreateRequest();
+        request.setCompanyName("ManualCompany");
+        request.setJobTitle("Backend Engineer");
+        request.setSource("内推");
+        request.setSalaryRange("20-30K");
+        request.setLocation("北京");
+
+        applicationService.createApplication("Bearer test-token", request);
+
+        verifyNoInteractions(resumeMapper);
+    }
+
+    @Test
+    void applicationContract_doesNotExposeJobId() {
+        assertThat(hasField(ApplicationCreateRequest.class, "jobId")).isFalse();
+        assertThat(hasField(ApplicationUpdateRequest.class, "jobId")).isFalse();
+        assertThat(hasField(ApplicationListQueryRequest.class, "jobId")).isFalse();
+        assertThat(hasField(JobApplication.class, "jobId")).isFalse();
+        assertThat(hasField(JobApplicationVO.class, "jobId")).isFalse();
     }
 
     @Test
@@ -143,5 +170,10 @@ class ApplicationServiceImplTest {
         verify(todoMapper).updateById(captor2.capture());
         assertThat(captor2.getValue().getCompleted()).isEqualTo(0);
         assertThat(captor2.getValue().getCompletedAt()).isNull();
+    }
+
+    private boolean hasField(Class<?> type, String fieldName) {
+        return java.util.Arrays.stream(type.getDeclaredFields())
+                .anyMatch(field -> field.getName().equals(fieldName));
     }
 }

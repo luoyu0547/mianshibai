@@ -20,11 +20,7 @@ export function getStatusDescriptor(
 export const applicationStatusMap: Record<string, StatusDescriptor> = {
   pending_submit: { label: '待投递', variant: 'warning' },
   submitted: { label: '已投递', variant: 'info' },
-  hr_contact: { label: 'HR 沟通', variant: 'info' },
-  written_test: { label: '笔试', variant: 'primary' },
-  first_interview: { label: '一面', variant: 'primary' },
-  second_interview: { label: '二面', variant: 'primary' },
-  final_interview: { label: '终面', variant: 'primary' },
+  interviewing: { label: '面试中', variant: 'primary' },
   offer: { label: 'Offer', variant: 'success' },
   rejected: { label: '拒绝', variant: 'danger' },
   withdrawn: { label: '放弃', variant: 'muted' },
@@ -63,13 +59,6 @@ export const trainingDifficultyMap: Record<string, StatusDescriptor> = {
   easy: { label: '简单', variant: 'success' },
   medium: { label: '中等', variant: 'warning' },
   hard: { label: '困难', variant: 'danger' },
-}
-
-export const jobRecommendationMap: Record<string, StatusDescriptor> = {
-  recommended: { label: '推荐', variant: 'success' },
-  cautious: { label: '谨慎', variant: 'warning' },
-  stretch: { label: '挑战', variant: 'info' },
-  not_recommended: { label: '不推荐', variant: 'danger' },
 }
 
 export const userRoleMap: Record<string, StatusDescriptor> = {

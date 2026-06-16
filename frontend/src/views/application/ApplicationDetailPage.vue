@@ -58,12 +58,51 @@
         </NbCard>
 
         <div class="app-detail-page__links">
-          <NbButton v-if="app.jobId" variant="ghost" @click="router.push(`/job/${app.jobId}`)">
-            查看关联职位
-          </NbButton>
           <NbButton v-if="app.resumeId" variant="ghost" @click="router.push(`/resume/${app.resumeId}/preview`)">
             查看关联简历
           </NbButton>
+        </div>
+
+        <div class="app-detail-page__actions">
+          <NbButton variant="primary" @click="showRoundDialog = true">添加面试轮次</NbButton>
+        </div>
+
+        <div class="app-detail-page__rounds">
+          <div v-for="(round, index) in rounds" :key="round.id" class="app-detail-page__round-card">
+            <div class="app-detail-page__round-index">{{ index + 1 }}</div>
+            <div class="app-detail-page__round-body">
+              <div class="app-detail-page__round-header">
+                <span class="app-detail-page__round-name">{{ round.roundName }}</span>
+                <NbStatusBadge
+                  :label="roundResultLabel(round.result)"
+                  :variant="roundResultVariant(round.result)"
+                />
+              </div>
+              <div v-if="round.scheduledAt" class="app-detail-page__round-time">
+                面试时间：{{ formatDate(round.scheduledAt) }}
+              </div>
+              <div v-if="round.notes" class="app-detail-page__round-notes">{{ round.notes }}</div>
+              <div class="app-detail-page__round-actions">
+                <NbButton
+                  v-if="round.result === 'pending'"
+                  size="small"
+                  variant="success"
+                  @click="handleRoundResult(round.id, 'pass')"
+                >标记通过</NbButton>
+                <NbButton
+                  v-if="round.result === 'pending'"
+                  size="small"
+                  variant="danger"
+                  @click="handleRoundResult(round.id, 'fail')"
+                >标记淘汰</NbButton>
+                <NbButton size="small" variant="ghost" @click="editRound(round)">编辑</NbButton>
+                <NbButton size="small" variant="ghost" @click="handleDeleteRound(round.id)">删除</NbButton>
+              </div>
+            </div>
+          </div>
+          <div v-if="rounds.length === 0" class="app-detail-page__rounds-empty">
+            暂无面试轮次，点击上方按钮添加
+          </div>
         </div>
 
         <NbCard>
@@ -127,6 +166,37 @@
             暂无待办事项
           </div>
         </NbCard>
+
+        <el-dialog v-model="showRoundDialog" :title="editingRound ? '编辑轮次' : '添加轮次'" width="480px" destroy-on-close>
+          <el-form :model="roundForm" label-position="top">
+    <el-form-item label="轮次名称" required>
+      <el-select v-model="roundForm.roundName" placeholder="选择轮次类型" allow-create filterable style="width: 100%;">
+        <el-option
+          v-for="opt in ROUND_NAME_OPTIONS"
+          :key="opt"
+          :label="opt"
+          :value="opt"
+        />
+      </el-select>
+    </el-form-item>
+            <el-form-item label="面试时间">
+              <el-date-picker
+                v-model="roundForm.scheduledAt"
+                type="datetime"
+                placeholder="选择面试时间"
+                value-format="YYYY-MM-DDTHH:mm:ss"
+                style="width: 100%;"
+              />
+            </el-form-item>
+            <el-form-item label="备注">
+              <el-input v-model="roundForm.notes" type="textarea" :rows="3" placeholder="备注信息" />
+            </el-form-item>
+          </el-form>
+          <template #footer>
+            <NbButton variant="ghost" @click="showRoundDialog = false">取消</NbButton>
+            <NbButton variant="primary" :loading="roundSaving" @click="saveRound">保存</NbButton>
+          </template>
+        </el-dialog>
       </template>
 
       <NbCard v-else>
@@ -141,9 +211,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import MainLayout from '@/layouts/MainLayout.vue'
 import NbCard from '@/components/NbCard.vue'
 import NbButton from '@/components/NbButton.vue'
@@ -156,6 +226,29 @@ import { APPLICATION_STATUS_OPTIONS, TODO_PRIORITY_OPTIONS } from '@/types/appli
 import type { ApplicationStatus, TodoPriority } from '@/types/application'
 import { applicationStatusMap, todoPriorityMap, getStatusDescriptor } from '@/utils/statusMaps'
 import { formatDate } from '@/utils/date'
+import {
+  listApplicationRounds,
+  createApplicationRound,
+  updateApplicationRound,
+  setApplicationRoundResult,
+  deleteApplicationRound,
+} from '@/api/application'
+import type { ApplicationRoundVO, RoundResult } from '@/types/application'
+
+const ROUND_NAME_OPTIONS = [
+  'HR 沟通',
+  '笔试',
+  '技术一面',
+  '技术二面',
+  '技术三面',
+  '主管面',
+  'HR 面',
+  '交叉面',
+  '加签面试',
+  '英语面试',
+  '群体面试',
+  '终面',
+]
 
 const route = useRoute()
 const router = useRouter()
@@ -169,10 +262,109 @@ const newTodo = reactive({
   dueAt: null as string | null,
 })
 
+const rounds = ref<ApplicationRoundVO[]>([])
+const showRoundDialog = ref(false)
+const roundSaving = ref(false)
+const editingRound = ref<ApplicationRoundVO | null>(null)
+
+const roundForm = reactive({
+  roundName: '',
+  scheduledAt: null as string | null,
+  notes: '',
+})
+
+watch(showRoundDialog, (val) => {
+  if (!val) {
+    editingRound.value = null
+    roundForm.roundName = ''
+    roundForm.scheduledAt = null
+    roundForm.notes = ''
+  } else if (editingRound.value) {
+    roundForm.roundName = editingRound.value.roundName
+    roundForm.scheduledAt = editingRound.value.scheduledAt
+    roundForm.notes = editingRound.value.notes || ''
+  }
+})
+
+function roundResultVariant(result: RoundResult): 'success' | 'danger' | 'muted' {
+  return result === 'pass' ? 'success' : result === 'fail' ? 'danger' : 'muted'
+}
+
+function roundResultLabel(result: RoundResult): string {
+  return result === 'pass' ? '通过' : result === 'fail' ? '淘汰' : '待定'
+}
+
+async function loadRounds() {
+  const id = Number(route.params.id)
+  const res = await listApplicationRounds(id)
+  if (res.code === 0 && res.data) {
+    rounds.value = res.data
+  }
+}
+
+async function saveRound() {
+  if (!roundForm.roundName.trim()) return
+  roundSaving.value = true
+  try {
+    const id = Number(route.params.id)
+    if (editingRound.value) {
+      await updateApplicationRound(id, editingRound.value.id, {
+        roundName: roundForm.roundName,
+        scheduledAt: roundForm.scheduledAt,
+        notes: roundForm.notes || undefined,
+      })
+    } else {
+      await createApplicationRound(id, {
+        roundName: roundForm.roundName,
+        scheduledAt: roundForm.scheduledAt,
+        notes: roundForm.notes || undefined,
+      })
+    }
+    showRoundDialog.value = false
+    await loadRounds()
+    applicationStore.fetchApplication(id)
+  } finally {
+    roundSaving.value = false
+  }
+}
+
+function editRound(round: ApplicationRoundVO) {
+  editingRound.value = round
+  showRoundDialog.value = true
+}
+
+async function handleRoundResult(roundId: number, result: RoundResult) {
+  const id = Number(route.params.id)
+  if (result === 'fail') {
+    try {
+      await ElMessageBox.confirm('标记淘汰后投递状态将自动变为"已拒绝"，确认？', '确认淘汰', {
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        type: 'warning',
+      })
+      await setApplicationRoundResult(id, roundId, { result })
+      await loadRounds()
+      applicationStore.fetchApplication(id)
+    } catch {
+      // cancelled by user
+    }
+  } else {
+    await setApplicationRoundResult(id, roundId, { result })
+    await loadRounds()
+  }
+}
+
+async function handleDeleteRound(roundId: number) {
+  const id = Number(route.params.id)
+  await deleteApplicationRound(id, roundId)
+  await loadRounds()
+}
+
 onMounted(() => {
   const id = Number(route.params.id)
   if (id) {
     applicationStore.fetchApplication(id)
+    loadRounds()
   }
 })
 
@@ -281,6 +473,82 @@ async function handleReopenTodo(todoId: number) {
 .app-detail-page__links {
   display: flex;
   gap: 12px;
+}
+
+.app-detail-page__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.app-detail-page__rounds {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.app-detail-page__round-card {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  border: 2px solid var(--nb-border-color, #e5e7eb);
+  border-radius: 8px;
+  background: var(--nb-bg, #fff);
+}
+
+.app-detail-page__round-index {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--nb-primary, #6C5CE7);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.app-detail-page__round-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-detail-page__round-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.app-detail-page__round-name {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.app-detail-page__round-time {
+  font-size: 13px;
+  color: var(--nb-muted, #6b7280);
+  margin-bottom: 6px;
+}
+
+.app-detail-page__round-notes {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--nb-text, #374151);
+  margin-bottom: 8px;
+}
+
+.app-detail-page__round-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.app-detail-page__rounds-empty {
+  text-align: center;
+  color: var(--nb-muted, #6b7280);
+  padding: 24px 0;
 }
 
 .app-detail-page__todo-form {

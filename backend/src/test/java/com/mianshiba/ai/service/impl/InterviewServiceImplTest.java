@@ -5,8 +5,6 @@ import com.mianshiba.ai.exception.ErrorCode;
 import com.mianshiba.ai.mapper.InterviewReportMapper;
 import com.mianshiba.ai.mapper.InterviewSessionMapper;
 import com.mianshiba.ai.mapper.InterviewTurnMapper;
-import com.mianshiba.ai.mapper.JobAnalysisMapper;
-import com.mianshiba.ai.mapper.JobMapper;
 import com.mianshiba.ai.mapper.ResumeMapper;
 import com.mianshiba.ai.mapper.UserMapper;
 import com.mianshiba.ai.model.dto.interview.InterviewAnswerRequest;
@@ -58,10 +56,6 @@ class InterviewServiceImplTest {
     @Mock
     private SpeechService speechService;
     @Mock
-    private JobMapper jobMapper;
-    @Mock
-    private JobAnalysisMapper jobAnalysisMapper;
-    @Mock
     private InterviewReportEnhancementService interviewReportEnhancementService;
     @Mock
     private ChatClient.ChatClientRequestSpec requestSpec;
@@ -77,7 +71,7 @@ class InterviewServiceImplTest {
         interviewService = new InterviewServiceImpl(
                 interviewSessionMapper, interviewTurnMapper, interviewReportMapper,
                 resumeMapper, userMapper, jwtUtils, chatClient, speechService,
-                jobMapper, jobAnalysisMapper, interviewReportEnhancementService);
+                interviewReportEnhancementService);
     }
 
     @Test

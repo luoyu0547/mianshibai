@@ -12,6 +12,5 @@ public class ApplicationListQueryRequest {
     private String status;
     private String location;
     private String source;
-    private Long jobId;
     private Long resumeId;
 }

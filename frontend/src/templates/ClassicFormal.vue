@@ -68,6 +68,9 @@
           </tr>
         </tbody>
       </table>
+      <div v-for="(item, i) in education" :key="`activities-${i}`" class="ec-entry ec-entry--education">
+        <p v-if="item.activities" class="ec-desc" v-html="item.activities"></p>
+      </div>
     </div>
 
     <!-- 工作经历 -->

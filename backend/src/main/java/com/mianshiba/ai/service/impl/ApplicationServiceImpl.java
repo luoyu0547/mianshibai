@@ -4,9 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.mianshiba.ai.exception.BusinessException;
 import com.mianshiba.ai.exception.ErrorCode;
+import com.mianshiba.ai.mapper.ApplicationRoundMapper;
 import com.mianshiba.ai.mapper.ApplicationTodoMapper;
 import com.mianshiba.ai.mapper.JobApplicationMapper;
-import com.mianshiba.ai.mapper.JobMapper;
 import com.mianshiba.ai.mapper.ResumeMapper;
 import com.mianshiba.ai.model.dto.application.ApplicationCreateRequest;
 import com.mianshiba.ai.model.dto.application.ApplicationListQueryRequest;
@@ -15,11 +15,15 @@ import com.mianshiba.ai.model.dto.application.ApplicationTodoCreateRequest;
 import com.mianshiba.ai.model.dto.application.ApplicationTodoQueryRequest;
 import com.mianshiba.ai.model.dto.application.ApplicationTodoUpdateRequest;
 import com.mianshiba.ai.model.dto.application.ApplicationUpdateRequest;
+import com.mianshiba.ai.model.dto.application.ApplicationRoundCreateRequest;
+import com.mianshiba.ai.model.dto.application.ApplicationRoundUpdateRequest;
+import com.mianshiba.ai.model.dto.application.ApplicationRoundResultRequest;
+import com.mianshiba.ai.model.entity.ApplicationRound;
 import com.mianshiba.ai.model.entity.ApplicationTodo;
-import com.mianshiba.ai.model.entity.Job;
 import com.mianshiba.ai.model.entity.JobApplication;
 import com.mianshiba.ai.model.entity.Resume;
 import com.mianshiba.ai.model.vo.application.ApplicationStatsVO;
+import com.mianshiba.ai.model.vo.application.ApplicationRoundVO;
 import com.mianshiba.ai.model.vo.application.ApplicationTodoVO;
 import com.mianshiba.ai.model.vo.application.JobApplicationVO;
 import com.mianshiba.ai.service.ApplicationService;
@@ -46,22 +50,14 @@ import java.util.stream.Collectors;
 public class ApplicationServiceImpl implements ApplicationService {
 
     private static final Set<String> VALID_STATUSES = Set.of(
-            "pending_submit", "submitted", "hr_contact", "written_test", "first_interview",
-            "second_interview", "final_interview", "offer", "rejected", "withdrawn");
-
-    private static final Set<String> INTERVIEWING_STATUSES = Set.of(
-            "hr_contact", "written_test", "first_interview", "second_interview", "final_interview");
+            "pending_submit", "submitted", "interviewing", "offer", "rejected", "withdrawn");
 
     private static final Set<String> VALID_PRIORITIES = Set.of("low", "medium", "high");
 
     private static final Map<String, String> STATUS_LABELS = Map.ofEntries(
             Map.entry("pending_submit", "待投递"),
             Map.entry("submitted", "已投递"),
-            Map.entry("hr_contact", "HR沟通"),
-            Map.entry("written_test", "笔试"),
-            Map.entry("first_interview", "一面"),
-            Map.entry("second_interview", "二面"),
-            Map.entry("final_interview", "终面"),
+            Map.entry("interviewing", "面试中"),
             Map.entry("offer", "Offer"),
             Map.entry("rejected", "拒绝"),
             Map.entry("withdrawn", "放弃")
@@ -74,8 +70,8 @@ public class ApplicationServiceImpl implements ApplicationService {
     private final JwtUtils jwtUtils;
     private final JobApplicationMapper applicationMapper;
     private final ApplicationTodoMapper todoMapper;
-    private final JobMapper jobMapper;
     private final ResumeMapper resumeMapper;
+    private final ApplicationRoundMapper roundMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -86,15 +82,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         // 2. 规范化状态
         String status = normalizeStatus(request.getStatus());
 
-        // 3. 校验 jobId 是否存在
-        if (request.getJobId() != null) {
-            Job job = jobMapper.selectById(request.getJobId());
-            if (job == null) {
-                throw new BusinessException(ErrorCode.JOB_NOT_FOUND_ERROR);
-            }
-        }
-
-        // 4. 校验 resumeId 是否属于当前用户
+        // 3. 校验 resumeId 是否属于当前用户
         if (request.getResumeId() != null) {
             Resume resume = resumeMapper.selectOne(
                     Wrappers.lambdaQuery(Resume.class)
@@ -105,10 +93,9 @@ public class ApplicationServiceImpl implements ApplicationService {
             }
         }
 
-        // 5. 构建实体并插入
+        // 4. 构建实体并插入
         JobApplication app = new JobApplication();
         app.setUserId(userId);
-        app.setJobId(request.getJobId());
         app.setResumeId(request.getResumeId());
         app.setCompanyName(request.getCompanyName());
         app.setJobTitle(request.getJobTitle());
@@ -123,8 +110,8 @@ public class ApplicationServiceImpl implements ApplicationService {
         app.setNotes(request.getNotes());
         applicationMapper.insert(app);
 
-        // 6. 返回详情
-        return toApplicationVO(app, Collections.emptyList());
+        // 5. 返回详情
+        return toApplicationVO(app, Collections.emptyList(), Collections.emptyList());
     }
 
     @Override
@@ -148,15 +135,11 @@ public class ApplicationServiceImpl implements ApplicationService {
         if (StringUtils.hasText(request.getSource())) {
             wrapper.eq(JobApplication::getSource, request.getSource());
         }
-        if (request.getJobId() != null) {
-            wrapper.eq(JobApplication::getJobId, request.getJobId());
-        }
         if (request.getResumeId() != null) {
             wrapper.eq(JobApplication::getResumeId, request.getResumeId());
         }
         // 3. 排序：nextEventAt asc nulls last，createTime desc
-        wrapper.orderByAsc(JobApplication::getNextEventAt)
-                .orderByDesc(JobApplication::getCreateTime);
+        wrapper.orderByDesc(JobApplication::getCreateTime);
 
         List<JobApplication> applications = applicationMapper.selectList(wrapper);
 
@@ -166,7 +149,11 @@ public class ApplicationServiceImpl implements ApplicationService {
                     Wrappers.lambdaQuery(ApplicationTodo.class)
                             .eq(ApplicationTodo::getApplicationId, app.getId())
                             .orderByAsc(ApplicationTodo::getDueAt));
-            return toApplicationVO(app, todos);
+            List<ApplicationRound> rounds = roundMapper.selectList(
+                    Wrappers.lambdaQuery(ApplicationRound.class)
+                            .eq(ApplicationRound::getApplicationId, app.getId())
+                            .orderByAsc(ApplicationRound::getRoundOrder));
+            return toApplicationVO(app, todos, rounds);
         }).collect(Collectors.toList());
     }
 
@@ -187,7 +174,13 @@ public class ApplicationServiceImpl implements ApplicationService {
                         .eq(ApplicationTodo::getApplicationId, id)
                         .orderByAsc(ApplicationTodo::getDueAt));
 
-        return toApplicationVO(app, todos);
+        // 4. 查询轮次列表
+        List<ApplicationRound> rounds = roundMapper.selectList(
+                Wrappers.lambdaQuery(ApplicationRound.class)
+                        .eq(ApplicationRound::getApplicationId, id)
+                        .orderByAsc(ApplicationRound::getRoundOrder));
+
+        return toApplicationVO(app, todos, rounds);
     }
 
     @Override
@@ -203,9 +196,6 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
         // 3. 更新非空字段
-        if (request.getJobId() != null) {
-            app.setJobId(request.getJobId());
-        }
         if (request.getResumeId() != null) {
             // 3.1 校验 resumeId 归属
             Resume resume = resumeMapper.selectOne(
@@ -253,12 +243,16 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
         applicationMapper.updateById(app);
 
-        // 4. 查询待办列表并返回
+        // 4. 查询待办列表和轮次列表并返回
         List<ApplicationTodo> todos = todoMapper.selectList(
                 Wrappers.lambdaQuery(ApplicationTodo.class)
                         .eq(ApplicationTodo::getApplicationId, id)
                         .orderByAsc(ApplicationTodo::getDueAt));
-        return toApplicationVO(app, todos);
+        List<ApplicationRound> rounds = roundMapper.selectList(
+                Wrappers.lambdaQuery(ApplicationRound.class)
+                        .eq(ApplicationRound::getApplicationId, id)
+                        .orderByAsc(ApplicationRound::getRoundOrder));
+        return toApplicationVO(app, todos, rounds);
     }
 
     @Override
@@ -280,12 +274,16 @@ public class ApplicationServiceImpl implements ApplicationService {
         app.setStatus(request.getStatus());
         applicationMapper.updateById(app);
 
-        // 5. 查询待办列表并返回
+        // 5. 查询待办列表和轮次列表并返回
         List<ApplicationTodo> todos = todoMapper.selectList(
                 Wrappers.lambdaQuery(ApplicationTodo.class)
                         .eq(ApplicationTodo::getApplicationId, id)
                         .orderByAsc(ApplicationTodo::getDueAt));
-        return toApplicationVO(app, todos);
+        List<ApplicationRound> rounds = roundMapper.selectList(
+                Wrappers.lambdaQuery(ApplicationRound.class)
+                        .eq(ApplicationRound::getApplicationId, id)
+                        .orderByAsc(ApplicationRound::getRoundOrder));
+        return toApplicationVO(app, todos, rounds);
     }
 
     @Override
@@ -331,9 +329,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         stats.setTotal((long) applications.size());
         stats.setPendingSubmit(statusCount.getOrDefault("pending_submit", 0L));
         stats.setSubmitted(statusCount.getOrDefault("submitted", 0L));
-        stats.setInterviewing(INTERVIEWING_STATUSES.stream()
-                .mapToLong(s -> statusCount.getOrDefault(s, 0L))
-                .sum());
+        stats.setInterviewing(statusCount.getOrDefault("interviewing", 0L));
         stats.setOffer(statusCount.getOrDefault("offer", 0L));
         stats.setClosed(statusCount.getOrDefault("rejected", 0L) + statusCount.getOrDefault("withdrawn", 0L));
         return stats;
@@ -501,6 +497,111 @@ public class ApplicationServiceImpl implements ApplicationService {
         todoMapper.deleteById(todoId);
     }
 
+    @Override
+    public List<ApplicationRoundVO> listRounds(String authorizationHeader, Long applicationId) {
+        resolveUserId(authorizationHeader);
+        List<ApplicationRound> rounds = roundMapper.selectList(
+                Wrappers.lambdaQuery(ApplicationRound.class)
+                        .eq(ApplicationRound::getApplicationId, applicationId)
+                        .orderByAsc(ApplicationRound::getRoundOrder));
+        return rounds.stream().map(this::toRoundVO).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ApplicationRoundVO createRound(String authorizationHeader, Long applicationId, ApplicationRoundCreateRequest request) {
+        Long userId = resolveUserId(authorizationHeader);
+        JobApplication app = applicationMapper.selectById(applicationId);
+        if (app == null || !app.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.APPLICATION_NOT_FOUND_ERROR);
+        }
+        if ("submitted".equals(app.getStatus())) {
+            app.setStatus("interviewing");
+            applicationMapper.updateById(app);
+        }
+        Long count = roundMapper.selectCount(
+                Wrappers.lambdaQuery(ApplicationRound.class)
+                        .eq(ApplicationRound::getApplicationId, applicationId));
+        int nextOrder = count != null ? count.intValue() : 0;
+
+        ApplicationRound round = new ApplicationRound();
+        round.setApplicationId(applicationId);
+        round.setRoundName(request.getRoundName());
+        round.setRoundOrder(nextOrder);
+        round.setScheduledAt(request.getScheduledAt());
+        round.setResult("pending");
+        round.setNotes(request.getNotes());
+        roundMapper.insert(round);
+        return toRoundVO(round);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ApplicationRoundVO updateRound(String authorizationHeader, Long applicationId, Long roundId, ApplicationRoundUpdateRequest request) {
+        Long userId = resolveUserId(authorizationHeader);
+        validateRoundOwnership(roundId, applicationId, userId);
+        ApplicationRound round = roundMapper.selectById(roundId);
+        if (request.getRoundName() != null) round.setRoundName(request.getRoundName());
+        if (request.getScheduledAt() != null) round.setScheduledAt(request.getScheduledAt());
+        if (request.getNotes() != null) round.setNotes(request.getNotes());
+        roundMapper.updateById(round);
+        return toRoundVO(round);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ApplicationRoundVO setRoundResult(String authorizationHeader, Long applicationId, Long roundId, ApplicationRoundResultRequest request) {
+        Long userId = resolveUserId(authorizationHeader);
+        validateRoundOwnership(roundId, applicationId, userId);
+        String result = request.getResult();
+        if (!Set.of("pass", "fail").contains(result)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "轮次结果不合法");
+        }
+        ApplicationRound round = roundMapper.selectById(roundId);
+        round.setResult(result);
+        roundMapper.updateById(round);
+
+        if ("fail".equals(result)) {
+            JobApplication app = applicationMapper.selectById(applicationId);
+            if (app != null) {
+                app.setStatus("rejected");
+                applicationMapper.updateById(app);
+            }
+        }
+        return toRoundVO(round);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteRound(String authorizationHeader, Long applicationId, Long roundId) {
+        Long userId = resolveUserId(authorizationHeader);
+        validateRoundOwnership(roundId, applicationId, userId);
+        roundMapper.deleteById(roundId);
+    }
+
+    private void validateRoundOwnership(Long roundId, Long applicationId, Long userId) {
+        ApplicationRound round = roundMapper.selectById(roundId);
+        if (round == null || !round.getApplicationId().equals(applicationId)) {
+            throw new BusinessException(ErrorCode.APPLICATION_ROUND_NOT_FOUND_ERROR);
+        }
+        JobApplication app = applicationMapper.selectById(applicationId);
+        if (app == null || !app.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.APPLICATION_NOT_FOUND_ERROR);
+        }
+    }
+
+    private ApplicationRoundVO toRoundVO(ApplicationRound round) {
+        ApplicationRoundVO vo = new ApplicationRoundVO();
+        vo.setId(round.getId());
+        vo.setApplicationId(round.getApplicationId());
+        vo.setRoundName(round.getRoundName());
+        vo.setRoundOrder(round.getRoundOrder());
+        vo.setScheduledAt(round.getScheduledAt());
+        vo.setResult(round.getResult());
+        vo.setNotes(round.getNotes());
+        return vo;
+    }
+
     private Long resolveUserId(String authorizationHeader) {
         String token = jwtUtils.resolveToken(authorizationHeader);
         JwtUtils.JwtUserClaims claims = jwtUtils.parseToken(token);
@@ -531,11 +632,10 @@ public class ApplicationServiceImpl implements ApplicationService {
         return priority;
     }
 
-    private JobApplicationVO toApplicationVO(JobApplication app, List<ApplicationTodo> todos) {
+    private JobApplicationVO toApplicationVO(JobApplication app, List<ApplicationTodo> todos, List<ApplicationRound> rounds) {
         JobApplicationVO vo = new JobApplicationVO();
         vo.setId(app.getId());
         vo.setUserId(app.getUserId());
-        vo.setJobId(app.getJobId());
         vo.setResumeId(app.getResumeId());
         vo.setCompanyName(app.getCompanyName());
         vo.setJobTitle(app.getJobTitle());
@@ -563,6 +663,11 @@ public class ApplicationServiceImpl implements ApplicationService {
         vo.setUnfinishedTodoCount((int) todos.stream()
                 .filter(t -> t.getCompleted() == null || t.getCompleted() == 0)
                 .count());
+
+        // 设置轮次列表
+        List<ApplicationRoundVO> roundVOs = rounds.stream().map(this::toRoundVO).collect(Collectors.toList());
+        vo.setRounds(roundVOs);
+
         return vo;
     }
 

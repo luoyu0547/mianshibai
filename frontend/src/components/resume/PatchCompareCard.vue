@@ -95,7 +95,7 @@ const fieldLabelMap: Record<string, string> = {
   startDate: '开始时间',
   endDate: '结束时间',
   gpa: 'GPA',
-  activities: '活动',
+  activities: '在校经历',
   highlights: '亮点',
   company: '公司',
   position: '职位',

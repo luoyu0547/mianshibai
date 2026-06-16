@@ -4,6 +4,7 @@ import com.mianshiba.ai.common.BaseResponse;
 import com.mianshiba.ai.common.ResultUtils;
 import com.mianshiba.ai.model.dto.resume.ResumeCreateRequest;
 import com.mianshiba.ai.model.dto.resume.ResumeUpdateRequest;
+import com.mianshiba.ai.model.dto.resume.SaveVersionRequest;
 import com.mianshiba.ai.model.dto.resume.SectionCreateRequest;
 import com.mianshiba.ai.model.dto.resume.SectionSortRequest;
 import com.mianshiba.ai.model.dto.resume.SectionUpdateRequest;
@@ -124,5 +125,18 @@ public class ResumeController {
     @Operation(summary = "获取简历版本历史")
     public BaseResponse<List<VersionVO>> getVersions(@PathVariable("resumeId") Long resumeId) {
         return ResultUtils.success(resumeVersionService.listVersions(resumeId));
+    }
+
+    @PostMapping("/{resumeId}/versions")
+    @Operation(summary = "保存简历版本快照")
+    public BaseResponse<VersionVO> saveVersion(@PathVariable("resumeId") Long resumeId,
+                                               @Valid @RequestBody SaveVersionRequest request) {
+        // 1. 保存版本快照
+        resumeVersionService.saveSnapshot(resumeId, request.getChangeSummary());
+
+        // 2. 查询并返回最新版本信息
+        List<VersionVO> versions = resumeVersionService.listVersions(resumeId);
+        VersionVO latest = versions.isEmpty() ? null : versions.get(0);
+        return ResultUtils.success(latest);
     }
 }

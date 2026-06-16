@@ -3,8 +3,6 @@ package com.mianshiba.ai.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mianshiba.ai.exception.BusinessException;
 import com.mianshiba.ai.exception.ErrorCode;
-import com.mianshiba.ai.mapper.JobAnalysisMapper;
-import com.mianshiba.ai.mapper.JobMapper;
 import com.mianshiba.ai.mapper.ResumeChatMessageMapper;
 import com.mianshiba.ai.mapper.ResumeMapper;
 import com.mianshiba.ai.mapper.ResumeSectionMapper;
@@ -66,12 +64,6 @@ class ResumeAiServiceImplTest {
     private UserMapper userMapper;
 
     @Mock
-    private JobMapper jobMapper;
-
-    @Mock
-    private JobAnalysisMapper jobAnalysisMapper;
-
-    @Mock
     private ResumeChatMessageMapper chatMessageMapper;
 
     private JwtUtils jwtUtils;
@@ -81,7 +73,7 @@ class ResumeAiServiceImplTest {
     void setUp() {
         ChatClient chatClient = ChatClient.builder(chatModel).build();
         jwtUtils = new JwtUtils(SECRET, Duration.ofHours(24));
-        service = new ResumeAiServiceImpl(chatClient, resumeMapper, resumeSectionMapper, userMapper, jwtUtils, jobMapper, jobAnalysisMapper, chatMessageMapper, new ObjectMapper());
+        service = new ResumeAiServiceImpl(chatClient, resumeMapper, resumeSectionMapper, userMapper, jwtUtils, chatMessageMapper, new ObjectMapper());
     }
 
     @Test
@@ -144,6 +136,93 @@ class ResumeAiServiceImplTest {
     }
 
     @Test
+    void optimizeWorkSectionNormalizesDescriptionAndLimitsHighlights() {
+        mockAiResponse("""
+                ```json
+                {
+                    "company": "XX科技有限公司",
+                    "position": "Java开发实习生",
+                    "description": "参与CRM订单模块开发，完成接口联调，支持日处理订单量5000+。优化SQL查询。",
+                    "highlights": [
+                        "CRM订单模块",
+                        "接口联调",
+                        "这是一条过长的亮点内容，包含大量工作描述，不应该继续停留在亮点标签里，因为它本质上是正文描述",
+                        "SQL优化"
+                    ]
+                }
+                ```
+                """);
+
+        AiOptimizeRequest request = new AiOptimizeRequest();
+        request.setSectionId(10L);
+        request.setSectionType("work");
+        request.setSectionData(Map.of("company", "XX科技有限公司", "description", "参与订单模块开发"));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> result = (Map<String, Object>) service.optimizeSection(request, "Java开发工程师");
+
+        assertThat(result.get("description").toString()).startsWith("<ul>");
+        assertThat(result.get("description").toString()).contains("<li>");
+        assertThat(result.get("description").toString()).doesNotContain("这是一条过长的亮点内容");
+        assertThat((List<?>) result.get("highlights")).hasSizeLessThanOrEqualTo(3);
+    }
+
+    @Test
+    void optimizeEducationSectionWritesActivitiesForFrontend() {
+        mockAiResponse("""
+                ```json
+                {
+                    "school": "江西财经大学",
+                    "major": "软件工程",
+                    "degree": "本科",
+                    "highlights": [
+                        "专业前15%",
+                        "数据库课程设计",
+                        "校级奖学金",
+                        "参与公司内部CRM系统订单模块的迭代开发，独立完成订单查询、状态变更等接口编码与测试"
+                    ]
+                }
+                ```
+                """);
+
+        AiOptimizeRequest request = new AiOptimizeRequest();
+        request.setSectionId(11L);
+        request.setSectionType("education");
+        request.setSectionData(Map.of("school", "江西财经大学"));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> result = (Map<String, Object>) service.optimizeSection(request, "Java开发工程师");
+
+        assertThat(result.get("activities").toString()).startsWith("<ul>");
+        assertThat(result.get("activities").toString()).contains("专业前15%", "数据库课程设计", "校级奖学金");
+        assertThat(result).doesNotContainKey("highlights");
+    }
+
+    @Test
+    void optimizeSectionPromptContainsModuleSpecificRules() {
+        mockAiResponse("""
+                ```json
+                {"description":"<ul><li>负责订单接口开发，支撑日处理订单量5000+。</li></ul>"}
+                ```
+                """);
+
+        AiOptimizeRequest request = new AiOptimizeRequest();
+        request.setSectionId(12L);
+        request.setSectionType("project");
+        request.setSectionData(Map.of("name", "在线考试系统", "description", "考试系统"));
+
+        service.optimizeSection(request, "Java开发工程师");
+
+        ArgumentCaptor<Prompt> captor = ArgumentCaptor.forClass(Prompt.class);
+        verify(chatModel).call(captor.capture());
+        String prompt = captor.getValue().getInstructions().toString();
+        assertThat(prompt).contains("模块化写作规则");
+        assertThat(prompt).contains("project");
+        assertThat(prompt).contains("<ul><li>");
+        assertThat(prompt).contains("highlights 只能作为短标签");
+    }
+
+    @Test
     void scoreResumeReturnsScoreAndSuggestions() {
         mockAiResponse("""
                 ```json
@@ -173,6 +252,68 @@ class ResumeAiServiceImplTest {
         assertThat(result.getDimensions().getProfessionalism()).isEqualTo(90);
         assertThat(result.getDimensions().getMatching()).isEqualTo(85);
         assertThat(result.getSuggestions()).hasSize(2);
+    }
+
+    @Test
+    void scoreResumeCapsInflatedScoreForWeakResume() {
+        mockAiResponse("""
+                ```json
+                {
+                    "score": 88,
+                    "dimensions": {
+                        "completeness": 90,
+                        "completenessComment": "结构完整",
+                        "professionalism": 85,
+                        "professionalismComment": "项目较好",
+                        "matching": 88,
+                        "matchingComment": "匹配Java岗位"
+                    },
+                    "suggestions": ["继续补充项目细节"]
+                }
+                ```
+                """);
+
+        SectionVO basic = section("basic", Map.of("name", "张三", "targetPosition", "Java开发工程师"));
+        SectionVO skills = section("skills", Map.of("categories", List.of(Map.of("name", "后端", "items", List.of("Java", "Spring Boot")))));
+        SectionVO work = section("work", Map.of("company", "XX科技", "position", "Java实习生", "description", "负责后端接口开发。"));
+        SectionVO project = section("project", Map.of("name", "在线考试系统", "description", "面向高校的在线考试平台。"));
+
+        AiScoreVO result = service.scoreResume(List.of(basic, skills, work, project), "Java开发工程师");
+
+        assertThat(result.getScore()).isLessThanOrEqualTo(70);
+        assertThat(result.getDimensions().getProfessionalism()).isLessThanOrEqualTo(75);
+        assertThat(result.getSuggestions()).anyMatch(item -> item.contains("项目经历") && item.contains("具体负责"));
+    }
+
+    @Test
+    void scorePromptContainsStrictRubric() {
+        mockAiResponse("""
+                ```json
+                {
+                    "score": 62,
+                    "dimensions": {
+                        "completeness": 65,
+                        "completenessComment": "内容偏薄",
+                        "professionalism": 60,
+                        "professionalismComment": "项目细节不足",
+                        "matching": 62,
+                        "matchingComment": "匹配度一般"
+                    },
+                    "suggestions": ["补充项目职责和量化结果"]
+                }
+                ```
+                """);
+
+        SectionVO basic = section("basic", Map.of("name", "张三", "targetPosition", "Java开发工程师"));
+
+        service.scoreResume(List.of(basic), "Java开发工程师");
+
+        ArgumentCaptor<Prompt> captor = ArgumentCaptor.forClass(Prompt.class);
+        verify(chatModel).call(captor.capture());
+        String prompt = captor.getValue().getInstructions().toString();
+        assertThat(prompt).contains("不要鼓励式评分");
+        assertThat(prompt).contains("40-65 分区间");
+        assertThat(prompt).contains("80 分以上必须同时满足");
     }
 
     @Test
@@ -299,6 +440,13 @@ class ResumeAiServiceImplTest {
         AiScoreVO result = service.scoreResume(List.of(section), "Java开发工程师");
 
         assertThat(result.getScore()).isEqualTo(85);
+    }
+
+    private SectionVO section(String type, Map<String, Object> data) {
+        SectionVO section = new SectionVO();
+        section.setSectionType(type);
+        section.setSectionData(data);
+        return section;
     }
 
     private void mockAiResponse(String text) {

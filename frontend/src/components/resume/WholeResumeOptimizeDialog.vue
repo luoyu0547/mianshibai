@@ -8,7 +8,6 @@ import NbLoadingBlock from '@/components/NbLoadingBlock.vue'
 
 const props = defineProps<{
   resumeId: number
-  jobId?: number
 }>()
 
 const emit = defineEmits<{
@@ -24,7 +23,6 @@ async function handleOptimize() {
   try {
     const res = await optimizeWholeResume(props.resumeId, {
       resumeId: props.resumeId,
-      jobId: props.jobId,
     })
     result.value = res.data
   } finally {

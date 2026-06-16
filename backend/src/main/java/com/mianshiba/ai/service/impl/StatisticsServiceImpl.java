@@ -4,12 +4,12 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.mianshiba.ai.mapper.InterviewReportMapper;
 import com.mianshiba.ai.mapper.InterviewSessionMapper;
 import com.mianshiba.ai.mapper.InterviewTurnMapper;
-import com.mianshiba.ai.mapper.JobFavoriteMapper;
+import com.mianshiba.ai.mapper.JobApplicationMapper;
 import com.mianshiba.ai.mapper.ResumeMapper;
 import com.mianshiba.ai.model.entity.InterviewReport;
 import com.mianshiba.ai.model.entity.InterviewSession;
 import com.mianshiba.ai.model.entity.InterviewTurn;
-import com.mianshiba.ai.model.entity.JobFavorite;
+import com.mianshiba.ai.model.entity.JobApplication;
 import com.mianshiba.ai.model.entity.Resume;
 import com.mianshiba.ai.model.vo.statistics.AnalyticsOverviewVO;
 import com.mianshiba.ai.model.vo.statistics.HomeStatsVO;
@@ -27,7 +27,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     private final InterviewSessionMapper sessionMapper;
     private final InterviewTurnMapper turnMapper;
     private final ResumeMapper resumeMapper;
-    private final JobFavoriteMapper jobFavoriteMapper;
+    private final JobApplicationMapper applicationMapper;
     private final InterviewReportMapper interviewReportMapper;
 
     @Override
@@ -74,9 +74,9 @@ public class StatisticsServiceImpl implements StatisticsService {
                 Wrappers.lambdaQuery(Resume.class)
                         .eq(Resume::getUserId, userId)));
 
-        vo.setJobCount(jobFavoriteMapper.selectCount(
-                Wrappers.lambdaQuery(JobFavorite.class)
-                        .eq(JobFavorite::getUserId, userId)));
+        vo.setJobCount(applicationMapper.selectCount(
+                Wrappers.lambdaQuery(JobApplication.class)
+                        .eq(JobApplication::getUserId, userId)));
 
         vo.setInterviewCount(sessionMapper.selectCount(
                 Wrappers.lambdaQuery(InterviewSession.class)
@@ -113,7 +113,7 @@ public class StatisticsServiceImpl implements StatisticsService {
             actions.add("上传或创建一份简历");
         }
         if (vo.getJobCount() == 0) {
-            actions.add("导入一个目标职位");
+            actions.add("记录一个目标投递");
         }
         if (vo.getInterviewCount() == 0) {
             actions.add("完成一次模拟面试");

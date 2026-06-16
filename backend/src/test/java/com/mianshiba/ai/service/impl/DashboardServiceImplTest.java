@@ -100,7 +100,7 @@ class DashboardServiceImplTest {
         JobApplication app2 = new JobApplication();
         app2.setId(2L);
         app2.setUserId(1L);
-        app2.setStatus("first_interview");
+        app2.setStatus("interviewing");
 
         when(todoMapper.selectList(any())).thenReturn(List.of());
         when(applicationMapper.selectList(any())).thenReturn(List.of(app1, app2));

@@ -7,6 +7,7 @@ import com.mianshiba.ai.model.dto.resume.SectionCreateRequest;
 import com.mianshiba.ai.model.vo.resume.ResumeDetailVO;
 import com.mianshiba.ai.model.vo.resume.ResumeVO;
 import com.mianshiba.ai.model.vo.resume.SectionVO;
+import com.mianshiba.ai.model.vo.resume.VersionVO;
 import com.mianshiba.ai.service.ResumeService;
 import com.mianshiba.ai.service.ResumeVersionService;
 import org.junit.jupiter.api.BeforeEach;
@@ -155,5 +156,26 @@ class ResumeControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(40000));
+    }
+
+    @Test
+    void saveVersionReturnsLatestVersion() throws Exception {
+        String auth = "Bearer token-value";
+        VersionVO version = new VersionVO();
+        version.setId(100L);
+        version.setVersion(3);
+        version.setChangeSummary("保存简历");
+
+        doNothing().when(resumeVersionService).saveSnapshot(1L, "保存简历");
+        when(resumeVersionService.listVersions(1L)).thenReturn(List.of(version));
+
+        mockMvc.perform(post("/api/resume/1/versions")
+                        .header(HttpHeaders.AUTHORIZATION, auth)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("changeSummary", "保存简历"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.version").value(3))
+                .andExpect(jsonPath("$.data.changeSummary").value("保存简历"));
     }
 }

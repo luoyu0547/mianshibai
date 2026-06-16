@@ -136,6 +136,7 @@ public enum ErrorCode {
 
     APPLICATION_NOT_FOUND_ERROR(40430, "投递记录不存在"),
     APPLICATION_TODO_NOT_FOUND_ERROR(40431, "投递待办不存在"),
+    APPLICATION_ROUND_NOT_FOUND_ERROR(40432, "投递轮次不存在"),
 
     ANALYTICS_ERROR(50030, "数据分析失败"),
 

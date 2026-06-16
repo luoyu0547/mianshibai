@@ -40,8 +40,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DashboardServiceImpl implements DashboardService {
 
-    private static final Set<String> INTERVIEWING_STATUSES = Set.of(
-            "hr_contact", "written_test", "first_interview", "second_interview", "final_interview");
+    private static final Set<String> INTERVIEWING_STATUSES = Set.of("interviewing");
 
     private final JwtUtils jwtUtils;
     private final ApplicationTodoMapper todoMapper;

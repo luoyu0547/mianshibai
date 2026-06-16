@@ -125,6 +125,7 @@ const FIELD_LABELS: Record<string, string> = {
   major: '专业',
   degree: '学历',
   gpa: 'GPA',
+  activities: '在校经历',
   startDate: '开始时间',
   endDate: '结束时间',
   highlights: '亮点标签',

@@ -143,7 +143,6 @@ function referencePath(task: CoachTaskVO) {
   if (task.referenceType === 'training_question') return `/training/question/${task.referenceId}`
   if (task.referenceType === 'training_plan') return `/training/plan/${task.referenceId}`
   if (task.referenceType === 'job_application') return `/applications/${task.referenceId}`
-  if (task.referenceType === 'job') return `/job/${task.referenceId}`
   return null
 }
 

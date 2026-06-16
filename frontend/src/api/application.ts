@@ -3,6 +3,10 @@ import type { BaseResponse } from '@/types/user'
 import type {
   ApplicationCreateRequest,
   ApplicationListQueryRequest,
+  ApplicationRoundCreateRequest,
+  ApplicationRoundResultRequest,
+  ApplicationRoundUpdateRequest,
+  ApplicationRoundVO,
   ApplicationStatsVO,
   ApplicationStatus,
   ApplicationTodoCreateRequest,
@@ -71,4 +75,24 @@ export function reopenApplicationTodo(id: number) {
 
 export function deleteApplicationTodo(id: number) {
   return request.delete<BaseResponse<boolean>>(`/api/application/todo/${id}`)
+}
+
+export function listApplicationRounds(id: number) {
+  return request.get<BaseResponse<ApplicationRoundVO[]>>(`/api/application/${id}/round`)
+}
+
+export function createApplicationRound(id: number, data: ApplicationRoundCreateRequest) {
+  return request.post<BaseResponse<ApplicationRoundVO>>(`/api/application/${id}/round`, data)
+}
+
+export function setApplicationRoundResult(id: number, roundId: number, data: ApplicationRoundResultRequest) {
+  return request.put<BaseResponse<ApplicationRoundVO>>(`/api/application/${id}/round/${roundId}/result`, data)
+}
+
+export function updateApplicationRound(id: number, roundId: number, data: ApplicationRoundUpdateRequest) {
+  return request.put<BaseResponse<ApplicationRoundVO>>(`/api/application/${id}/round/${roundId}`, data)
+}
+
+export function deleteApplicationRound(id: number, roundId: number) {
+  return request.delete<BaseResponse<void>>(`/api/application/${id}/round/${roundId}`)
 }

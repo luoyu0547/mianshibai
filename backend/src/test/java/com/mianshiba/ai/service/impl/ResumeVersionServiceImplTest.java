@@ -1,6 +1,7 @@
 package com.mianshiba.ai.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.mianshiba.ai.mapper.ResumeMapper;
 import com.mianshiba.ai.mapper.ResumeSectionMapper;
 import com.mianshiba.ai.mapper.ResumeVersionMapper;
@@ -50,7 +51,7 @@ class ResumeVersionServiceImplTest {
         lenient().when(resumeSectionMapper.selectList(any(LambdaQueryWrapper.class)))
                 .thenReturn(List.of(section));
 
-        lenient().when(resumeVersionMapper.selectList(any(LambdaQueryWrapper.class)))
+        lenient().when(resumeVersionMapper.selectList(any(QueryWrapper.class)))
                 .thenReturn(List.of());
     }
 
@@ -72,7 +73,7 @@ class ResumeVersionServiceImplTest {
     void saveSnapshot_shouldIncrementVersion() {
         ResumeVersion existing = new ResumeVersion();
         existing.setVersion(3);
-        when(resumeVersionMapper.selectList(any(LambdaQueryWrapper.class)))
+        when(resumeVersionMapper.selectList(any(QueryWrapper.class)))
                 .thenReturn(List.of(existing));
 
         service.saveSnapshot(1L, "再次变更");
@@ -103,7 +104,7 @@ class ResumeVersionServiceImplTest {
         v2.setChangeSummary("初始创建");
         v2.setCreateTime(java.time.LocalDateTime.now().minusHours(1));
 
-        when(resumeVersionMapper.selectList(any(LambdaQueryWrapper.class)))
+        when(resumeVersionMapper.selectList(any(QueryWrapper.class)))
                 .thenReturn(List.of(v1, v2));
 
         List<VersionVO> result = service.listVersions(1L);
@@ -111,5 +112,10 @@ class ResumeVersionServiceImplTest {
         assertThat(result).hasSize(2);
         assertThat(result.get(0).getVersion()).isEqualTo(2);
         assertThat(result.get(1).getVersion()).isEqualTo(1);
+
+        ArgumentCaptor<QueryWrapper<ResumeVersion>> captor = ArgumentCaptor.forClass(QueryWrapper.class);
+        verify(resumeVersionMapper).selectList(captor.capture());
+        assertThat(captor.getValue().getSqlSelect()).doesNotContain("snapshot");
+        assertThat(captor.getValue().getSqlSegment()).contains("version DESC");
     }
 }

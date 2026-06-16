@@ -24,5 +24,4 @@ public class AiOptimizeRequest implements Serializable {
     @NotNull(message = "模块数据不能为空")
     private Object sectionData;
 
-    private Long jobId;
 }

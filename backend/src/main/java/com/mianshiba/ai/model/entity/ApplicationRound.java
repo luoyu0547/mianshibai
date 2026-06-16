@@ -11,43 +11,21 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("interview_session")
-public class InterviewSession implements Serializable {
+@TableName("application_round")
+public class ApplicationRound implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
     @TableId(type = IdType.AUTO)
     private Long id;
-
-    private Long userId;
-
-    private Long resumeId;
-
-    private String title;
-
-    private String interviewType;
-
-    private String targetPosition;
-
-    private String techDirection;
-
-    private Integer totalQuestions;
-
-    private Integer currentQuestionNo;
-
-    private String status;
-
-    private LocalDateTime startedAt;
-
-    private LocalDateTime endedAt;
-
-    private String difficulty;
-
-    private Integer durationMinutes;
-
+    private Long applicationId;
+    private String roundName;
+    private Integer roundOrder;
+    private LocalDateTime scheduledAt;
+    private String result;
+    private String notes;
     private LocalDateTime createTime;
-
     private LocalDateTime updateTime;
 
     @TableLogic(value = "0", delval = "1")

@@ -1,11 +1,7 @@
 export type ApplicationStatus =
   | 'pending_submit'
   | 'submitted'
-  | 'hr_contact'
-  | 'written_test'
-  | 'first_interview'
-  | 'second_interview'
-  | 'final_interview'
+  | 'interviewing'
   | 'offer'
   | 'rejected'
   | 'withdrawn'
@@ -30,7 +26,6 @@ export interface ApplicationTodoVO {
 
 export interface JobApplicationVO {
   id: number
-  jobId?: number | null
   resumeId?: number | null
   companyName: string
   jobTitle: string
@@ -46,6 +41,7 @@ export interface JobApplicationVO {
   notes?: string
   unfinishedTodoCount: number
   todos?: ApplicationTodoVO[]
+  rounds: ApplicationRoundVO[]
   createTime: string
   updateTime: string
 }
@@ -60,7 +56,6 @@ export interface ApplicationStatsVO {
 }
 
 export interface ApplicationCreateRequest {
-  jobId?: number | null
   resumeId?: number | null
   companyName: string
   jobTitle: string
@@ -82,7 +77,6 @@ export interface ApplicationListQueryRequest {
   status?: ApplicationStatus | ''
   location?: string
   source?: string
-  jobId?: number
   resumeId?: number
 }
 
@@ -102,17 +96,57 @@ export interface ApplicationTodoQueryRequest {
   overdue?: boolean
 }
 
+export type RoundResult = 'pending' | 'pass' | 'fail'
+
+export interface ApplicationRoundVO {
+  id: number
+  applicationId: number
+  roundName: string
+  roundOrder: number
+  scheduledAt: string | null
+  result: RoundResult
+  notes: string | null
+}
+
+export interface ApplicationRoundCreateRequest {
+  roundName: string
+  scheduledAt?: string | null
+  notes?: string
+}
+
+export interface ApplicationRoundUpdateRequest {
+  roundName?: string
+  scheduledAt?: string | null
+  notes?: string
+}
+
+export interface ApplicationRoundResultRequest {
+  result: RoundResult
+}
+
 export const APPLICATION_STATUS_OPTIONS: Array<{ label: string; value: ApplicationStatus }> = [
   { label: '待投递', value: 'pending_submit' },
   { label: '已投递', value: 'submitted' },
-  { label: 'HR 沟通', value: 'hr_contact' },
-  { label: '笔试', value: 'written_test' },
-  { label: '一面', value: 'first_interview' },
-  { label: '二面', value: 'second_interview' },
-  { label: '终面', value: 'final_interview' },
+  { label: '面试中', value: 'interviewing' },
   { label: 'Offer', value: 'offer' },
   { label: '拒绝', value: 'rejected' },
   { label: '放弃', value: 'withdrawn' },
+]
+
+export type ApplicationSource = 'boss' | 'lagou' | 'liepin' | 'zhilian' | '51job' | 'internal_referral' | 'official_website' | 'nowcoder' | 'maimai' | 'campus_recruitment' | 'other'
+
+export const APPLICATION_SOURCE_OPTIONS: Array<{ label: string; value: ApplicationSource }> = [
+  { label: 'Boss 直聘', value: 'boss' },
+  { label: '拉勾', value: 'lagou' },
+  { label: '猎聘', value: 'liepin' },
+  { label: '智联招聘', value: 'zhilian' },
+  { label: '前程无忧', value: '51job' },
+  { label: '内推', value: 'internal_referral' },
+  { label: '公司官网', value: 'official_website' },
+  { label: '牛客网', value: 'nowcoder' },
+  { label: '脉脉', value: 'maimai' },
+  { label: '校园招聘', value: 'campus_recruitment' },
+  { label: '其他', value: 'other' },
 ]
 
 export const TODO_PRIORITY_OPTIONS: Array<{ label: string; value: TodoPriority }> = [

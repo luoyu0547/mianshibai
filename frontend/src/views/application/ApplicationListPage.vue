@@ -128,19 +128,14 @@ const statusFilter = ref<ApplicationStatus | ''>('')
 
 const nextStatusMap: Partial<Record<ApplicationStatus, ApplicationStatus>> = {
   pending_submit: 'submitted',
-  submitted: 'hr_contact',
-  hr_contact: 'written_test',
-  written_test: 'first_interview',
-  first_interview: 'second_interview',
-  second_interview: 'final_interview',
-  final_interview: 'offer',
+  submitted: 'interviewing',
+  interviewing: 'offer',
 }
 
 const columns = [
   { key: 'pending_submit', title: '待投递', statuses: ['pending_submit'] as ReadonlyArray<ApplicationStatus> },
   { key: 'submitted', title: '已投递', statuses: ['submitted'] as ReadonlyArray<ApplicationStatus> },
-  { key: 'contacting', title: '沟通中', statuses: ['hr_contact'] as ReadonlyArray<ApplicationStatus> },
-  { key: 'interviewing', title: '笔试/面试', statuses: ['written_test', 'first_interview', 'second_interview', 'final_interview'] as ReadonlyArray<ApplicationStatus> },
+  { key: 'interviewing', title: '面试中', statuses: ['interviewing'] as ReadonlyArray<ApplicationStatus> },
   { key: 'offer', title: 'Offer', statuses: ['offer'] as ReadonlyArray<ApplicationStatus> },
   { key: 'closed', title: '已关闭', statuses: ['rejected', 'withdrawn'] as ReadonlyArray<ApplicationStatus> },
 ]

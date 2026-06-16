@@ -7,7 +7,11 @@ import com.mianshiba.ai.model.dto.application.ApplicationTodoCreateRequest;
 import com.mianshiba.ai.model.dto.application.ApplicationTodoQueryRequest;
 import com.mianshiba.ai.model.dto.application.ApplicationTodoUpdateRequest;
 import com.mianshiba.ai.model.dto.application.ApplicationUpdateRequest;
+import com.mianshiba.ai.model.dto.application.ApplicationRoundCreateRequest;
+import com.mianshiba.ai.model.dto.application.ApplicationRoundUpdateRequest;
+import com.mianshiba.ai.model.dto.application.ApplicationRoundResultRequest;
 import com.mianshiba.ai.model.vo.application.ApplicationStatsVO;
+import com.mianshiba.ai.model.vo.application.ApplicationRoundVO;
 import com.mianshiba.ai.model.vo.application.ApplicationTodoVO;
 import com.mianshiba.ai.model.vo.application.JobApplicationVO;
 
@@ -45,4 +49,14 @@ public interface ApplicationService {
     ApplicationTodoVO reopenTodo(String authorizationHeader, Long todoId);
 
     void deleteTodo(String authorizationHeader, Long todoId);
+
+    List<ApplicationRoundVO> listRounds(String authorizationHeader, Long applicationId);
+
+    ApplicationRoundVO createRound(String authorizationHeader, Long applicationId, ApplicationRoundCreateRequest request);
+
+    ApplicationRoundVO updateRound(String authorizationHeader, Long applicationId, Long roundId, ApplicationRoundUpdateRequest request);
+
+    ApplicationRoundVO setRoundResult(String authorizationHeader, Long applicationId, Long roundId, ApplicationRoundResultRequest request);
+
+    void deleteRound(String authorizationHeader, Long applicationId, Long roundId);
 }

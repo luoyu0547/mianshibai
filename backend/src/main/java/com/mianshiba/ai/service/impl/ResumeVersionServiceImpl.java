@@ -78,9 +78,10 @@ public class ResumeVersionServiceImpl implements ResumeVersionService {
     @Override
     public List<VersionVO> listVersions(Long resumeId) {
         List<ResumeVersion> versions = resumeVersionMapper.selectList(
-                Wrappers.lambdaQuery(ResumeVersion.class)
-                        .eq(ResumeVersion::getResumeId, resumeId)
-                        .orderByDesc(ResumeVersion::getCreateTime));
+                Wrappers.<ResumeVersion>query()
+                        .select("id", "version", "change_summary", "create_time")
+                        .eq("resume_id", resumeId)
+                        .orderByDesc("version"));
 
         return versions.stream().map(v -> {
             VersionVO vo = new VersionVO();
@@ -94,9 +95,10 @@ public class ResumeVersionServiceImpl implements ResumeVersionService {
 
     private int computeNextVersion(Long resumeId) {
         List<ResumeVersion> existing = resumeVersionMapper.selectList(
-                Wrappers.lambdaQuery(ResumeVersion.class)
-                        .eq(ResumeVersion::getResumeId, resumeId)
-                        .orderByDesc(ResumeVersion::getVersion)
+                Wrappers.<ResumeVersion>query()
+                        .select("version")
+                        .eq("resume_id", resumeId)
+                        .orderByDesc("version")
                         .last("LIMIT 1"));
         if (existing.isEmpty()) {
             return 1;

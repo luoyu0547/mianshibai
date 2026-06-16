@@ -35,6 +35,28 @@ class ResumePatchToolsTest {
     }
 
     @Test
+    void proposeResumePatchMapsEducationHighlightsToActivities() {
+        List<ResumePatchProposalVO> proposals = new ArrayList<>();
+        ResumePatchTools tools = new ResumePatchTools(proposals::add);
+        ResumePatchRequest request = new ResumePatchRequest();
+        request.setSectionType("education");
+        request.setOperation("replace_section");
+        request.setReason("补充在校经历");
+        request.setSectionData(Map.of(
+                "school", "江西财经大学",
+                "major", "软件工程",
+                "highlights", List.of("国家励志奖学金", "课程设计：在线考试系统")));
+
+        tools.proposeResumePatch(request);
+
+        assertThat(proposals).hasSize(1);
+        assertThat(proposals.get(0).getSectionData()).containsKey("activities");
+        assertThat(proposals.get(0).getSectionData()).doesNotContainKey("highlights");
+        assertThat(proposals.get(0).getSectionData().get("activities").toString())
+                .contains("国家励志奖学金", "课程设计：在线考试系统");
+    }
+
+    @Test
     void proposeResumePatchRejectsUnknownSectionType() {
         List<ResumePatchProposalVO> proposals = new ArrayList<>();
         ResumePatchTools tools = new ResumePatchTools(proposals::add);

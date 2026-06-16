@@ -62,6 +62,7 @@
           <div class="ms-edu-school"><svg class="ats-icon" viewBox="0 0 24 24" width="14" height="14"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>{{ item.school }}</div>
           <div class="ms-edu-major">{{ item.major }}<template v-if="item.degree"> · {{ item.degree }}</template></div>
           <div class="ms-edu-date" v-if="item.startDate">{{ item.startDate }} — {{ item.endDate || '至今' }}</div>
+          <p v-if="item.activities" class="ms-desc" v-html="item.activities"></p>
         </div>
       </div>
     </aside>

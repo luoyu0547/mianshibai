@@ -20,8 +20,6 @@ public class ApplicationCreateRequest {
     @Size(max = 128, message = "职位名称不能超过128个字符")
     private String jobTitle;
 
-    private Long jobId;
-
     private Long resumeId;
 
     private String source;

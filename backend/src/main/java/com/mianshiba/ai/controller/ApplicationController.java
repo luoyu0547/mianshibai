@@ -4,11 +4,15 @@ import com.mianshiba.ai.common.BaseResponse;
 import com.mianshiba.ai.common.ResultUtils;
 import com.mianshiba.ai.model.dto.application.ApplicationCreateRequest;
 import com.mianshiba.ai.model.dto.application.ApplicationListQueryRequest;
+import com.mianshiba.ai.model.dto.application.ApplicationRoundCreateRequest;
+import com.mianshiba.ai.model.dto.application.ApplicationRoundResultRequest;
+import com.mianshiba.ai.model.dto.application.ApplicationRoundUpdateRequest;
 import com.mianshiba.ai.model.dto.application.ApplicationStatusUpdateRequest;
 import com.mianshiba.ai.model.dto.application.ApplicationTodoCreateRequest;
 import com.mianshiba.ai.model.dto.application.ApplicationTodoQueryRequest;
 import com.mianshiba.ai.model.dto.application.ApplicationTodoUpdateRequest;
 import com.mianshiba.ai.model.dto.application.ApplicationUpdateRequest;
+import com.mianshiba.ai.model.vo.application.ApplicationRoundVO;
 import com.mianshiba.ai.model.vo.application.ApplicationStatsVO;
 import com.mianshiba.ai.model.vo.application.ApplicationTodoVO;
 import com.mianshiba.ai.model.vo.application.JobApplicationVO;
@@ -152,6 +156,53 @@ public class ApplicationController {
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
             @PathVariable("todoId") Long todoId) {
         applicationService.deleteTodo(authorizationHeader, todoId);
+        return ResultUtils.success(null);
+    }
+
+    @GetMapping("/{id}/round")
+    @Operation(summary = "获取面试轮次列表")
+    public BaseResponse<List<ApplicationRoundVO>> listRounds(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
+            @PathVariable("id") Long id) {
+        return ResultUtils.success(applicationService.listRounds(authorizationHeader, id));
+    }
+
+    @PostMapping("/{id}/round")
+    @Operation(summary = "添加面试轮次")
+    public BaseResponse<ApplicationRoundVO> createRound(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
+            @PathVariable("id") Long id,
+            @Valid @RequestBody ApplicationRoundCreateRequest request) {
+        return ResultUtils.success(applicationService.createRound(authorizationHeader, id, request));
+    }
+
+    @PutMapping("/{id}/round/{roundId}")
+    @Operation(summary = "更新面试轮次")
+    public BaseResponse<ApplicationRoundVO> updateRound(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
+            @PathVariable("id") Long id,
+            @PathVariable("roundId") Long roundId,
+            @RequestBody ApplicationRoundUpdateRequest request) {
+        return ResultUtils.success(applicationService.updateRound(authorizationHeader, id, roundId, request));
+    }
+
+    @PutMapping("/{id}/round/{roundId}/result")
+    @Operation(summary = "标记面试轮次结果")
+    public BaseResponse<ApplicationRoundVO> setRoundResult(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
+            @PathVariable("id") Long id,
+            @PathVariable("roundId") Long roundId,
+            @Valid @RequestBody ApplicationRoundResultRequest request) {
+        return ResultUtils.success(applicationService.setRoundResult(authorizationHeader, id, roundId, request));
+    }
+
+    @DeleteMapping("/{id}/round/{roundId}")
+    @Operation(summary = "删除面试轮次")
+    public BaseResponse<Void> deleteRound(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
+            @PathVariable("id") Long id,
+            @PathVariable("roundId") Long roundId) {
+        applicationService.deleteRound(authorizationHeader, id, roundId);
         return ResultUtils.success(null);
     }
 }

@@ -6,8 +6,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mianshiba.ai.exception.BusinessException;
 import com.mianshiba.ai.exception.ErrorCode;
-import com.mianshiba.ai.mapper.JobAnalysisMapper;
-import com.mianshiba.ai.mapper.JobMapper;
 import com.mianshiba.ai.mapper.ResumeChatMessageMapper;
 import com.mianshiba.ai.mapper.ResumeMapper;
 import com.mianshiba.ai.mapper.ResumeSectionMapper;
@@ -20,8 +18,6 @@ import com.mianshiba.ai.model.entity.Resume;
 import com.mianshiba.ai.model.entity.ResumeChatMessage;
 import com.mianshiba.ai.model.entity.ResumeSection;
 import com.mianshiba.ai.model.entity.User;
-import com.mianshiba.ai.model.entity.Job;
-import com.mianshiba.ai.model.entity.JobAnalysis;
 import com.mianshiba.ai.model.vo.resume.AiScoreVO;
 import com.mianshiba.ai.model.vo.resume.ChatMessageVO;
 import com.mianshiba.ai.model.vo.resume.ResumeChatStreamEventVO;
@@ -55,11 +51,23 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ResumeAiServiceImpl implements ResumeAiService {
 
+    private static final String MODULE_WRITING_RULES = """
+            模块化写作规则：
+            1. basic：只处理姓名、联系方式、目标岗位、城市等短字段，不生成经历或亮点。
+            2. education：只处理 school、major、degree、startDate、endDate、gpa、activities 等前端教育字段；在校经历必须写入 activities，使用 HTML 列表 <ul><li>...</li></ul>，可包含课程、竞赛、奖项、社团、学生工作、在校项目或活动；不要输出 highlights 作为正文。
+            3. skills：只整理技能分类和熟练度，不生成项目成果，不虚构未出现的技术栈。
+            4. work：description 必须是 HTML 列表 <ul><li>...</li></ul>；每条说明负责/参与了什么、使用什么技术/方法、产生什么结果；highlights 只能作为短标签，最多 3 条。
+            5. project：description 必须是 HTML 列表 <ul><li>...</li></ul>；每条说明项目职责、技术实现、结果/价值；必须突出个人贡献，不能只写平台背景。
+            6. summary：输出 2-4 句短摘要，突出岗位方向、核心技术栈、项目/实习亮点和求职匹配度，不堆砌标签。
+            通用约束：保持原有 JSON 字段结构，不新增无关字段，不编造事实字段。
+            """;
+
     private static final String GENERATE_SYSTEM_PROMPT =
             "你是一位专业的简历撰写助手。请根据以下信息生成一份简历：\n" +
             "- 目标岗位：%s\n" +
             "- 技术方向：%s\n" +
             "- 工作年限：%s\n\n" +
+            MODULE_WRITING_RULES + "\n" +
             "请以 JSON 数组格式返回，每个元素包含 sectionType 和 sectionData 字段。\n" +
             "sectionType 可选值：basic, education, work, project, skills, summary\n" +
             "sectionData 是一个 JSON 对象，包含该模块的具体内容。\n" +
@@ -67,11 +75,17 @@ public class ResumeAiServiceImpl implements ResumeAiService {
 
     private static final String OPTIMIZE_SYSTEM_PROMPT =
             "你是一位专业的简历优化助手。请优化以下简历模块内容，目标岗位是 %s，模块类型是 %s。\n" +
+            MODULE_WRITING_RULES + "\n" +
             "请返回优化后的 JSON 对象，保持原有的数据结构，只优化内容质量。\n" +
             "直接返回 JSON 对象，不要包含其他文字。可以用 ```json ``` 包裹。";
 
     private static final String SCORE_SYSTEM_PROMPT =
             "你是一位专业的简历评估助手。请对以下简历内容进行评分，目标岗位是 %s。\n" +
+            "评分必须严格、克制，不要鼓励式评分。请按真实招聘筛选标准判断：\n" +
+            "1. 低质量简历应落在 40-65 分区间，例如只有笼统职责、缺少项目细节、缺少量化结果或岗位匹配证据。\n" +
+            "2. 70 分以上需要具备完整模块、清晰职责、明确技术栈和可验证成果。\n" +
+            "3. 80 分以上必须同时满足：基础信息完整、工作/项目经历具体、个人贡献清楚、技术实现可信、有量化结果、与目标岗位高度匹配。\n" +
+            "4. 不要因为格式完整就给高分；内容空泛、只有标签或只有项目背景时必须扣分。\n\n" +
             "请返回 JSON 格式的评分结果，包含：\n" +
             "- score：总分（0-100）\n" +
             "- dimensions：维度评分\n" +
@@ -88,6 +102,8 @@ public class ResumeAiServiceImpl implements ResumeAiService {
             "你是一位专业的简历顾问助手。用户正在编辑简历，以下是当前简历的模块内容摘要：\n%s\n\n" +
             "请根据用户的问题提供建议。回答要简洁专业。\n" +
             "如果用户明确要求你修改、补充、润色、重写或填写简历内容，请调用 proposeResumePatch 工具生成待确认的修改提案。\n" +
+            "调用 proposeResumePatch 时必须遵守前端字段结构：education 的在校经历写入 activities，不要写 highlights；work 和 project 的正文写入 description；不要新增前端没有使用的字段。\n" +
+            MODULE_WRITING_RULES + "\n" +
             "工具只用于提出修改，不会保存简历；用户确认前不要声称已经修改完成。";
 
     private static final String IMPORT_PARSE_PROMPT =
@@ -102,6 +118,7 @@ public class ResumeAiServiceImpl implements ResumeAiService {
     private static final String WHOLE_OPTIMIZE_PROMPT =
             "你是一位专业的简历优化助手。请对以下完整简历内容进行整体优化。%s\n\n" +
             "当前简历模块：\n%s\n\n" +
+            MODULE_WRITING_RULES + "\n" +
             "请返回 JSON 格式的优化建议，包含：\n" +
             "- globalSuggestions：全局建议列表（字符串数组）\n" +
             "- optimizedSections：优化后的模块数组，每个元素包含 sectionType 和 sectionData\n\n" +
@@ -115,6 +132,14 @@ public class ResumeAiServiceImpl implements ResumeAiService {
 
     private static final int MAX_AI_SECTION_VALUE_LENGTH = 2000;
 
+    private static final int MAX_HIGHLIGHT_COUNT = 3;
+
+    private static final int MAX_HIGHLIGHT_LENGTH = 24;
+
+    private static final Pattern HTML_LIST_PATTERN = Pattern.compile("<ul>.*<li>.*</li>.*</ul>", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern SENTENCE_SPLIT_PATTERN = Pattern.compile("[。；;\\n]+");
+
     private static final Pattern INLINE_FILE_DATA_PATTERN =
             Pattern.compile("^data:[^;]+;base64,.*", Pattern.DOTALL);
 
@@ -123,8 +148,6 @@ public class ResumeAiServiceImpl implements ResumeAiService {
     private final ResumeSectionMapper resumeSectionMapper;
     private final UserMapper userMapper;
     private final JwtUtils jwtUtils;
-    private final JobMapper jobMapper;
-    private final JobAnalysisMapper jobAnalysisMapper;
     private final ResumeChatMessageMapper chatMessageMapper;
     private final ObjectMapper objectMapper;
 
@@ -170,6 +193,7 @@ public class ResumeAiServiceImpl implements ResumeAiService {
             section.setSectionType((String) item.get("sectionType"));
             @SuppressWarnings("unchecked")
             Map<String, Object> sectionData = (Map<String, Object>) item.get("sectionData");
+            sectionData = normalizeSectionDataMap(section.getSectionType(), sectionData);
             section.setSectionData(sectionData);
             section.setSortOrder(i);
             section.setAiGenerated(1);
@@ -194,32 +218,13 @@ public class ResumeAiServiceImpl implements ResumeAiService {
                 targetPosition != null ? targetPosition : "未知岗位",
                 request.getSectionType());
 
-        if (request.getJobId() != null) {
-            Job job = jobMapper.selectById(request.getJobId());
-            if (job == null) {
-                throw new BusinessException(ErrorCode.JOB_NOT_FOUND_ERROR);
-            }
-            JobAnalysis jobAnalysis = jobAnalysisMapper.selectOne(
-                    Wrappers.lambdaQuery(JobAnalysis.class)
-                            .eq(JobAnalysis::getJobId, request.getJobId()));
-
-            if (jobAnalysis != null) {
-                String jobContext = String.format(
-                        "\n\n目标岗位信息：\n职位名称：%s\n岗位要求：%s\n核心技能：%s\n面试重点：%s\n请针对以上岗位要求进行优化。",
-                        job.getTitle(),
-                        jobAnalysis.getRequirementSummary() != null ? jobAnalysis.getRequirementSummary() : "",
-                        jobAnalysis.getCoreSkills() != null ? jobAnalysis.getCoreSkills() : "",
-                        jobAnalysis.getInterviewFocus() != null ? jobAnalysis.getInterviewFocus() : "");
-                systemPrompt += jobContext;
-            }
-        }
-
         String aiResponse = callAi(systemPrompt, sectionDataJson);
         log.debug("AI 优化模块响应: {}", StringUtils.abbreviate(aiResponse, 1000));
 
         String json = extractJsonFromResponse(aiResponse);
         try {
-            return objectMapper.readValue(json, Object.class);
+            Object optimized = objectMapper.readValue(json, Object.class);
+            return normalizeOptimizedSectionData(request.getSectionType(), optimized);
         } catch (JsonProcessingException e) {
             log.error("AI 优化模块响应解析失败，提取后 JSON: {}，原始响应: {}", json, aiResponse, e);
             throw new BusinessException(ErrorCode.AI_RESPONSE_PARSE_ERROR,
@@ -229,6 +234,7 @@ public class ResumeAiServiceImpl implements ResumeAiService {
 
     @Override
     public AiScoreVO scoreResume(List<SectionVO> sections, String targetPosition) {
+        ResumeQualitySignals qualitySignals = analyzeResumeQuality(sections, targetPosition);
         List<SectionVO> truncatedSections = sections.stream()
                 .map(this::toTruncatedSectionForAi)
                 .collect(Collectors.toList());
@@ -247,7 +253,8 @@ public class ResumeAiServiceImpl implements ResumeAiService {
 
         String json = extractJsonFromResponse(aiResponse);
         try {
-            return objectMapper.readValue(json, AiScoreVO.class);
+            AiScoreVO score = objectMapper.readValue(json, AiScoreVO.class);
+            return applyScoreCaps(score, qualitySignals);
         } catch (JsonProcessingException e) {
             log.error("AI 评分响应解析失败，提取后 JSON: {}，原始响应: {}", json, aiResponse, e);
             throw new BusinessException(ErrorCode.AI_RESPONSE_PARSE_ERROR,
@@ -409,22 +416,6 @@ public class ResumeAiServiceImpl implements ResumeAiService {
         Integer beforeScore = beforeScoreResult.getScore();
 
         String jobContext = "";
-        if (request.getJobId() != null) {
-            Job job = jobMapper.selectById(request.getJobId());
-            if (job != null) {
-                JobAnalysis jobAnalysis = jobAnalysisMapper.selectOne(
-                        Wrappers.lambdaQuery(JobAnalysis.class)
-                                .eq(JobAnalysis::getJobId, request.getJobId()));
-                if (jobAnalysis != null) {
-                    jobContext = String.format(
-                            "\n\n目标岗位信息：\n职位名称：%s\n岗位要求：%s\n核心技能：%s\n面试重点：%s\n请针对以上岗位要求进行优化。",
-                            job.getTitle(),
-                            jobAnalysis.getRequirementSummary() != null ? jobAnalysis.getRequirementSummary() : "",
-                            jobAnalysis.getCoreSkills() != null ? jobAnalysis.getCoreSkills() : "",
-                            jobAnalysis.getInterviewFocus() != null ? jobAnalysis.getInterviewFocus() : "");
-                }
-            }
-        }
 
         if (request.getOptimizeGoal() != null && !request.getOptimizeGoal().isBlank()) {
             jobContext += "\n\n用户优化目标：" + request.getOptimizeGoal();
@@ -476,6 +467,7 @@ public class ResumeAiServiceImpl implements ResumeAiService {
                         sectionData.put("avatar", origAvatar);
                     }
                 }
+                sectionData = normalizeSectionDataMap((String) item.get("sectionType"), sectionData);
                 sectionVO.setSectionData(sectionData);
                 sectionVO.setSortOrder(i);
                 sectionVO.setAiGenerated(1);
@@ -489,6 +481,246 @@ public class ResumeAiServiceImpl implements ResumeAiService {
         vo.setGlobalSuggestions(globalSuggestions != null ? globalSuggestions : new ArrayList<>());
         vo.setOptimizedSections(optimizedSections);
         return vo;
+    }
+
+    private Object normalizeOptimizedSectionData(String sectionType, Object optimized) {
+        if (optimized instanceof List<?> list) {
+            List<Object> normalized = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof Map<?, ?> map) {
+                    normalized.add(normalizeSectionDataMap(sectionType, toStringKeyMap(map)));
+                } else {
+                    normalized.add(item);
+                }
+            }
+            return normalized;
+        }
+        if (optimized instanceof Map<?, ?> map) {
+            return normalizeSectionDataMap(sectionType, toStringKeyMap(map));
+        }
+        return optimized;
+    }
+
+    private Map<String, Object> normalizeSectionDataMap(String sectionType, Map<String, Object> sectionData) {
+        if (sectionData == null) {
+            return null;
+        }
+        Map<String, Object> normalized = new LinkedHashMap<>(sectionData);
+        if ("education".equals(sectionType)) {
+            normalizeEducationActivities(normalized);
+        } else {
+            normalizeHighlights(normalized);
+        }
+        if ("work".equals(sectionType) || "project".equals(sectionType)) {
+            Object description = normalized.get("description");
+            if (description != null) {
+                normalized.put("description", normalizeDescriptionList(description.toString()));
+            }
+        }
+        return normalized;
+    }
+
+    private void normalizeEducationActivities(Map<String, Object> sectionData) {
+        Object activities = sectionData.get("activities");
+        if (activities == null) {
+            activities = sectionData.remove("description");
+        }
+        if (activities == null) {
+            activities = sectionData.remove("highlights");
+        } else {
+            sectionData.remove("highlights");
+        }
+        if (activities != null) {
+            sectionData.put("activities", normalizeDescriptionList(toDescriptionText(activities)));
+        }
+    }
+
+    private String toDescriptionText(Object value) {
+        if (value instanceof List<?> list) {
+            return list.stream()
+                    .filter(item -> item != null && StringUtils.isNotBlank(item.toString()))
+                    .map(item -> item.toString().trim())
+                    .collect(Collectors.joining("。"));
+        }
+        return value == null ? "" : value.toString();
+    }
+
+    private Map<String, Object> toStringKeyMap(Map<?, ?> source) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        source.forEach((key, value) -> {
+            if (key != null) {
+                result.put(key.toString(), value);
+            }
+        });
+        return result;
+    }
+
+    private void normalizeHighlights(Map<String, Object> sectionData) {
+        Object highlights = sectionData.get("highlights");
+        if (!(highlights instanceof List<?> list)) {
+            return;
+        }
+        List<String> cleaned = list.stream()
+                .filter(item -> item != null && StringUtils.isNotBlank(item.toString()))
+                .map(item -> item.toString().trim())
+                .filter(item -> item.length() <= MAX_HIGHLIGHT_LENGTH)
+                .limit(MAX_HIGHLIGHT_COUNT)
+                .collect(Collectors.toList());
+        if (cleaned.isEmpty()) {
+            sectionData.remove("highlights");
+            return;
+        }
+        sectionData.put("highlights", cleaned);
+    }
+
+    private String normalizeDescriptionList(String description) {
+        String text = description == null ? "" : description.trim();
+        if (StringUtils.isBlank(text)) {
+            return "";
+        }
+        if (HTML_LIST_PATTERN.matcher(text).find()) {
+            return text;
+        }
+        List<String> points = SENTENCE_SPLIT_PATTERN.splitAsStream(text)
+                .map(String::trim)
+                .filter(StringUtils::isNotBlank)
+                .limit(5)
+                .collect(Collectors.toList());
+        if (points.isEmpty()) {
+            return text;
+        }
+        return points.stream()
+                .map(point -> "<li>" + point + "。</li>")
+                .collect(Collectors.joining("", "<ul>", "</ul>"));
+    }
+
+    private ResumeQualitySignals analyzeResumeQuality(List<SectionVO> sections, String targetPosition) {
+        if (sections == null || sections.isEmpty()) {
+            return new ResumeQualitySignals(true, true, true, 0);
+        }
+        boolean missingBasicInfo = isMissingBasicInfo(sections, targetPosition);
+        int experiencePointCount = 0;
+        boolean hasExperienceSection = false;
+        boolean hasQuantifiedResult = false;
+        for (SectionVO section : sections) {
+            if (section == null || section.getSectionData() == null) {
+                continue;
+            }
+            String sectionType = section.getSectionType();
+            if ("work".equals(sectionType) || "project".equals(sectionType)) {
+                hasExperienceSection = true;
+                Object description = section.getSectionData().get("description");
+                experiencePointCount += countListItems(description);
+                hasQuantifiedResult = hasQuantifiedResult || containsQuantifiedResult(section.getSectionData());
+            }
+        }
+        boolean weakExperience = hasExperienceSection && experiencePointCount < 3;
+        boolean lacksQuantifiedResult = hasExperienceSection && !hasQuantifiedResult;
+        return new ResumeQualitySignals(missingBasicInfo, weakExperience, lacksQuantifiedResult, experiencePointCount);
+    }
+
+    private AiScoreVO applyScoreCaps(AiScoreVO score, ResumeQualitySignals qualitySignals) {
+        if (score == null || qualitySignals == null) {
+            return score;
+        }
+        int cap = 100;
+        List<String> extraSuggestions = new ArrayList<>();
+        if (qualitySignals.missingBasicInfo()) {
+            cap = Math.min(cap, 60);
+            extraSuggestions.add("补全姓名、目标岗位等基础信息后再评估简历竞争力。");
+        }
+        if (qualitySignals.weakExperience()) {
+            cap = Math.min(cap, 70);
+            extraSuggestions.add("项目经历和工作经历需要补充具体负责内容、技术实现和结果，避免只写背景或笼统职责。");
+        }
+        if (qualitySignals.lacksQuantifiedResult()) {
+            cap = Math.min(cap, 75);
+            extraSuggestions.add("补充可验证的量化结果，例如性能提升、规模、效率、用户量或交付成果。");
+        }
+        if (cap == 100) {
+            return score;
+        }
+        score.setScore(capValue(score.getScore(), cap));
+        AiScoreVO.ScoreDimensions dimensions = score.getDimensions();
+        if (dimensions != null) {
+            dimensions.setCompleteness(capValue(dimensions.getCompleteness(), cap));
+            dimensions.setProfessionalism(capValue(dimensions.getProfessionalism(), Math.min(cap, 75)));
+            dimensions.setMatching(capValue(dimensions.getMatching(), cap));
+        }
+        List<String> suggestions = score.getSuggestions() == null ? new ArrayList<>() : new ArrayList<>(score.getSuggestions());
+        for (String suggestion : extraSuggestions) {
+            if (!suggestions.contains(suggestion)) {
+                suggestions.add(suggestion);
+            }
+        }
+        score.setSuggestions(suggestions);
+        return score;
+    }
+
+    private Integer capValue(Integer value, int cap) {
+        if (value == null) {
+            return null;
+        }
+        return Math.min(value, cap);
+    }
+
+    private boolean isMissingBasicInfo(List<SectionVO> sections, String targetPosition) {
+        Map<String, Object> basicData = sections.stream()
+                .filter(section -> section != null && "basic".equals(section.getSectionType()))
+                .map(SectionVO::getSectionData)
+                .filter(data -> data != null)
+                .findFirst()
+                .orElse(Map.of());
+        boolean missingName = isBlankValue(basicData.get("name"));
+        boolean missingTarget = isBlankValue(targetPosition) && isBlankValue(basicData.get("targetPosition"));
+        return missingName || missingTarget;
+    }
+
+    private int countListItems(Object value) {
+        if (value == null) {
+            return 0;
+        }
+        if (value instanceof List<?> list) {
+            return list.size();
+        }
+        String text = value.toString();
+        Matcher matcher = Pattern.compile("<li\\b[^>]*>", Pattern.CASE_INSENSITIVE).matcher(text);
+        int count = 0;
+        while (matcher.find()) {
+            count++;
+        }
+        if (count > 0) {
+            return count;
+        }
+        return (int) SENTENCE_SPLIT_PATTERN.splitAsStream(text)
+                .map(String::trim)
+                .filter(StringUtils::isNotBlank)
+                .count();
+    }
+
+    private boolean containsQuantifiedResult(Object value) {
+        if (value == null) {
+            return false;
+        }
+        if (value instanceof Map<?, ?> map) {
+            return map.values().stream().anyMatch(this::containsQuantifiedResult);
+        }
+        if (value instanceof List<?> list) {
+            return list.stream().anyMatch(this::containsQuantifiedResult);
+        }
+        String text = value.toString();
+        return Pattern.compile("\\d|[一二三四五六七八九十百千万]+(个|项|次|人|天|周|月|年|倍|%|％)").matcher(text).find();
+    }
+
+    private boolean isBlankValue(Object value) {
+        return value == null || StringUtils.isBlank(value.toString());
+    }
+
+    private record ResumeQualitySignals(
+            boolean missingBasicInfo,
+            boolean weakExperience,
+            boolean lacksQuantifiedResult,
+            int experiencePointCount) {
     }
 
     private String extractTargetPosition(List<SectionVO> sections) {
