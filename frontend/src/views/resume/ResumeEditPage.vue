@@ -362,6 +362,53 @@ function openOptimize(type: SectionType) {
   optimizeVisible.value = true
 }
 
+interface SkillCategoryLike {
+  name?: string
+  category?: string
+  items?: string[]
+  skills?: string[]
+  [key: string]: unknown
+}
+
+function normalizeSkillsData(data: unknown): Record<string, unknown> {
+  if (Array.isArray(data)) {
+    const categories: SkillCategoryLike[] = []
+    for (const item of data) {
+      if (typeof item === 'object' && item !== null) {
+        const obj = item as SkillCategoryLike
+        categories.push({
+          name: (obj.name || obj.category || '技能') as string,
+          items: (obj.items || obj.skills || []) as string[],
+        })
+      } else if (typeof item === 'string') {
+        if (categories.length === 0) {
+          categories.push({ name: '技能', items: [item] })
+        } else {
+          const cat = categories[categories.length - 1]
+          if (!cat) {
+            categories.push({ name: '技能', items: [item] })
+          } else {
+            if (!cat.items) cat.items = []
+            cat.items.push(item)
+          }
+        }
+      }
+    }
+    return categories.length > 0 ? { categories } : { categories: [] }
+  }
+  if (typeof data === 'object' && data !== null) {
+    const obj = data as Record<string, unknown>
+    if (obj.categories) {
+      return obj
+    }
+    if (obj.name || obj.items) {
+      return { categories: [{ name: obj.name || '技能', items: obj.items || [] }] }
+    }
+    return obj
+  }
+  return { categories: [] }
+}
+
 function handleOptimizeApplied(type: SectionType, data: Record<string, unknown> | Record<string, unknown>[]) {
   switch (type) {
     case 'basic': {
@@ -385,8 +432,8 @@ function handleOptimizeApplied(type: SectionType, data: Record<string, unknown> 
       break
     }
     case 'skills': {
-      const obj = Array.isArray(data) ? Object.assign({}, ...data) : data as Record<string, unknown>
-      skillsData.value = { ...skillsData.value, ...obj }
+      const normalized = normalizeSkillsData(data)
+      skillsData.value = { ...skillsData.value, ...normalized }
       break
     }
     case 'summary': {
@@ -417,7 +464,7 @@ function handleWholeOptimizeApplied(sections: SectionVO[]) {
     const opt = grouped.project
     projectItems.value = projectItems.value.map((orig, i) => ({ ...orig, ...(opt[i] ?? {}) }))
   }
-  if (grouped.skills?.[0]) skillsData.value = { ...skillsData.value, ...grouped.skills[0] }
+  if (grouped.skills?.[0]) skillsData.value = { ...skillsData.value, ...normalizeSkillsData(grouped.skills[0]) }
   if (grouped.summary?.[0]) summaryData.value = { ...summaryData.value, ...grouped.summary[0] }
   ElMessage.success('已应用整份简历优化结果，请记得保存')
 }
@@ -503,8 +550,7 @@ function handleExtracted(sectionType: SectionType, sectionData: Record<string, u
       break
     }
     case 'skills': {
-      const obj = Array.isArray(sectionData) ? Object.assign({}, ...sectionData) : sectionData
-      skillsData.value = { ...skillsData.value, ...obj }
+      skillsData.value = { ...skillsData.value, ...normalizeSkillsData(sectionData) }
       break
     }
     case 'summary': {

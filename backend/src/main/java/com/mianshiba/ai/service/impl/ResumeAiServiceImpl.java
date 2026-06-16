@@ -55,7 +55,7 @@ public class ResumeAiServiceImpl implements ResumeAiService {
             模块化写作规则：
             1. basic：只处理姓名、联系方式、目标岗位、城市等短字段，不生成经历或亮点。
             2. education：只处理 school、major、degree、startDate、endDate、gpa、activities 等前端教育字段；在校经历必须写入 activities，使用 HTML 列表 <ul><li>...</li></ul>，可包含课程、竞赛、奖项、社团、学生工作、在校项目或活动；不要输出 highlights 作为正文。
-            3. skills：只整理技能分类和熟练度，不生成项目成果，不虚构未出现的技术栈。
+            3. skills：必须使用固定的 JSON 结构 { "categories": [{"name": "分类名", "items": ["技能1", "技能2"]}] }；categories 数组至少包含一个分类；不要使用扁平数组或直接列出技能，必须按分类组织；只整理技能分类和熟练度，不生成项目成果，不虚构未出现的技术栈。
             4. work：description 必须是 HTML 列表 <ul><li>...</li></ul>；每条说明负责/参与了什么、使用什么技术/方法、产生什么结果；highlights 只能作为短标签，最多 3 条。
             5. project：description 必须是 HTML 列表 <ul><li>...</li></ul>；每条说明项目职责、技术实现、结果/价值；必须突出个人贡献，不能只写平台背景。
             6. summary：输出 2-4 句短摘要，突出岗位方向、核心技术栈、项目/实习亮点和求职匹配度，不堆砌标签。
@@ -487,6 +487,9 @@ public class ResumeAiServiceImpl implements ResumeAiService {
     }
 
     private Object normalizeOptimizedSectionData(String sectionType, Object optimized) {
+        if ("skills".equals(sectionType)) {
+            return normalizeSkillsSectionData(optimized);
+        }
         if (optimized instanceof List<?> list) {
             List<Object> normalized = new ArrayList<>();
             for (Object item : list) {
@@ -521,6 +524,73 @@ public class ResumeAiServiceImpl implements ResumeAiService {
             }
         }
         return normalized;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Object normalizeSkillsSectionData(Object optimized) {
+        if (optimized instanceof List<?> list) {
+            List<Map<String, Object>> categories = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof Map<?, ?> itemMap) {
+                    Map<String, Object> cat = new LinkedHashMap<>();
+                    Object name = itemMap.get("name");
+                    if (name == null) name = itemMap.get("category");
+                    cat.put("name", name instanceof String && !((String) name).isBlank() ? name : "技能");
+                    Object items = itemMap.get("items");
+                    if (items == null) items = itemMap.get("skills");
+                    cat.put("items", items instanceof List<?> l ? new ArrayList<>(l) : List.of());
+                    categories.add(cat);
+                } else if (item instanceof String s) {
+                    if (categories.isEmpty()) {
+                        Map<String, Object> cat = new LinkedHashMap<>();
+                        cat.put("name", "技能");
+                        cat.put("items", new ArrayList<>(List.of(s)));
+                        categories.add(cat);
+                    } else {
+                        Object existingItems = categories.get(categories.size() - 1).get("items");
+                        if (existingItems instanceof List existing) {
+                            existing.add(s);
+                        }
+                    }
+                }
+            }
+            if (categories.isEmpty()) {
+                Map<String, Object> fallback = new LinkedHashMap<>();
+                fallback.put("categories", List.of());
+                return fallback;
+            }
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("categories", categories);
+            return result;
+        }
+        if (optimized instanceof Map<?, ?> map) {
+            if (map.containsKey("categories")) {
+                return normalizeSectionDataMap("skills", toStringKeyMap(map));
+            }
+            if (map.containsKey("name") || map.containsKey("items")) {
+                Map<String, Object> cat = new LinkedHashMap<>();
+                Object name = map.get("name");
+                if (name == null) name = map.get("category");
+                cat.put("name", name instanceof String && !((String) name).isBlank() ? name : "技能");
+                Object items = map.get("items");
+                if (items == null) items = map.get("skills");
+                cat.put("items", items instanceof List<?> l ? new ArrayList<>(l) : List.of());
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("categories", List.of(cat));
+                return result;
+            }
+            Map<String, Object> cat = new LinkedHashMap<>();
+            cat.put("name", "技能");
+            List<String> skillItems = map.values().stream()
+                    .filter(v -> v instanceof String)
+                    .map(Object::toString)
+                    .collect(Collectors.toList());
+            cat.put("items", skillItems.isEmpty() ? List.of() : skillItems);
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("categories", List.of(cat));
+            return result;
+        }
+        return optimized;
     }
 
     private void normalizeEducationActivities(Map<String, Object> sectionData) {
