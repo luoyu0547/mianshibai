@@ -262,6 +262,7 @@ public class ResumeAiServiceImpl implements ResumeAiService {
         log.debug("AI 评分响应: {}", StringUtils.abbreviate(aiResponse, 1000));
 
         String json = extractJsonFromResponse(aiResponse);
+        json = normalizeScoreDimensions(json);
         try {
             AiScoreVO score = objectMapper.readValue(json, AiScoreVO.class);
             return applyScoreCaps(score, qualitySignals);
@@ -876,6 +877,86 @@ public class ResumeAiServiceImpl implements ResumeAiService {
 
     private String escapePercent(String value) {
         return value == null ? "" : value.replace("%", "%%");
+    }
+
+    /**
+     * AI may return dimensions as nested objects {score, comment} instead of flat fields.
+     * Flatten: {"completeness":{"score":65,"comment":"..."}} → {"completeness":65,"completenessComment":"..."}
+     */
+    private String normalizeScoreDimensions(String json) {
+        if (json == null || json.isBlank()) return json;
+        String[] dims = {"completeness", "professionalism", "matching"};
+        String result = json;
+        for (String dim : dims) {
+            String key = "\"" + dim + "\"";
+            int keyStart = result.indexOf(key);
+            if (keyStart < 0) continue;
+            int colonPos = result.indexOf(':', keyStart + key.length());
+            if (colonPos < 0) continue;
+            int valStart = colonPos + 1;
+            valStart = skipWhitespace(result, valStart);
+            if (valStart >= result.length()) continue;
+            if (result.charAt(valStart) == '{') {
+                int objEnd = findJsonObjectEnd(result, valStart);
+                if (objEnd < 0) continue;
+                String nestedObj = result.substring(valStart + 1, objEnd);
+                String score = extractJsonField(nestedObj, "score");
+                String comment = extractJsonField(nestedObj, "comment");
+                if (score != null) {
+                    result = result.substring(0, valStart) + score + ","
+                            + "\"" + dim + "Comment\": " + (comment != null ? comment : "\"\"")
+                            + result.substring(objEnd + 1);
+                }
+            }
+        }
+        return result;
+    }
+
+    private String extractJsonField(String jsonObj, String fieldName) {
+        String key = "\"" + fieldName + "\"";
+        int idx = jsonObj.indexOf(key);
+        if (idx < 0) return null;
+        int colon = jsonObj.indexOf(':', idx + key.length());
+        if (colon < 0) return null;
+        int valStart = colon + 1;
+        valStart = skipWhitespace(jsonObj, valStart);
+        if (valStart >= jsonObj.length()) return null;
+        if (jsonObj.charAt(valStart) == '"') {
+            int end = jsonObj.indexOf('"', valStart + 1);
+            if (end < 0) return null;
+            int esc = jsonObj.indexOf('\\', valStart + 1);
+            while (esc >= 0 && esc < end) {
+                end = jsonObj.indexOf('"', end + 1);
+                if (end < 0) return null;
+                esc = jsonObj.indexOf('\\', esc + 2);
+            }
+            return jsonObj.substring(valStart, end + 1);
+        }
+        int end = jsonObj.indexOf(',', valStart);
+        if (end < 0) end = jsonObj.length();
+        return jsonObj.substring(valStart, end).trim();
+    }
+
+    private int findJsonObjectEnd(String text, int start) {
+        int depth = 0;
+        boolean inString = false;
+        boolean escape = false;
+        for (int i = start; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (inString) {
+                if (escape) { escape = false; } else if (c == '\\') { escape = true; } else if (c == '"') { inString = false; }
+                continue;
+            }
+            if (c == '"') { inString = true; continue; }
+            if (c == '{') depth++;
+            else if (c == '}') { depth--; if (depth == 0) return i; }
+        }
+        return -1;
+    }
+
+    private int skipWhitespace(String text, int pos) {
+        while (pos < text.length() && Character.isWhitespace(text.charAt(pos))) pos++;
+        return pos;
     }
 
     private String extractJsonFromResponse(String text) {
