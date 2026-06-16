@@ -117,14 +117,21 @@ public class ResumeAiServiceImpl implements ResumeAiService {
             "请直接返回 JSON 数组，不要包含其他文字。可以用 ```json ``` 包裹。";
 
     private static final String WHOLE_OPTIMIZE_PROMPT =
-            "你是一位专业的简历优化助手。请对以下完整简历内容进行整体优化。%s\n\n" +
+            "你是一位专业的简历优化助手。请逐模块深度优化以下简历内容。\n\n" +
+            "用户优化方向：%s\n\n" +
             "当前简历模块：\n%s\n\n" +
+            "优化要求（严格执行）：\n" +
+            "1. 逐模块重写：每个模块都必须输出优化后的 sectionData，不要跳过任何模块\n" +
+            "2. 工作/项目经历：每条描述必须有具体的技术行为、个人贡献和量化结果（如 QPS 提升 30%、响应从 3s→0.8s）\n" +
+            "3. 自我评价：重写为 2-4 句，突出核心技术栈、项目亮点和岗位匹配度，去掉套话\n" +
+            "4. 技能标签：按前端/后端/工具等真实分类组织，不要臆造技术栈\n" +
+            "5. 教育经历：补全在校活动和亮点，使用 <ul><li>...</li></ul> HTML 格式\n" +
+            "6. 禁止笼统话术：不要使用'参与开发''协助完成'等模糊词，要写出具体负责了什么、用了什么技术、达成了什么效果\n" +
             MODULE_WRITING_RULES + "\n" +
-            "请返回 JSON 格式的优化建议，包含：\n" +
-            "- globalSuggestions：全局建议列表（字符串数组）\n" +
-            "- optimizedSections：优化后的模块数组，每个元素包含 sectionType 和 sectionData\n\n" +
-            "保持原有数据结构，只优化内容质量，增强 STAR 法则表达和量化成果。\n" +
-            "请直接返回 JSON 对象，不要包含其他文字。可以用 ```json ``` 包裹。";
+            "请返回 JSON 格式，包含：\n" +
+            "- globalSuggestions：全局建议列表（字符串数组，3-5 条具体建议，不能是套话）\n" +
+            "- optimizedSections：优化后的完整模块数组，每个元素包含 sectionType 和 sectionData\n\n" +
+            "必须返回完整 JSON，不要省略任何模块。可以用 ```json ``` 包裹。";
 
     private static final Pattern JSON_CODE_BLOCK_PATTERN =
             Pattern.compile("```(?:json)?\\s*\\n?(.*?)\\n?```", Pattern.DOTALL);
@@ -480,7 +487,12 @@ public class ResumeAiServiceImpl implements ResumeAiService {
 
         ResumeWholeOptimizeVO vo = new ResumeWholeOptimizeVO();
         vo.setBeforeScore(beforeScore);
-        vo.setEstimatedAfterScore(Math.min(100, beforeScore + 10));
+
+        List<SectionVO> truncatedOptimized = optimizedSections.stream()
+                .map(this::toTruncatedSectionForAi)
+                .collect(Collectors.toList());
+        AiScoreVO afterScoreResult = scoreResume(truncatedOptimized, targetPosition);
+        vo.setEstimatedAfterScore(afterScoreResult.getScore());
         vo.setGlobalSuggestions(globalSuggestions != null ? globalSuggestions : new ArrayList<>());
         vo.setOptimizedSections(optimizedSections);
         return vo;

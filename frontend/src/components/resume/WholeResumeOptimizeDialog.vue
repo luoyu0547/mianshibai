@@ -16,6 +16,7 @@ const emit = defineEmits<{
 
 const visible = ref(false)
 const loading = ref(false)
+const optimizeGoal = ref('')
 const result = ref<ResumeWholeOptimizeVO | null>(null)
 
 async function handleOptimize() {
@@ -23,6 +24,7 @@ async function handleOptimize() {
   try {
     const res = await optimizeWholeResume(props.resumeId, {
       resumeId: props.resumeId,
+      optimizeGoal: optimizeGoal.value || undefined,
     })
     result.value = res.data
   } finally {
@@ -40,6 +42,7 @@ function handleApply() {
 
 function open() {
   visible.value = true
+  optimizeGoal.value = ''
   handleOptimize()
 }
 
@@ -53,9 +56,11 @@ defineExpose({ open })
 
 <template>
   <el-dialog v-model="visible" title="整份简历 AI 优化" width="760px" @close="close">
-    <NbCard v-if="loading" variant="ai">
-      <NbLoadingBlock title="AI 正在分析简历结构、关键词和成果表达..." :rows="4" />
-    </NbCard>
+    <div v-if="loading" class="whole-optimize__loading">
+      <NbCard variant="ai">
+        <NbLoadingBlock title="AI 正在逐模块深度优化您的简历..." :rows="4" />
+      </NbCard>
+    </div>
 
     <div v-else-if="result" class="whole-optimize">
       <div class="whole-optimize__scores">
@@ -65,7 +70,7 @@ defineExpose({ open })
         </div>
         <div class="whole-optimize__arrow">→</div>
         <div class="whole-optimize__score-card whole-optimize__score-card--after">
-          <span>预估优化后</span>
+          <span>优化后评分</span>
           <strong>{{ result.estimatedAfterScore }}</strong>
         </div>
       </div>
@@ -81,7 +86,8 @@ defineExpose({ open })
     </div>
 
     <div v-else class="whole-optimize__empty">
-      暂无优化结果，请重新打开弹窗发起分析。
+      <p>暂无优化结果</p>
+      <NbButton variant="primary" @click="handleOptimize">重新分析</NbButton>
     </div>
 
     <template #footer>
