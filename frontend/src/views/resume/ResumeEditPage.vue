@@ -181,6 +181,7 @@
       <WholeResumeOptimizeDialog
         ref="wholeOptimizeRef"
         :resume-id="resumeId"
+        :original-sections="currentSectionVOs"
         @apply="handleWholeOptimizeApplied"
       />
 
@@ -348,6 +349,26 @@ const sectionDataMap = computed<Record<string, Record<string, unknown> | Record<
   skills: skillsData.value,
   summary: summaryData.value,
 }))
+
+const currentSectionVOs = computed<SectionVO[]>(() => {
+  const result: SectionVO[] = []
+  const add = (type: SectionType, data: unknown) => {
+    if (data && typeof data === 'object') {
+      result.push({
+        id: 0, resumeId: resumeId.value, sectionType: type,
+        sectionData: data as Record<string, unknown>, sortOrder: result.length,
+        aiGenerated: 0, createTime: '', updateTime: '',
+      })
+    }
+  }
+  add('basic', basicData.value)
+  for (const item of educationItems.value) add('education', item)
+  for (const item of workItems.value) add('work', item)
+  for (const item of projectItems.value) add('project', item)
+  add('skills', skillsData.value)
+  add('summary', summaryData.value)
+  return result
+})
 
 const pendingPatchCurrentData = computed<Record<string, unknown> | Record<string, unknown>[]>(() => {
   const type = pendingPatchProposal.value?.sectionType
