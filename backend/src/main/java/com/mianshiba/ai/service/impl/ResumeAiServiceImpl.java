@@ -122,7 +122,7 @@ public class ResumeAiServiceImpl implements ResumeAiService {
             "当前简历模块：\n%s\n\n" +
             "优化要求（严格执行）：\n" +
             "1. 逐模块重写：每个模块都必须输出优化后的 sectionData，不要跳过任何模块\n" +
-            "2. 工作/项目经历：每条描述必须有具体的技术行为、个人贡献和量化结果（如 QPS 提升 30%、响应从 3s→0.8s）\n" +
+            "2. 工作/项目经历：每条描述必须有具体的技术行为、个人贡献和量化结果（如 QPS 提升 30%%、响应从 3s 降至 0.8s）\n" +
             "3. 自我评价：重写为 2-4 句，突出核心技术栈、项目亮点和岗位匹配度，去掉套话\n" +
             "4. 技能标签：按前端/后端/工具等真实分类组织，不要臆造技术栈\n" +
             "5. 教育经历：补全在校活动和亮点，使用 <ul><li>...</li></ul> HTML 格式\n" +
@@ -169,7 +169,7 @@ public class ResumeAiServiceImpl implements ResumeAiService {
         String background = request.getBackgroundDescription() != null && !request.getBackgroundDescription().isBlank()
                 ? request.getBackgroundDescription().trim() : "无（AI 可自行生成合理内容）";
         String systemPrompt = String.format(GENERATE_SYSTEM_PROMPT,
-                request.getTargetPosition(), techDirection, workYears, background);
+                request.getTargetPosition(), techDirection, workYears, escapePercent(background));
         String userMessage = String.format("请为「%s」岗位生成一份简历。", request.getTargetPosition());
 
         String aiResponse = callAi(systemPrompt, userMessage);
@@ -438,7 +438,7 @@ public class ResumeAiServiceImpl implements ResumeAiService {
             throw new BusinessException(ErrorCode.RESUME_OPTIMIZE_ERROR);
         }
 
-        String systemPrompt = String.format(WHOLE_OPTIMIZE_PROMPT, jobContext, sectionsJson);
+        String systemPrompt = String.format(WHOLE_OPTIMIZE_PROMPT, escapePercent(jobContext), escapePercent(sectionsJson));
         String aiResponse = callAi(systemPrompt, "请优化这份简历。");
         log.debug("AI 整份优化响应: {}", StringUtils.abbreviate(aiResponse, 1000));
 
@@ -872,6 +872,10 @@ public class ResumeAiServiceImpl implements ResumeAiService {
             return;
         }
         log.error(message, e);
+    }
+
+    private String escapePercent(String value) {
+        return value == null ? "" : value.replace("%", "%%");
     }
 
     private String extractJsonFromResponse(String text) {
