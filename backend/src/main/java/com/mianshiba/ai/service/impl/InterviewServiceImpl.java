@@ -444,6 +444,9 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     private String synthesizeQuietly(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
         try {
             return speechService.synthesizeToBase64(text);
         } catch (Exception e) {
