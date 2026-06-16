@@ -8,9 +8,12 @@
         <div class="profile-card__layout">
           <!-- 左侧头像区 -->
           <div class="profile-card__left">
-            <div class="profile-avatar">
+            <div class="profile-avatar" @click="avatarInputRef?.click()">
               <img v-if="form.userAvatar" :src="form.userAvatar" alt="用户头像" />
               <span v-else>{{ userStore.userInfo?.userName?.[0] || userStore.userInfo?.userAccount?.[0] || 'U' }}</span>
+              <div class="profile-avatar__overlay">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+              </div>
             </div>
             <input
               ref="avatarInputRef"
@@ -19,9 +22,6 @@
               accept="image/jpeg,image/png,image/webp"
               @change="handleAvatarChange"
             />
-            <NbButton variant="ghost" :loading="isUploadingAvatar" @click="avatarInputRef?.click()">
-              上传头像
-            </NbButton>
             <div class="profile-avatar__name">
               {{ userStore.userInfo?.userName || userStore.userInfo?.userAccount }}
             </div>
@@ -147,7 +147,6 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import MainLayout from '@/layouts/MainLayout.vue'
 import NbCard from '@/components/NbCard.vue'
-import NbButton from '@/components/NbButton.vue'
 import { useUserStore } from '@/stores/user'
 import type { UpdateProfileRequest } from '@/types/user'
 import { uploadAvatar } from '@/api/user'
@@ -344,6 +343,37 @@ async function handleSave() {
   border: var(--nb-border);
   box-shadow: var(--nb-shadow);
   margin-bottom: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.profile-avatar__overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  color: #fff;
+}
+
+.profile-avatar:hover .profile-avatar__overlay {
+  opacity: 1;
+}
+
+.profile-avatar__input {
+  display: none;
 }
 
 .profile-avatar__name {
