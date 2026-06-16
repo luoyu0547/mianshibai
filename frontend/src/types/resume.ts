@@ -140,6 +140,7 @@ export interface AiGenerateRequest {
   targetPosition: string
   techDirection?: string
   workYears?: number
+  backgroundDescription?: string
 }
 
 export interface AiOptimizeRequest {

@@ -67,6 +67,7 @@ public class ResumeAiServiceImpl implements ResumeAiService {
             "- 目标岗位：%s\n" +
             "- 技术方向：%s\n" +
             "- 工作年限：%s\n\n" +
+            "用户的真实背景描述（请基于此生成，不要编造）：\n%s\n\n" +
             MODULE_WRITING_RULES + "\n" +
             "请以 JSON 数组格式返回，每个元素包含 sectionType 和 sectionData 字段。\n" +
             "sectionType 可选值：basic, education, work, project, skills, summary\n" +
@@ -158,8 +159,10 @@ public class ResumeAiServiceImpl implements ResumeAiService {
 
         String techDirection = request.getTechDirection() != null ? request.getTechDirection() : "不限";
         String workYears = request.getWorkYears() != null ? String.valueOf(request.getWorkYears()) : "不限";
+        String background = request.getBackgroundDescription() != null && !request.getBackgroundDescription().isBlank()
+                ? request.getBackgroundDescription().trim() : "无（AI 可自行生成合理内容）";
         String systemPrompt = String.format(GENERATE_SYSTEM_PROMPT,
-                request.getTargetPosition(), techDirection, workYears);
+                request.getTargetPosition(), techDirection, workYears, background);
         String userMessage = String.format("请为「%s」岗位生成一份简历。", request.getTargetPosition());
 
         String aiResponse = callAi(systemPrompt, userMessage);

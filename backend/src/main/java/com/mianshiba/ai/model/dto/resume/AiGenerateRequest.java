@@ -21,4 +21,6 @@ public class AiGenerateRequest implements Serializable {
     private String techDirection;
 
     private Integer workYears;
+
+    private String backgroundDescription;
 }

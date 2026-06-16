@@ -67,7 +67,7 @@
         </NbCard>
       </div>
 
-      <el-dialog v-model="createDialogVisible" :title="createDialogTitle" width="480px">
+      <el-dialog v-model="createDialogVisible" :title="createDialogTitle" width="560px">
         <el-form label-position="top">
           <el-form-item label="简历标题">
             <el-input v-model="createForm.title" placeholder="请输入简历标题" />
@@ -81,6 +81,14 @@
             </el-form-item>
             <el-form-item label="工作年限">
               <el-input-number v-model="createForm.workYears" :min="0" :max="60" style="width: 100%;" />
+            </el-form-item>
+            <el-form-item label="个人背景描述">
+              <el-input
+                v-model="createForm.backgroundDescription"
+                type="textarea"
+                :rows="6"
+                placeholder="请简述你的真实教育经历、工作经历、项目经验和技能，以便 AI 基于你的实际情况生成简历&#10;&#10;例如：&#10;XX大学 计算机科学与技术 本科 2022年毕业&#10;某某科技公司 Java后端开发 1年&#10;负责用户模块开发，使用 Spring Boot + MyBatis，日均处理10万请求&#10;熟悉 Java、Spring Boot、MySQL、Redis、Vue"
+              />
             </el-form-item>
           </template>
         </el-form>
@@ -105,10 +113,12 @@ import NbEmptyState from '@/components/NbEmptyState.vue'
 import NbLoadingBlock from '@/components/NbLoadingBlock.vue'
 import NbStatusBadge from '@/components/NbStatusBadge.vue'
 import { useResumeStore } from '@/stores/resume'
+import { useUserStore } from '@/stores/user'
 import { aiGenerateResume as aiGenerateResumeApi } from '@/api/resume'
 
 const router = useRouter()
 const resumeStore = useResumeStore()
+const userStore = useUserStore()
 
 const createDialogVisible = ref(false)
 const createMode = ref<'blank' | 'ai'>('blank')
@@ -119,6 +129,7 @@ const createForm = reactive({
   targetPosition: '',
   techDirection: '',
   workYears: 0,
+  backgroundDescription: '',
 })
 
 const createDialogTitle = computed(() =>
@@ -136,9 +147,10 @@ function handleCreateCommand(command: string) {
 function openCreateDialog(mode: 'blank' | 'ai') {
   createMode.value = mode
   createForm.title = ''
-  createForm.targetPosition = ''
-  createForm.techDirection = ''
-  createForm.workYears = 0
+  createForm.targetPosition = userStore.userInfo?.targetPosition || ''
+  createForm.techDirection = userStore.userInfo?.techDirection || ''
+  createForm.workYears = userStore.userInfo?.workYears || 0
+  createForm.backgroundDescription = ''
   createDialogVisible.value = true
 }
 
@@ -162,6 +174,7 @@ async function handleCreate() {
         targetPosition: createForm.targetPosition,
         techDirection: createForm.techDirection || undefined,
         workYears: createForm.workYears || undefined,
+        backgroundDescription: createForm.backgroundDescription || undefined,
       })
       if (res.code === 0) {
         const id = res.data.id!
