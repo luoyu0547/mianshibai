@@ -154,11 +154,8 @@ onMounted(() => {
   resumeStore.fetchResumeList()
 })
 
-function handleResumeChange(resumeId: number) {
-  const resume = resumeStore.resumeList.find((r) => r.id === resumeId)
-  if (resume) {
-    interviewStore.fetchSession(resumeId)
-  }
+function handleResumeChange(_resumeId: number) {
+  // 选择简历时不需要调用 fetchSession（此时还没有面试会话）
 }
 
 async function handleSubmit() {
