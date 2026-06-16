@@ -1,7 +1,7 @@
 <template>
   <div class="interview-room">
     <div
-      v-if="remainingSeconds !== null"
+      v-if="remainingSeconds !== null && !isNaN(remainingSeconds)"
       class="interview-room__timer"
       :class="{ 'interview-room__timer--warning': remainingSeconds < 120 }"
     >
@@ -290,6 +290,7 @@ const {
 function startTimer() {
   if (!interviewStore.currentSession?.startedAt || !interviewStore.currentSession?.durationMinutes) return
   const started = new Date(interviewStore.currentSession.startedAt).getTime()
+  if (isNaN(started)) return
   const end = started + interviewStore.currentSession.durationMinutes * 60 * 1000
 
   const update = () => {
@@ -305,8 +306,9 @@ function startTimer() {
 }
 
 function formatTime(seconds: number): string {
+  if (isNaN(seconds) || seconds < 0) return '00:00'
   const m = Math.floor(seconds / 60)
-  const s = seconds % 60
+  const s = Math.floor(seconds % 60)
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
 }
 
@@ -395,6 +397,8 @@ async function startInterview() {
   try {
     const res = await interviewStore.startSession(sessionId.value)
     if (res.code === 0 && res.data) {
+      await interviewStore.fetchSession(sessionId.value)
+      startTimer()
       const question = res.data
       currentQuestion.value = question
       currentQuestionNo.value = question.questionNo
@@ -603,15 +607,21 @@ async function handleCancel() {
       cancelButtonText: '继续面试',
       type: 'warning',
     })
+  } catch {
+    return
+  }
+  try {
+    stopRecordingWithoutSubmit()
     cleanupAudio()
     if (currentAudio) {
       currentAudio.pause()
       currentAudio = null
     }
-    router.push('/interview')
+    await interviewStore.cancelSession(sessionId.value)
   } catch {
-    // cancelled
+    // 清理和取消即使失败也不影响跳转
   }
+  router.push('/interview')
 }
 
 function cleanupAudio() {
@@ -669,6 +679,7 @@ function cleanupAudio() {
   font-size: 18px;
   z-index: 9999;
   color: var(--nb-ink);
+  pointer-events: none;
 }
 
 .interview-room__timer--warning {
