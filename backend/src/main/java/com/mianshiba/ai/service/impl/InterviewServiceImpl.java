@@ -211,7 +211,7 @@ public class InterviewServiceImpl implements InterviewService {
 
         systemPrompt += buildJobContext(session);
 
-        String aiResponse = callAi(systemPrompt, "");
+        String aiResponse = callAi(systemPrompt, "请评估回答并决定下一步");
         String json = extractJsonFromResponse(aiResponse);
         Map<String, Object> decisionMap = parseJson(json, new TypeReference<Map<String, Object>>() {});
 
@@ -336,7 +336,7 @@ public class InterviewServiceImpl implements InterviewService {
 
         systemPrompt += buildJobContext(session);
 
-        String aiResponse = callAi(systemPrompt, "");
+        String aiResponse = callAi(systemPrompt, "请生成面试报告");
         String json = extractJsonFromResponse(aiResponse);
         Map<String, Object> reportMap = parseJson(json, new TypeReference<Map<String, Object>>() {});
 
